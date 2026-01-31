@@ -1,0 +1,19 @@
+{
+  "id": "telegram",
+  "name": "Telegram",
+  "version": "2.0.0",
+  "description": "Telegram integration via Telethon MTProto — 75+ tools for chats, messages, contacts, admin, media, and settings.",
+  "runtime": "python",
+  "entry": "__main__.py",
+  "tick_interval": 1200000,
+  "env": [
+    "TELEGRAM_API_ID",
+    "TELEGRAM_API_HASH"
+  ],
+  "dependencies": [
+    "telethon>=1.36.0",
+    "mcp>=1.0.0",
+    "pydantic>=2.0",
+    "aiosqlite>=0.20.0"
+  ]
+}
