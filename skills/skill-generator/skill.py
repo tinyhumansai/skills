@@ -523,6 +523,23 @@ async def _on_unload(ctx: SkillContext) -> None:
             pass
 
 
+async def _on_status(ctx: SkillContext) -> dict[str, Any]:
+    """Return current skill status information."""
+    state = ctx.get_state() or {}
+    skills_dir = _get_skills_dir()
+    skills_count = 0
+    if skills_dir.is_dir():
+        skills_count = len([
+            e for e in skills_dir.iterdir()
+            if e.is_dir() and not e.name.startswith(".")
+        ])
+    return {
+        "ready": True,
+        "skills_count": skills_count,
+        "generation_count": state.get("generation_count", 0),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Tool definitions
 # ---------------------------------------------------------------------------
@@ -701,6 +718,7 @@ skill = SkillDefinition(
         on_session_start=_on_session_start,
         on_before_message=_on_before_message,
         on_unload=_on_unload,
+        on_status=_on_status,
     ),
     tools=_TOOLS,
 )

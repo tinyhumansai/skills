@@ -295,6 +295,12 @@ class SkillServer:
                 await self._hooks.on_tick(self._create_context())
             return {"ok": True}
 
+        if method == "skill/status":
+            if not self._hooks or not self._hooks.on_status:
+                raise ValueError("Skill must implement on_status hook")
+            status = await self._hooks.on_status(self._create_context())
+            return {"status": status}
+
         if method == "skill/shutdown":
             # Schedule exit after responding
             asyncio.get_event_loop().call_later(0.1, lambda: sys.exit(0))

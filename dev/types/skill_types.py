@@ -221,6 +221,7 @@ UnloadHook = Callable[[SkillContext], Awaitable[None]]
 SessionHook = Callable[[SkillContext, str], Awaitable[None]]
 MessageHook = Callable[[SkillContext, str], Awaitable[str | None]]
 TickHook = Callable[[SkillContext], Awaitable[None]]
+StatusHook = Callable[[SkillContext], Awaitable[dict[str, Any]]]
 
 SetupStartHandler = Callable[[SkillContext], Awaitable[SetupStep]]
 SetupSubmitHandler = Callable[[SkillContext, str, dict[str, Any]], Awaitable[SetupResult]]
@@ -245,6 +246,7 @@ class SkillHooks(BaseModel):
     on_after_response: Optional[MessageHook] = None
     on_memory_flush: Optional[LoadHook] = None
     on_tick: Optional[TickHook] = None
+    on_status: StatusHook = Field(description="Returns current skill status information")
     on_setup_start: Optional[SetupStartHandler] = None
     on_setup_submit: Optional[SetupSubmitHandler] = None
     on_setup_cancel: Optional[SetupCancelHandler] = None

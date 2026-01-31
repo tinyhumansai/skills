@@ -104,6 +104,22 @@ async def _on_tick(ctx: Any) -> None:
     await on_skill_tick()
 
 
+async def _on_status(ctx: Any) -> dict[str, Any]:
+    """Return current skill status information."""
+    from .client.gh_client import get_client
+    try:
+        client = get_client()
+        return {
+            "authenticated": client.is_authed if client else False,
+            "username": client.username if client and client.is_authed else None,
+        }
+    except Exception:
+        return {
+            "authenticated": False,
+            "username": None,
+        }
+
+
 # ---------------------------------------------------------------------------
 # Skill definition
 # ---------------------------------------------------------------------------
@@ -119,6 +135,7 @@ skill = SkillDefinition(
         on_load=_on_load,
         on_unload=_on_unload,
         on_tick=_on_tick,
+        on_status=_on_status,
         on_setup_start=on_setup_start,
         on_setup_submit=on_setup_submit,
         on_setup_cancel=on_setup_cancel,

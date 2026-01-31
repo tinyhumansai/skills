@@ -95,6 +95,32 @@ async def _on_tick(ctx: Any) -> None:
     await on_skill_tick()
 
 
+async def _on_status(ctx: Any) -> dict[str, Any]:
+    """Return current skill status information."""
+    from .client import get_client
+    try:
+        client = get_client()
+        if client:
+            # Try to get user info to verify connection
+            me = await client.users.me()
+            return {
+                "connected": True,
+                "bot_name": me.get("name", "integration"),
+                "bot_id": me.get("id", ""),
+            }
+        return {
+            "connected": False,
+            "bot_name": None,
+            "bot_id": None,
+        }
+    except Exception:
+        return {
+            "connected": False,
+            "bot_name": None,
+            "bot_id": None,
+        }
+
+
 # ---------------------------------------------------------------------------
 # Skill definition
 # ---------------------------------------------------------------------------
@@ -110,6 +136,7 @@ skill = SkillDefinition(
         on_load=_on_load,
         on_unload=_on_unload,
         on_tick=_on_tick,
+        on_status=_on_status,
         on_setup_start=on_setup_start,
         on_setup_submit=on_setup_submit,
         on_setup_cancel=on_setup_cancel,

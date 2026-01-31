@@ -92,8 +92,9 @@ async def _on_load(ctx: Any) -> None:
         "apiHash": config.get("api_hash", os.environ.get("TELEGRAM_API_HASH", "")),
     }
 
-    # Pass set_state as a callback for host sync
-    def set_state_fn(partial: dict[str, Any]) -> None:
+    # Pass set_state as an async callback for host sync.
+    # sync.py awaits this callback, so it must be a coroutine.
+    async def set_state_fn(partial: dict[str, Any]) -> None:
         ctx.set_state(partial)
 
     await on_skill_load(params, set_state_fn=set_state_fn)
@@ -107,6 +108,20 @@ async def _on_unload(ctx: Any) -> None:
 async def _on_tick(ctx: Any) -> None:
     from .server import on_skill_tick
     await on_skill_tick()
+
+
+async def _on_status(ctx: Any) -> dict[str, Any]:
+    """Return current skill status information."""
+    from .state.store import get_state
+    state = get_state()
+    return {
+        "connection_status": state.connection_status,
+        "auth_status": state.auth_status,
+        "is_initialized": state.is_initialized,
+        "connection_error": state.connection_error,
+        "auth_error": state.auth_error,
+        "current_user": state.current_user.model_dump() if state.current_user else None,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -124,6 +139,7 @@ skill = SkillDefinition(
         on_load=_on_load,
         on_unload=_on_unload,
         on_tick=_on_tick,
+        on_status=_on_status,
         on_setup_start=on_setup_start,
         on_setup_submit=on_setup_submit,
         on_setup_cancel=on_setup_cancel,

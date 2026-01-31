@@ -101,6 +101,21 @@ async def _on_tick(ctx: Any) -> None:
     await on_skill_tick()
 
 
+async def _on_status(ctx: Any) -> dict[str, Any]:
+    """Return current skill status information."""
+    from .state.store import get_state
+    state = get_state()
+    return {
+        "connection_status": state.connection_status,
+        "is_initialized": state.is_initialized,
+        "connection_error": state.connection_error,
+        "account": state.account.model_dump() if state.account else None,
+        "is_syncing": state.is_syncing,
+        "last_sync": state.last_sync,
+        "total_unread": state.total_unread,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Skill definition
 # ---------------------------------------------------------------------------
@@ -116,6 +131,7 @@ skill = SkillDefinition(
         on_load=_on_load,
         on_unload=_on_unload,
         on_tick=_on_tick,
+        on_status=_on_status,
         on_setup_start=on_setup_start,
         on_setup_submit=on_setup_submit,
         on_setup_cancel=on_setup_cancel,
