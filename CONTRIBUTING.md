@@ -66,6 +66,9 @@ python -m dev.harness.runner skills/my-skill --verbose
 
 # Test setup flow interactively
 python test-setup.py skills/my-skill
+
+# Interactive server REPL — browse tools, call them live
+python test-server.py
 ```
 
 ### 6. Submit

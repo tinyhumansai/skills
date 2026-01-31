@@ -72,6 +72,7 @@ skills/                          # Repo root
 │   └── categories/
 ├── docs/                        # Developer documentation
 ├── test-setup.py                # Interactive setup flow tester
+├── test-server.py               # Interactive server REPL for tools
 ├── .github/                     # CI/CD and PR templates
 ├── CONTRIBUTING.md              # Contribution guidelines
 └── README.md                    # Project README
@@ -92,6 +93,9 @@ python -m dev.harness.runner skills/telegram --verbose
 
 # Test a skill's interactive setup flow
 python test-setup.py skills/telegram
+
+# Interactive server REPL — connect, browse tools, call them live
+python test-server.py
 
 # Security scan all skills
 python -m dev.security.scan_secrets

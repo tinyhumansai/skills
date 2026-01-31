@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any
 
 from telethon import TelegramClient
@@ -147,8 +148,36 @@ STEP_2FA = SetupStep(
 
 
 async def on_setup_start(ctx: Any) -> SetupStep:
-    """Return the first setup step."""
+    """Return the first setup step.
+
+    If TELEGRAM_API_ID and TELEGRAM_API_HASH are set in the environment,
+    skip the credentials step and jump straight to phone number.
+    """
     _reset_state()
+
+    env_id = os.environ.get("TELEGRAM_API_ID", "").strip()
+    env_hash = os.environ.get("TELEGRAM_API_HASH", "").strip()
+
+    if env_id and env_id.isdigit() and env_hash:
+        global _client, _api_id, _api_hash
+        _api_id = int(env_id)
+        _api_hash = env_hash
+
+        try:
+            _client = TelegramClient(
+                StringSession(),
+                _api_id,
+                _api_hash,
+                connection_retries=3,
+                request_retries=3,
+            )
+            await _client.connect()
+            log.info("Using API credentials from environment variables")
+            return STEP_PHONE
+        except Exception as exc:
+            log.warning("Env credentials failed (%s), falling back to manual entry", exc)
+            _reset_state()
+
     return STEP_CREDENTIALS
 
 

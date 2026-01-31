@@ -69,6 +69,9 @@ python -m dev.harness.runner skills/my-skill --verbose
 
 # Test a skill's interactive setup flow
 python test-setup.py skills/my-skill
+
+# Interactive server REPL — connect, browse tools, call them live
+python test-server.py
 ```
 
 ## skill.py Format
@@ -202,12 +205,13 @@ See [API Reference](docs/api-reference.md) for the full type definitions.
 All tools live in `dev/`. Install once: `pip install -e dev/`
 
 ```bash
-python -m dev.validate.validator                   # Validate all skills
-python -m dev.harness.runner skills/my-skill        # Test a specific skill
-python test-setup.py skills/my-skill                # Test setup flow interactively
-python -m dev.security.scan_secrets                 # Security scan all skills
-python -m dev.scaffold.new_skill                    # Scaffold a new skill
-python -m dev.catalog.build_catalog                 # Build skills catalog
+python -m dev.validate.validator                    # Validate all skills
+python -m dev.harness.runner skills/my-skill         # Test a specific skill
+python test-setup.py skills/my-skill                 # Test setup flow interactively
+python test-server.py                                # Interactive server REPL (Telegram)
+python -m dev.security.scan_secrets                  # Security scan all skills
+python -m dev.scaffold.new_skill                     # Scaffold a new skill
+python -m dev.catalog.build_catalog                  # Build skills catalog
 ```
 
 Or use CLI entry points: `skill-validate`, `skill-test`, `skill-scan`, `skill-new`, `skill-catalog`.
@@ -267,6 +271,7 @@ skills/                          # Repo root
 │   └── categories/              # Domain-specific generators
 ├── docs/                        # Developer documentation
 ├── test-setup.py                # Interactive setup flow tester
+├── test-server.py               # Interactive server REPL for tools
 ├── .github/                     # CI workflows + PR template
 ├── CONTRIBUTING.md              # How to contribute
 └── CLAUDE.md                    # Guidance for Claude Code
