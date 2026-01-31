@@ -2,6 +2,14 @@
 
 A plugin system for the [AlphaHuman](https://github.com/bnbpad/alphahuman) crypto community platform. Skills give the AI agent domain-specific knowledge, custom tools, and automated behaviors.
 
+## Why Skills?
+
+**Near real-time capabilities via events.** Skills hook into lifecycle events (`on_tick`, `on_before_message`, `on_after_response`) to react to changes as they happen — monitoring Telegram chats, tracking prices, or surfacing alerts without the user asking. The `on_tick` hook runs on a configurable interval (as low as 1 second), enabling continuous background monitoring.
+
+**Powerful memory through bulk summaries.** Skills persist data to SQLite and JSON files within their isolated `data/` directory. The `on_memory_flush` hook lets skills compress and summarize accumulated data before memory compaction, keeping context rich without ballooning token usage. Skills read and write structured data directly — no round-trips through the LLM.
+
+**Cost efficient by keeping logic in Python code.** Tool handlers, data transformations, API calls, and business logic are all written in Python — they execute as native code, not as LLM-generated text. The AI only sees tool definitions (name, description, JSON Schema parameters) and tool results (compact strings). This keeps prompts small and avoids spending tokens on logic that code handles better.
+
 ## How Skills Work
 
 A skill is a Python directory under `skills/` containing:
