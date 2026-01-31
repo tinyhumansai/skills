@@ -1,29 +1,29 @@
 # AlphaHuman Skills
 
-A plugin system for the [AlphaHuman](https://github.com/bnbpad/alphahuman) crypto community platform. Skills give the AI agent domain-specific knowledge, custom tools, and automated behaviors.
+A plugin system for the [AlphaHuman](https://github.com/bnbpad/alphahuman) platform. Skills give the AI agent domain-specific knowledge, custom tools, and automated behaviors.
 
-## Why Skills?
+## Features
 
-**Near real-time capabilities via events.** Skills hook into lifecycle events (`on_tick`, `on_before_message`, `on_after_response`) to react to changes as they happen — monitoring Telegram chats, tracking prices, or surfacing alerts without the user asking. The `on_tick` hook runs on a configurable interval (as low as 1 second), enabling continuous background monitoring.
+- **Near real-time capabilities via events.** Skills hook into lifecycle events (`on_tick`, `on_before_message`, `on_after_response`) to react to changes as they happen, monitoring Telegram chats, tracking prices, or surfacing alerts without the user asking. The `on_tick` hook runs on a configurable interval (as low as 1 second), enabling continuous background monitoring.
 
-**Powerful memory through bulk summaries.** Skills persist data to SQLite and JSON files within their isolated `data/` directory. The `on_memory_flush` hook lets skills compress and summarize accumulated data before memory compaction, keeping context rich without ballooning token usage. Skills read and write structured data directly — no round-trips through the LLM.
+- **Powerful memory through bulk summaries.** Skills persist data to SQLite and JSON files within their isolated `data/` directory. The `on_memory_flush` hook lets skills compress and summarize accumulated data before memory compaction, keeping context rich without ballooning token usage. Skills read and write structured data directly, no round-trips through the LLM.
 
-**Cost efficient by keeping logic in Python code.** Tool handlers, data transformations, API calls, and business logic are all written in Python — they execute as native code, not as LLM-generated text. The AI only sees tool definitions (name, description, JSON Schema parameters) and tool results (compact strings). This keeps prompts small and avoids spending tokens on logic that code handles better.
+- **Cost efficient by keeping logic in Python code.** Tool handlers, data transformations, API calls, and business logic are all written in Python, they execute as native code, not as LLM-generated text. The AI only sees tool definitions (name, description, JSON Schema parameters) and tool results (compact strings). This keeps prompts small and avoids spending tokens on logic that code handles better.
 
 ## How Skills Work
 
 A skill is a Python directory under `skills/` containing:
 
-| File | Required | Purpose |
-|------|----------|---------|
-| `skill.py` | Yes | Python module exporting a `SkillDefinition` with hooks, tools, and config |
-| `setup.py` | No | Interactive setup flow for configuration wizards (e.g., Telegram auth) |
-| `manifest.json` | No | Metadata for runtime skills (id, dependencies, env vars, setup config) |
+| File            | Required | Purpose                                                                   |
+| --------------- | -------- | ------------------------------------------------------------------------- |
+| `skill.py`      | Yes      | Python module exporting a `SkillDefinition` with hooks, tools, and config |
+| `setup.py`      | No       | Interactive setup flow for configuration wizards (e.g., Telegram auth)    |
+| `manifest.json` | No       | Metadata for runtime skills (id, dependencies, env vars, setup config)    |
 
 Skills register tools the AI can call, react to lifecycle events, persist data, and run periodic background tasks.
 
 ```
-skills/telegram/
+skills/<SKILLNAME>/
 ├── skill.py          # SkillDefinition with hooks and tools
 ├── setup.py          # Multi-step Telegram auth wizard
 ├── manifest.json     # Runtime config, dependencies, env vars
@@ -37,9 +37,9 @@ skills/telegram/
 
 ## Available Skills
 
-| Skill | Description | Setup |
-|-------|-------------|-------|
-| [`telegram`](skills/telegram/) | Telegram integration via Telethon MTProto — 75+ tools for chats, messages, contacts, admin, media, and settings | Required |
+| Skill                          | Description                                                                                                    | Setup    |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------- | -------- |
+| [`telegram`](skills/telegram/) | Telegram integration via Telethon MTProto, 75+ tools for chats, messages, contacts, admin, media, and settings | Required |
 
 ## Quick Start
 
@@ -78,7 +78,7 @@ python -m dev.harness.runner skills/my-skill --verbose
 # Test a skill's interactive setup flow
 python test-setup.py skills/my-skill
 
-# Interactive server REPL — connect, browse tools, call them live
+# Interactive server REPL, connect, browse tools, call them live
 python test-server.py
 ```
 
@@ -172,19 +172,19 @@ App Start ── on_load
 App Stop ── on_unload           on_tick ← runs every tick_interval ms
 ```
 
-| Hook | Can Transform? | Use Case |
-|------|:--------------:|----------|
-| `on_load` | | Load cached data at startup |
-| `on_unload` | | Persist state on shutdown |
-| `on_session_start` | | Report cached alerts, load prefs |
-| `on_session_end` | | Save session summary |
-| `on_before_message` | Yes | Annotate messages with context |
-| `on_after_response` | Yes | Append disclaimers to responses |
-| `on_memory_flush` | | Save data before memory compaction |
-| `on_tick` | | Background monitoring, periodic checks |
-| `on_setup_start` | | Return first setup step |
-| `on_setup_submit` | | Validate and process step submission |
-| `on_setup_cancel` | | Clean up on user cancel |
+| Hook                | Can Transform? | Use Case                               |
+| ------------------- | :------------: | -------------------------------------- |
+| `on_load`           |                | Load cached data at startup            |
+| `on_unload`         |                | Persist state on shutdown              |
+| `on_session_start`  |                | Report cached alerts, load prefs       |
+| `on_session_end`    |                | Save session summary                   |
+| `on_before_message` |      Yes       | Annotate messages with context         |
+| `on_after_response` |      Yes       | Append disclaimers to responses        |
+| `on_memory_flush`   |                | Save data before memory compaction     |
+| `on_tick`           |                | Background monitoring, periodic checks |
+| `on_setup_start`    |                | Return first setup step                |
+| `on_setup_submit`   |                | Validate and process step submission   |
+| `on_setup_cancel`   |                | Clean up on user cancel                |
 
 All hooks have a **10-second timeout**. See [Lifecycle docs](docs/lifecycle.md) for details.
 
@@ -238,22 +238,22 @@ Regex-based scanner that flags hardcoded secrets, `eval()`, direct filesystem ac
 
 ## Examples
 
-| Example | Pattern | Description |
-|---------|---------|-------------|
-| [`prompt-only`](examples/prompt-only/) | Prompt only | Gas optimizer using SKILL.md instructions (legacy format) |
-| [`tool-skill`](examples/tool-skill/) | Python skill | Gas estimator with `gas_estimate` tool and lifecycle hooks |
+| Example                                | Pattern      | Description                                                |
+| -------------------------------------- | ------------ | ---------------------------------------------------------- |
+| [`prompt-only`](examples/prompt-only/) | Prompt only  | Gas optimizer using SKILL.md instructions (legacy format)  |
+| [`tool-skill`](examples/tool-skill/)   | Python skill | Gas estimator with `gas_estimate` tool and lifecycle hooks |
 
 ## Documentation
 
-| Doc | Description |
-|-----|-------------|
-| [Getting Started](docs/getting-started.md) | Prerequisites, first skill, test, submit |
-| [Architecture](docs/architecture.md) | How the skill system loads, isolates, and runs skills |
-| [API Reference](docs/api-reference.md) | Complete SkillDefinition, SkillContext, SkillTool types |
-| [Lifecycle](docs/lifecycle.md) | Hook timing, execution order, timeout rules |
-| [Testing](docs/testing.md) | Validator, harness, mock context, security scanner |
-| [Python Skills](docs/python-skills.md) | Subprocess runtime and JSON-RPC protocol |
-| [Publishing](docs/publishing.md) | PR workflow, naming conventions, common rejections |
+| Doc                                        | Description                                             |
+| ------------------------------------------ | ------------------------------------------------------- |
+| [Getting Started](docs/getting-started.md) | Prerequisites, first skill, test, submit                |
+| [Architecture](docs/architecture.md)       | How the skill system loads, isolates, and runs skills   |
+| [API Reference](docs/api-reference.md)     | Complete SkillDefinition, SkillContext, SkillTool types |
+| [Lifecycle](docs/lifecycle.md)             | Hook timing, execution order, timeout rules             |
+| [Testing](docs/testing.md)                 | Validator, harness, mock context, security scanner      |
+| [Python Skills](docs/python-skills.md)     | Subprocess runtime and JSON-RPC protocol                |
+| [Publishing](docs/publishing.md)           | PR workflow, naming conventions, common rejections      |
 
 ## Repository Structure
 
