@@ -1,0 +1,9 @@
+{
+  "id": "skill-generator",
+  "name": "Skill Generator",
+  "version": "1.0.0",
+  "description": "Skill that creates new skills on-the-fly.",
+  "runtime": "python",
+  "entry": "__main__.py",
+  "dependencies": ["pydantic>=2.0"]
+}
