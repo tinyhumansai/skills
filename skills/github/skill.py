@@ -212,7 +212,7 @@ TOOL_CATEGORY_OPTIONS = [
         type="boolean",
         label="Releases",
         description="6 tools — create, delete, get, list releases and assets",
-        default=True,
+        default=False,
         group="tool_categories",
         tool_filter=[
             "create_release", "delete_release", "get_latest_release",
@@ -236,7 +236,7 @@ TOOL_CATEGORY_OPTIONS = [
         type="boolean",
         label="Actions & Workflows",
         description="9 tools — list, trigger, rerun, cancel workflows and view run logs",
-        default=True,
+        default=False,
         group="tool_categories",
         tool_filter=[
             "cancel_workflow_run", "get_run_logs", "get_workflow_run",
@@ -249,7 +249,7 @@ TOOL_CATEGORY_OPTIONS = [
         type="boolean",
         label="Notifications",
         description="4 tools — list notifications, mark read, and raw API access",
-        default=True,
+        default=False,
         group="tool_categories",
         tool_filter=[
             "gh_api", "list_notifications", "mark_all_notifications_read",
@@ -265,7 +265,7 @@ TOOL_CATEGORY_OPTIONS = [
 
 skill = SkillDefinition(
     name="github",
-    description="GitHub integration via PyGithub — 72 tools for repos, issues, PRs, releases, gists, actions, search, notifications, and raw API access.",
+    description="GitHub integration for repos, issues, PRs, releases, gists, actions, search, notifications, and raw API access.",
     version="1.0.0",
     has_setup=True,
     has_disconnect=True,

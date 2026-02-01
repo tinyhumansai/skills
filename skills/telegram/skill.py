@@ -199,7 +199,7 @@ TOOL_CATEGORY_OPTIONS = [
         type="boolean",
         label="Admin & Moderation",
         description="8 tools — promote/demote admins, ban/unban users, invite to groups",
-        default=True,
+        default=False,
         group="tool_categories",
         tool_filter=[
             "ban-user", "demote-admin", "get-admins", "get-banned-users",
@@ -211,7 +211,7 @@ TOOL_CATEGORY_OPTIONS = [
         type="boolean",
         label="Profile & Media",
         description="10 tools — profile photos, chat photos, user status, bot info, media info",
-        default=True,
+        default=False,
         group="tool_categories",
         tool_filter=[
             "delete-chat-photo", "delete-profile-photo", "edit-chat-photo",
@@ -224,7 +224,7 @@ TOOL_CATEGORY_OPTIONS = [
         type="boolean",
         label="Settings & Privacy",
         description="5 tools — privacy settings, profile updates, bot commands",
-        default=True,
+        default=False,
         group="tool_categories",
         tool_filter=[
             "get-privacy-settings", "resolve-username", "set-bot-commands",
