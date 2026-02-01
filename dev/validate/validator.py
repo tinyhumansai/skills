@@ -50,6 +50,8 @@ VALID_HOOKS = {
   "on_setup_cancel",
   "on_options_change",
   "on_disconnect",
+  "on_trigger_register",
+  "on_trigger_remove",
 }
 
 # ---------------------------------------------------------------------------
@@ -316,6 +318,54 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
         result.errors.append(
           f'Relationship "{rt.type}" references unknown target_type "{rt.target_type}"'
         )
+
+  # --- Validate trigger schema ---
+  if skill.trigger_schema is not None:
+    ts = skill.trigger_schema
+
+    # Unique trigger type identifiers
+    trigger_type_ids: set[str] = set()
+    for tt in ts.trigger_types:
+      if tt.type in trigger_type_ids:
+        result.errors.append(f'Duplicate trigger type "{tt.type}" in trigger_schema')
+      trigger_type_ids.add(tt.type)
+
+      if not tt.label:
+        result.errors.append(f'Trigger type "{tt.type}": label is required')
+      if not tt.description:
+        result.errors.append(f'Trigger type "{tt.type}": description is required')
+
+      # Unique field names within each trigger type
+      field_names: set[str] = set()
+      for tf in tt.condition_fields:
+        if tf.name in field_names:
+          result.errors.append(
+            f'Trigger type "{tt.type}": duplicate condition field "{tf.name}"'
+          )
+        field_names.add(tf.name)
+
+    # Check for missing hooks
+    has_trigger_register = skill.hooks and skill.hooks.on_trigger_register is not None
+    has_trigger_remove = skill.hooks and skill.hooks.on_trigger_remove is not None
+    if not has_trigger_register:
+      result.warnings.append(
+        "trigger_schema defined but on_trigger_register hook is missing — "
+        "triggers won't be loaded into skill memory"
+      )
+    if not has_trigger_remove:
+      result.warnings.append(
+        "trigger_schema defined but on_trigger_remove hook is missing — "
+        "trigger removals won't be reflected in skill memory"
+      )
+
+  # Check for trigger hooks without schema
+  has_any_trigger_hook = skill.hooks and (
+    skill.hooks.on_trigger_register is not None or skill.hooks.on_trigger_remove is not None
+  )
+  if has_any_trigger_hook and skill.trigger_schema is None:
+    result.warnings.append(
+      "Trigger hooks defined but trigger_schema is None — hooks will not be called"
+    )
 
   return result
 

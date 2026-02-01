@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
   from dev.types.setup_types import SetupResult, SetupStep
   from dev.types.skill_types import SkillDefinition, SkillOptionDefinition, SkillTool
+  from dev.types.trigger_types import TriggerInstance, TriggerSchema
 
 
 class SkillServer:
@@ -42,6 +43,12 @@ class SkillServer:
     self._manifest: dict[str, str] | None = None
     self._data_dir = ""
     self._writer: asyncio.StreamWriter | None = None
+    # Trigger system
+    self._triggers: dict[str, TriggerInstance] = {}
+    self._trigger_schema: TriggerSchema | None = skill.trigger_schema
+    self._trigger_tools: dict[str, SkillTool] = {}
+    if self._trigger_schema:
+      self._trigger_tools = self._build_trigger_tools()
 
   # --------------------------------------------------------------------- #
   # Public API
@@ -218,6 +225,7 @@ class SkillServer:
 
     # -- Tool methods --
     if method == "tools/list":
+      all_visible = list(self._tools.values()) + list(self._trigger_tools.values())
       return {
         "tools": [
           {
@@ -229,14 +237,14 @@ class SkillServer:
               "required": t.definition.parameters.get("required"),
             },
           }
-          for t in self._tools.values()
+          for t in all_visible
         ]
       }
 
     if method == "tools/call":
       name = p.get("name", "")
       args = p.get("arguments", {})
-      tool = self._tools.get(name)
+      tool = self._tools.get(name) or self._trigger_tools.get(name)
       if not tool:
         raise ValueError(f"Unknown tool: {name}")
       result = await tool.execute(args)
@@ -253,6 +261,7 @@ class SkillServer:
         self._data_dir = p["dataDir"]
       # Load persisted options and apply tool filter
       await self._load_options()
+      await self._load_triggers()
       if self._hooks and self._hooks.on_load:
         await self._hooks.on_load(self._create_context())
       return {"ok": True}
@@ -412,6 +421,25 @@ class SkillServer:
       await self._hooks.on_disconnect(self._create_context())
       return {"ok": True}
 
+    # -- Trigger methods --
+    if method == "triggers/types":
+      return self._list_trigger_types()
+
+    if method == "triggers/list":
+      return self._list_triggers()
+
+    if method == "triggers/get":
+      return self._get_trigger(p.get("id", ""))
+
+    if method == "triggers/create":
+      return await self._create_trigger(p)
+
+    if method == "triggers/update":
+      return await self._update_trigger(p)
+
+    if method == "triggers/delete":
+      return await self._delete_trigger(p)
+
     raise ValueError(f"Unknown method: {method}")
 
   # --------------------------------------------------------------------- #
@@ -478,6 +506,413 @@ class SkillServer:
       else:
         self._options[name] = od.default
     self._apply_tool_filter()
+
+  # --------------------------------------------------------------------- #
+  # Internal — trigger management
+  # --------------------------------------------------------------------- #
+
+  def _build_trigger_tools(self) -> dict[str, SkillTool]:
+    """Build auto-generated tools for trigger CRUD operations."""
+    from dev.types.skill_types import SkillTool, ToolDefinition, ToolResult
+
+    server = self
+    tools: dict[str, SkillTool] = {}
+
+    async def _list_types(args: dict[str, Any]) -> ToolResult:
+      result = server._list_trigger_types()
+      return ToolResult(content=json.dumps(result, indent=2))
+
+    tools["list-trigger-types"] = SkillTool(
+      definition=ToolDefinition(
+        name="list-trigger-types",
+        description="List available trigger types and their condition field schemas",
+        parameters={"type": "object", "properties": {}},
+      ),
+      execute=_list_types,
+    )
+
+    async def _list(args: dict[str, Any]) -> ToolResult:
+      result = server._list_triggers()
+      return ToolResult(content=json.dumps(result, indent=2))
+
+    tools["list-triggers"] = SkillTool(
+      definition=ToolDefinition(
+        name="list-triggers",
+        description="List all registered triggers",
+        parameters={"type": "object", "properties": {}},
+      ),
+      execute=_list,
+    )
+
+    async def _create(args: dict[str, Any]) -> ToolResult:
+      try:
+        result = await server._create_trigger(args)
+        return ToolResult(content=json.dumps(result, indent=2))
+      except ValueError as exc:
+        return ToolResult(content=str(exc), is_error=True)
+
+    tools["create-trigger"] = SkillTool(
+      definition=ToolDefinition(
+        name="create-trigger",
+        description="Create a new trigger with conditions and config",
+        parameters={
+          "type": "object",
+          "properties": {
+            "type": {"type": "string", "description": "Trigger type (must match a declared type)"},
+            "name": {"type": "string", "description": "Human-readable trigger name"},
+            "description": {"type": "string", "description": "Trigger description"},
+            "conditions": {
+              "type": "array",
+              "description": "Condition objects (at least one required)",
+              "items": {"type": "object"},
+            },
+            "config": {"type": "object", "description": "Trigger-type-specific config"},
+            "enabled": {"type": "boolean", "description": "Whether trigger is enabled (default true)"},
+            "metadata": {"type": "object", "description": "Optional metadata"},
+          },
+          "required": ["type", "name", "conditions"],
+        },
+      ),
+      execute=_create,
+    )
+
+    async def _update(args: dict[str, Any]) -> ToolResult:
+      try:
+        result = await server._update_trigger(args)
+        return ToolResult(content=json.dumps(result, indent=2))
+      except ValueError as exc:
+        return ToolResult(content=str(exc), is_error=True)
+
+    tools["update-trigger"] = SkillTool(
+      definition=ToolDefinition(
+        name="update-trigger",
+        description="Update an existing trigger's fields",
+        parameters={
+          "type": "object",
+          "properties": {
+            "id": {"type": "string", "description": "Trigger ID to update"},
+            "name": {"type": "string", "description": "New name"},
+            "description": {"type": "string", "description": "New description"},
+            "conditions": {"type": "array", "items": {"type": "object"}},
+            "config": {"type": "object"},
+            "enabled": {"type": "boolean"},
+            "metadata": {"type": "object"},
+          },
+          "required": ["id"],
+        },
+      ),
+      execute=_update,
+    )
+
+    async def _delete(args: dict[str, Any]) -> ToolResult:
+      try:
+        result = await server._delete_trigger(args)
+        return ToolResult(content=json.dumps(result, indent=2))
+      except ValueError as exc:
+        return ToolResult(content=str(exc), is_error=True)
+
+    tools["delete-trigger"] = SkillTool(
+      definition=ToolDefinition(
+        name="delete-trigger",
+        description="Delete a trigger by ID",
+        parameters={
+          "type": "object",
+          "properties": {
+            "id": {"type": "string", "description": "Trigger ID to delete"},
+          },
+          "required": ["id"],
+        },
+      ),
+      execute=_delete,
+    )
+
+    async def _get(args: dict[str, Any]) -> ToolResult:
+      try:
+        result = server._get_trigger(args.get("id", ""))
+        return ToolResult(content=json.dumps(result, indent=2))
+      except ValueError as exc:
+        return ToolResult(content=str(exc), is_error=True)
+
+    tools["get-trigger"] = SkillTool(
+      definition=ToolDefinition(
+        name="get-trigger",
+        description="Get details of a specific trigger",
+        parameters={
+          "type": "object",
+          "properties": {
+            "id": {"type": "string", "description": "Trigger ID"},
+          },
+          "required": ["id"],
+        },
+      ),
+      execute=_get,
+    )
+
+    return tools
+
+  def _list_trigger_types(self) -> dict[str, Any]:
+    if not self._trigger_schema:
+      return {"triggerTypes": []}
+    return {
+      "triggerTypes": [
+        {
+          "type": tt.type,
+          "label": tt.label,
+          "description": tt.description,
+          "conditionFields": [
+            {"name": f.name, "type": f.type, "description": f.description}
+            for f in tt.condition_fields
+          ],
+          "configSchema": tt.config_schema,
+        }
+        for tt in self._trigger_schema.trigger_types
+      ]
+    }
+
+  def _list_triggers(self) -> dict[str, Any]:
+    return {"triggers": [self._serialize_trigger(t) for t in self._triggers.values()]}
+
+  def _get_trigger(self, trigger_id: str) -> dict[str, Any]:
+    trigger = self._triggers.get(trigger_id)
+    if not trigger:
+      raise ValueError(f"Unknown trigger: {trigger_id}")
+    return {"trigger": self._serialize_trigger(trigger)}
+
+  async def _create_trigger(self, params: dict[str, Any]) -> dict[str, Any]:
+    import datetime
+    import uuid
+
+    from dev.types.trigger_types import TriggerCondition, TriggerInstance
+
+    trigger_type = params.get("type", "")
+    name = params.get("name", "")
+    conditions_raw = params.get("conditions", [])
+
+    if not trigger_type:
+      raise ValueError("Trigger type is required")
+    if not name:
+      raise ValueError("Trigger name is required")
+    if not conditions_raw:
+      raise ValueError("At least one condition is required")
+
+    # Validate trigger type exists
+    if self._trigger_schema:
+      valid_types = {tt.type for tt in self._trigger_schema.trigger_types}
+      if trigger_type not in valid_types:
+        raise ValueError(f"Unknown trigger type: {trigger_type}. Valid: {sorted(valid_types)}")
+
+    # Parse and validate conditions
+    conditions = self._validate_conditions(conditions_raw, trigger_type)
+
+    trigger = TriggerInstance(
+      id=str(uuid.uuid4()),
+      type=trigger_type,
+      name=name,
+      description=params.get("description", ""),
+      conditions=conditions,
+      config=params.get("config", {}),
+      enabled=params.get("enabled", True),
+      created_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+      metadata=params.get("metadata", {}),
+    )
+
+    self._triggers[trigger.id] = trigger
+    await self._persist_triggers()
+
+    # Call hook
+    if self._hooks and self._hooks.on_trigger_register:
+      await self._hooks.on_trigger_register(self._create_context(), trigger)
+
+    return {"trigger": self._serialize_trigger(trigger)}
+
+  async def _update_trigger(self, params: dict[str, Any]) -> dict[str, Any]:
+    from dev.types.trigger_types import TriggerInstance
+
+    trigger_id = params.get("id", "")
+    existing = self._triggers.get(trigger_id)
+    if not existing:
+      raise ValueError(f"Unknown trigger: {trigger_id}")
+
+    updates: dict[str, Any] = {}
+    if "name" in params:
+      updates["name"] = params["name"]
+    if "description" in params:
+      updates["description"] = params["description"]
+    if "config" in params:
+      updates["config"] = params["config"]
+    if "enabled" in params:
+      updates["enabled"] = params["enabled"]
+    if "metadata" in params:
+      updates["metadata"] = params["metadata"]
+    if "conditions" in params:
+      updates["conditions"] = self._validate_conditions(params["conditions"], existing.type)
+
+    updated = TriggerInstance(
+      id=existing.id,
+      type=existing.type,
+      name=updates.get("name", existing.name),
+      description=updates.get("description", existing.description),
+      conditions=updates.get("conditions", existing.conditions),
+      config=updates.get("config", existing.config),
+      enabled=updates.get("enabled", existing.enabled),
+      created_at=existing.created_at,
+      metadata=updates.get("metadata", existing.metadata),
+    )
+    self._triggers[trigger_id] = updated
+    await self._persist_triggers()
+    return {"trigger": self._serialize_trigger(updated)}
+
+  async def _delete_trigger(self, params: dict[str, Any]) -> dict[str, Any]:
+    trigger_id = params.get("id", "")
+    if trigger_id not in self._triggers:
+      raise ValueError(f"Unknown trigger: {trigger_id}")
+    del self._triggers[trigger_id]
+    await self._persist_triggers()
+
+    # Call hook
+    if self._hooks and self._hooks.on_trigger_remove:
+      await self._hooks.on_trigger_remove(self._create_context(), trigger_id)
+
+    return {"ok": True}
+
+  def _validate_conditions(
+    self, conditions_raw: list[Any], trigger_type: str
+  ) -> list[Any]:
+    """Parse and validate condition dicts into TriggerCondition objects."""
+    from dev.types.trigger_types import TriggerCondition
+
+    # Get valid field names for this trigger type
+    valid_fields: set[str] | None = None
+    if self._trigger_schema:
+      for tt in self._trigger_schema.trigger_types:
+        if tt.type == trigger_type:
+          valid_fields = {f.name for f in tt.condition_fields}
+          break
+
+    conditions: list[TriggerCondition] = []
+    for raw in conditions_raw:
+      cond = TriggerCondition.model_validate(raw) if isinstance(raw, dict) else raw
+      self._check_condition_depth(cond, 0)
+      if valid_fields is not None:
+        self._check_condition_fields(cond, valid_fields)
+      conditions.append(cond)
+
+    # Validate regex patterns at creation time
+    import re
+
+    for cond in conditions:
+      self._validate_regex_in_condition(cond, re)
+
+    return conditions
+
+  def _check_condition_depth(self, cond: Any, depth: int) -> None:
+    if depth > 5:
+      raise ValueError("Condition nesting depth exceeds maximum of 5")
+    if cond.conditions:
+      for sub in cond.conditions:
+        self._check_condition_depth(sub, depth + 1)
+
+  def _check_condition_fields(self, cond: Any, valid_fields: set[str]) -> None:
+    if cond.field and cond.type in ("regex", "keyword", "threshold"):
+      if cond.field not in valid_fields:
+        self.log(f"Warning: condition field '{cond.field}' not in declared fields")
+    if cond.conditions:
+      for sub in cond.conditions:
+        self._check_condition_fields(sub, valid_fields)
+
+  def _validate_regex_in_condition(self, cond: Any, re_module: Any) -> None:
+    if cond.type == "regex" and cond.pattern:
+      try:
+        re_module.compile(cond.pattern)
+      except re_module.error as exc:
+        raise ValueError(f"Invalid regex pattern '{cond.pattern}': {exc}")
+    if cond.conditions:
+      for sub in cond.conditions:
+        self._validate_regex_in_condition(sub, re_module)
+
+  @staticmethod
+  def _serialize_trigger(trigger: TriggerInstance) -> dict[str, Any]:
+    return {
+      "id": trigger.id,
+      "type": trigger.type,
+      "name": trigger.name,
+      "description": trigger.description,
+      "conditions": [c.model_dump(exclude_none=True) for c in trigger.conditions],
+      "config": trigger.config,
+      "enabled": trigger.enabled,
+      "createdAt": trigger.created_at,
+      "metadata": trigger.metadata,
+    }
+
+  async def _persist_triggers(self) -> None:
+    """Persist current triggers to triggers.json via reverse RPC."""
+    try:
+      data = [
+        {
+          "id": t.id,
+          "type": t.type,
+          "name": t.name,
+          "description": t.description,
+          "conditions": [c.model_dump(exclude_none=True) for c in t.conditions],
+          "config": t.config,
+          "enabled": t.enabled,
+          "created_at": t.created_at,
+          "metadata": t.metadata,
+        }
+        for t in self._triggers.values()
+      ]
+      await self.write_data("triggers.json", json.dumps(data))
+    except Exception:
+      self.log("Failed to persist triggers")
+
+  async def _load_triggers(self) -> None:
+    """Load persisted triggers from triggers.json."""
+    if not self._trigger_schema:
+      return
+    try:
+      raw = await self.read_data("triggers.json")
+      triggers_data = json.loads(raw) if raw else []
+    except Exception:
+      triggers_data = []
+
+    if not isinstance(triggers_data, list):
+      return
+
+    from dev.types.trigger_types import TriggerCondition, TriggerInstance
+
+    valid_types = {tt.type for tt in self._trigger_schema.trigger_types}
+
+    for item in triggers_data:
+      if not isinstance(item, dict):
+        continue
+      trigger_type = item.get("type", "")
+      if trigger_type not in valid_types:
+        self.log(f"Warning: persisted trigger type '{trigger_type}' no longer declared, loading anyway")
+
+      conditions = [
+        TriggerCondition.model_validate(c)
+        for c in item.get("conditions", [])
+        if isinstance(c, dict)
+      ]
+      trigger = TriggerInstance(
+        id=item.get("id", ""),
+        type=trigger_type,
+        name=item.get("name", ""),
+        description=item.get("description", ""),
+        conditions=conditions,
+        config=item.get("config", {}),
+        enabled=item.get("enabled", True),
+        created_at=item.get("created_at", ""),
+        metadata=item.get("metadata", {}),
+      )
+      self._triggers[trigger.id] = trigger
+
+      # Call on_trigger_register for each loaded trigger
+      if self._hooks and self._hooks.on_trigger_register:
+        try:
+          await self._hooks.on_trigger_register(self._create_context(), trigger)
+        except Exception:
+          self.log(f"Warning: on_trigger_register failed for trigger {trigger.id}")
 
   # --------------------------------------------------------------------- #
   # Internal — context factory
@@ -581,6 +1016,22 @@ class SkillServer:
       def get_options(self) -> dict[str, Any]:
         return dict(server._options)
 
+      def fire_trigger(
+        self,
+        trigger_id: str,
+        matched_data: dict[str, Any],
+        context: dict[str, Any] | None = None,
+      ) -> None:
+        _ = asyncio.ensure_future(  # noqa: RUF006
+          server.fire_trigger(trigger_id, matched_data, context)
+        )
+
+      def get_triggers(self) -> list[Any]:
+        return list(server._triggers.values())
+
+      # Expose async fire_trigger for skills that want to await the result
+      _fire_trigger = staticmethod(server.fire_trigger)
+
     return _Context()
 
   # --------------------------------------------------------------------- #
@@ -625,6 +1076,31 @@ class SkillServer:
       timeout=120.0,
     )
     return result if isinstance(result, dict) else {}
+
+  async def fire_trigger(
+    self,
+    trigger_id: str,
+    matched_data: dict[str, Any],
+    context: dict[str, Any] | None = None,
+  ) -> None:
+    """Send triggers/fired reverse RPC to the host to start a new conversation."""
+    import datetime
+
+    trigger = self._triggers.get(trigger_id)
+    if not trigger:
+      self.log(f"fire_trigger: unknown trigger {trigger_id}")
+      return
+    await self._reverse_rpc(
+      "triggers/fired",
+      {
+        "triggerId": trigger.id,
+        "triggerName": trigger.name,
+        "triggerType": trigger.type,
+        "firedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "matchedData": matched_data,
+        "context": context or {},
+      },
+    )
 
   async def _reverse_rpc(self, method: str, params: Any = None, timeout: float = 30.0) -> Any:
     msg_id = self._next_id

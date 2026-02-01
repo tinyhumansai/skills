@@ -53,6 +53,7 @@ class MockInspector:
     emitted_events: list[dict[str, Any]],
     session_values: dict[str, Any],
     relationship_store: list[Relationship] | None = None,
+    fired_triggers: list[dict[str, Any]] | None = None,
   ) -> None:
     self._logs = logs
     self._data_store = data_store
@@ -62,6 +63,7 @@ class MockInspector:
     self._emitted_events = emitted_events
     self._session_values = session_values
     self._relationship_store = relationship_store if relationship_store is not None else []
+    self._fired_triggers = fired_triggers if fired_triggers is not None else []
 
   def get_logs(self) -> list[str]:
     return list(self._logs)
@@ -87,6 +89,9 @@ class MockInspector:
   def get_relationships(self) -> list[Relationship]:
     return list(self._relationship_store)
 
+  def get_fired_triggers(self) -> list[dict[str, Any]]:
+    return list(self._fired_triggers)
+
 
 # ---------------------------------------------------------------------------
 # Factory
@@ -109,6 +114,7 @@ def create_mock_context(
   registered_tools: dict[str, SkillTool] = {}
   emitted_events: list[dict[str, Any]] = []
   session_values: dict[str, Any] = {}
+  fired_triggers: list[dict[str, Any]] = []
   # Wrap in list so nested class can mutate via reference
   state: list[dict[str, Any]] = [dict(opts.initial_state)]
 
@@ -219,6 +225,24 @@ def create_mock_context(
     def emit_event(self, event_name: str, data: Any) -> None:
       emitted_events.append({"name": event_name, "data": data})
 
+    def get_options(self) -> dict[str, Any]:
+      return {}
+
+    def fire_trigger(
+      self,
+      trigger_id: str,
+      matched_data: dict[str, Any],
+      context: dict[str, Any] | None = None,
+    ) -> None:
+      fired_triggers.append({
+        "trigger_id": trigger_id,
+        "matched_data": matched_data,
+        "context": context,
+      })
+
+    def get_triggers(self) -> list[Any]:
+      return []
+
   ctx = _Context()
 
   inspector = MockInspector(
@@ -230,6 +254,7 @@ def create_mock_context(
     emitted_events=emitted_events,
     session_values=session_values,
     relationship_store=relationship_store,
+    fired_triggers=fired_triggers,
   )
 
   return ctx, inspector

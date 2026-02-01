@@ -395,7 +395,66 @@ async def _run(skill_dir: str, verbose: bool) -> int:
     print()
 
   # -------------------------------------------------------------------
-  # 5. Summary
+  # 5. Test trigger schema
+  # -------------------------------------------------------------------
+  if skill.trigger_schema and skill.trigger_schema.trigger_types:
+    trigger_types = skill.trigger_schema.trigger_types
+    print(bold(f"Trigger Schema ({len(trigger_types)} type(s))"))
+
+    for tt in trigger_types:
+      field_names = [f.name for f in tt.condition_fields]
+      _pass(f'{tt.type}: "{tt.label}" — fields: {", ".join(field_names) or "(none)"}')
+
+    # Test on_trigger_register hook
+    if hooks_obj and hooks_obj.on_trigger_register:
+      from dev.types.trigger_types import TriggerCondition, TriggerInstance
+
+      dummy_trigger = TriggerInstance(
+        id="test-trigger-001",
+        type=trigger_types[0].type,
+        name="Test Trigger",
+        description="Runner test trigger",
+        conditions=[
+          TriggerCondition(type="keyword", field="message.text", keywords=["test"])
+        ],
+        config={},
+        enabled=True,
+        created_at="2026-01-01T00:00:00Z",
+      )
+      try:
+        result = hooks_obj.on_trigger_register(ctx, dummy_trigger)
+        if asyncio.iscoroutine(result):
+          await result
+        _pass("on_trigger_register: OK")
+      except Exception as exc:
+        _fail(f"on_trigger_register: threw {exc}")
+        if verbose:
+          import traceback
+
+          traceback.print_exc()
+    else:
+      _info("on_trigger_register: not defined")
+
+    # Test on_trigger_remove hook
+    if hooks_obj and hooks_obj.on_trigger_remove:
+      try:
+        result = hooks_obj.on_trigger_remove(ctx, "test-trigger-001")
+        if asyncio.iscoroutine(result):
+          await result
+        _pass("on_trigger_remove: OK")
+      except Exception as exc:
+        _fail(f"on_trigger_remove: threw {exc}")
+        if verbose:
+          import traceback
+
+          traceback.print_exc()
+    else:
+      _info("on_trigger_remove: not defined")
+
+    print()
+
+  # -------------------------------------------------------------------
+  # 6. Summary
   # -------------------------------------------------------------------
   if verbose:
     print(bold("Mock Context State"))
@@ -403,6 +462,7 @@ async def _run(skill_dir: str, verbose: bool) -> int:
     _info(f"Data files: {len(inspect.get_data())}")
     _info(f"Registered tools: {len(inspect.get_registered_tools())}")
     _info(f"Emitted events: {len(inspect.get_emitted_events())}")
+    _info(f"Fired triggers: {len(inspect.get_fired_triggers())}")
     print()
 
   _print_summary()

@@ -22,6 +22,14 @@ from dev.types.setup_types import (  # noqa: F401  — re-exported
   SetupResult,
   SetupStep,
 )
+from dev.types.trigger_types import (  # noqa: F401  — re-exported
+  TriggerCondition,
+  TriggerFieldSchema,
+  TriggerFiredEvent,
+  TriggerInstance,
+  TriggerSchema,
+  TriggerTypeDefinition,
+)
 
 # ---------------------------------------------------------------------------
 # Skill Option Definition
@@ -234,6 +242,10 @@ class SkillContext(Protocol):
   def set_state(self, partial: dict[str, Any]) -> None: ...
   def emit_event(self, event_name: str, data: Any) -> None: ...
   def get_options(self) -> dict[str, Any]: ...
+  def fire_trigger(
+    self, trigger_id: str, matched_data: dict[str, Any], context: dict[str, Any] | None = None
+  ) -> None: ...
+  def get_triggers(self) -> list[Any]: ...
 
 
 # ---------------------------------------------------------------------------
@@ -252,6 +264,9 @@ DisconnectHook = Callable[[SkillContext], Awaitable[None]]
 SetupStartHandler = Callable[[SkillContext], Awaitable[SetupStep]]
 SetupSubmitHandler = Callable[[SkillContext, str, dict[str, Any]], Awaitable[SetupResult]]
 SetupCancelHandler = Callable[[SkillContext], Awaitable[None]]
+
+TriggerRegisterHook = Callable[[SkillContext, Any], Awaitable[None]]  # Any = TriggerInstance
+TriggerRemoveHook = Callable[[SkillContext, str], Awaitable[None]]  # str = trigger_id
 
 
 # ---------------------------------------------------------------------------
@@ -278,6 +293,8 @@ class SkillHooks(BaseModel):
   on_setup_cancel: SetupCancelHandler | None = None
   on_options_change: OptionsChangeHook | None = None
   on_disconnect: DisconnectHook | None = None
+  on_trigger_register: TriggerRegisterHook | None = None
+  on_trigger_remove: TriggerRemoveHook | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -331,4 +348,8 @@ class SkillDefinition(BaseModel):
   entity_schema: EntitySchema | None = Field(
     default=None,
     description="Declares entity and relationship types this skill surfaces",
+  )
+  trigger_schema: TriggerSchema | None = Field(
+    default=None,
+    description="Declares trigger types this skill supports for automation rules",
   )

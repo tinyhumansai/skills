@@ -161,6 +161,7 @@ async def on_skill_unload() -> None:
 _upsert_entity_fn: Any = None
 _upsert_relationship_fn: Any = None
 _request_summarization_fn: Any = None
+_fire_trigger_fn: Any = None
 
 
 def _store_entity_callbacks(
@@ -180,6 +181,16 @@ def _store_summarization_callback(request_summarization: Any = None) -> None:
 def get_entity_callbacks() -> tuple[Any, Any]:
   """Return the stored entity callbacks (for use by event handlers)."""
   return _upsert_entity_fn, _upsert_relationship_fn
+
+
+def _store_fire_trigger_callback(fire_trigger: Any = None) -> None:
+  global _fire_trigger_fn
+  _fire_trigger_fn = fire_trigger
+
+
+def get_fire_trigger_callback() -> Any:
+  """Return the stored fire_trigger callback (for use by event handlers)."""
+  return _fire_trigger_fn
 
 
 async def _run_initial_sync_safe(
