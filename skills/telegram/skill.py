@@ -152,7 +152,7 @@ TOOL_CATEGORY_OPTIONS = [
     SkillOptionDefinition(
         name="enable_chat_tools",
         type="boolean",
-        label="Chat & Group Management",
+        label="Enable Chat & Group Management",
         description="14 tools — create/archive/mute chats, join/leave groups, manage invite links",
         default=True,
         group="tool_categories",
@@ -166,7 +166,7 @@ TOOL_CATEGORY_OPTIONS = [
     SkillOptionDefinition(
         name="enable_message_tools",
         type="boolean",
-        label="Messaging & Reactions",
+        label="Enable Messaging & Reactions",
         description="25 tools — send/edit/delete/forward messages, reactions, polls, drafts, pins",
         default=True,
         group="tool_categories",
@@ -183,7 +183,7 @@ TOOL_CATEGORY_OPTIONS = [
     SkillOptionDefinition(
         name="enable_contact_tools",
         type="boolean",
-        label="Contacts & Blocking",
+        label="Enable Contacts & Blocking",
         description="13 tools — add/delete/search/export contacts, block/unblock users",
         default=True,
         group="tool_categories",
@@ -197,7 +197,7 @@ TOOL_CATEGORY_OPTIONS = [
     SkillOptionDefinition(
         name="enable_admin_tools",
         type="boolean",
-        label="Admin & Moderation",
+        label="Enable Admin & Moderation",
         description="8 tools — promote/demote admins, ban/unban users, invite to groups",
         default=False,
         group="tool_categories",
@@ -209,7 +209,7 @@ TOOL_CATEGORY_OPTIONS = [
     SkillOptionDefinition(
         name="enable_profile_media_tools",
         type="boolean",
-        label="Profile & Media",
+        label="Enable Profile & Media",
         description="10 tools — profile photos, chat photos, user status, bot info, media info",
         default=False,
         group="tool_categories",
@@ -222,7 +222,7 @@ TOOL_CATEGORY_OPTIONS = [
     SkillOptionDefinition(
         name="enable_settings_tools",
         type="boolean",
-        label="Settings & Privacy",
+        label="Enable Settings & Privacy",
         description="5 tools — privacy settings, profile updates, bot commands",
         default=False,
         group="tool_categories",
@@ -234,7 +234,7 @@ TOOL_CATEGORY_OPTIONS = [
     SkillOptionDefinition(
         name="enable_search_tools",
         type="boolean",
-        label="Search & Discovery",
+        label="Enable Search & Discovery",
         description="2 tools — search messages and public chats",
         default=True,
         group="tool_categories",
