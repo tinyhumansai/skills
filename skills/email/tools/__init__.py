@@ -17,11 +17,11 @@ from .draft import draft_tools
 from .account import account_tools
 
 ALL_TOOLS: list[Tool] = [
-    *folder_tools,
-    *message_tools,
-    *send_tools,
-    *flag_tools,
-    *attachment_tools,
-    *draft_tools,
-    *account_tools,
+  *folder_tools,
+  *message_tools,
+  *send_tools,
+  *flag_tools,
+  *attachment_tools,
+  *draft_tools,
+  *account_tools,
 ]

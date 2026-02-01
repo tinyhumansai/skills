@@ -13,17 +13,17 @@ from . import pages, databases, blocks, users, comments, search
 DISPATCH: dict[str, Any] = {}
 
 for mod in (pages, databases, blocks, users, comments, search):
-    for name in dir(mod):
-        if not name.startswith("notion_"):
-            continue
-        fn = getattr(mod, name)
-        if callable(fn):
-            DISPATCH[name] = fn
+  for name in dir(mod):
+    if not name.startswith("notion_"):
+      continue
+    fn = getattr(mod, name)
+    if callable(fn):
+      DISPATCH[name] = fn
 
 
 async def dispatch_tool(name: str, arguments: dict[str, Any]) -> ToolResult:
-    """Look up and execute a tool handler by name."""
-    handler = DISPATCH.get(name)
-    if handler is None:
-        return ToolResult(content=f"Unknown tool: {name}", is_error=True)
-    return await handler(arguments)
+  """Look up and execute a tool handler by name."""
+  handler = DISPATCH.get(name)
+  if handler is None:
+    return ToolResult(content=f"Unknown tool: {name}", is_error=True)
+  return await handler(arguments)

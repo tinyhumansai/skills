@@ -25,7 +25,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+  sys.path.insert(0, str(ROOT))
 
 from dev.catalog.build_catalog import main as build_catalog_main
 
@@ -43,27 +43,27 @@ RESET = "\033[0m"
 
 
 def bold(s: str) -> str:
-    return f"{BOLD}{s}{RESET}"
+  return f"{BOLD}{s}{RESET}"
 
 
 def dim(s: str) -> str:
-    return f"{DIM}{s}{RESET}"
+  return f"{DIM}{s}{RESET}"
 
 
 def green(s: str) -> str:
-    return f"{GREEN}{s}{RESET}"
+  return f"{GREEN}{s}{RESET}"
 
 
 def red(s: str) -> str:
-    return f"{RED}{s}{RESET}"
+  return f"{RED}{s}{RESET}"
 
 
 def yellow(s: str) -> str:
-    return f"{YELLOW}{s}{RESET}"
+  return f"{YELLOW}{s}{RESET}"
 
 
 def cyan(s: str) -> str:
-    return f"{CYAN}{s}{RESET}"
+  return f"{CYAN}{s}{RESET}"
 
 
 # ---------------------------------------------------------------------------
@@ -72,99 +72,95 @@ def cyan(s: str) -> str:
 
 
 def check_catalog() -> int:
-    """Compare existing catalog with a fresh build. Exit 1 if stale."""
-    catalog_path = ROOT / "skills-catalog.json"
+  """Compare existing catalog with a fresh build. Exit 1 if stale."""
+  catalog_path = ROOT / "skills-catalog.json"
 
-    if not catalog_path.exists():
-        print(f"  {red('FAIL')} No skills-catalog.json found")
-        print(f"  {dim('Run: python scripts/update-catalog.py')}")
-        return 1
-
-    try:
-        existing = json.loads(catalog_path.read_text(encoding="utf-8"))
-    except Exception as e:
-        print(f"  {red('FAIL')} Cannot read catalog: {e}")
-        return 1
-
-    # Build a fresh catalog in memory by importing the builder internals
-    from dev.catalog.build_catalog import (
-        extract_skill_py,
-        read_pkg_json,
-    )
-
-    skills_dir = ROOT / "skills"
-    if not skills_dir.is_dir():
-        print(f"  {red('FAIL')} No skills/ directory")
-        return 1
-
-    entries = sorted(
-        e.name
-        for e in skills_dir.iterdir()
-        if e.is_dir() and not e.name.startswith(".") and e.name != "__pycache__"
-    )
-
-    fresh_skills: list[dict] = []
-    for dir_name in entries:
-        dir_path = skills_dir / dir_name
-        skill_data = extract_skill_py(dir_path / "skill.py")
-        pkg_data = read_pkg_json(dir_path / "package.json")
-
-        name = (skill_data or {}).get("name") or (pkg_data or {}).get("name") or dir_name
-        description = (
-            (skill_data or {}).get("description") or (pkg_data or {}).get("description") or ""
-        )
-
-        # Convert tick_interval_minutes if present
-        tick_interval_minutes = (skill_data or {}).get("tick_interval_minutes")
-
-        fresh_skills.append(
-            {
-                "name": name,
-                "description": description,
-                "icon": None,
-                "version": (
-                    (skill_data or {}).get("version") or (pkg_data or {}).get("version") or None
-                ),
-                "tools": (skill_data or {}).get("tools", []),
-                "hooks": (skill_data or {}).get("hooks", []),
-                "tickIntervalMinutes": tick_interval_minutes,
-                "path": f"skills/{dir_name}",
-            }
-        )
-
-    fresh_skills.sort(key=lambda e: e["name"])
-
-    # Compare skill entries (ignore generatedAt timestamp)
-    existing_skills = existing.get("skills", [])
-
-    if existing_skills == fresh_skills:
-        print(f"  {green('OK')} Catalog is up to date ({len(fresh_skills)} skills)")
-        return 0
-
-    # Find differences
-    existing_names = {s["name"] for s in existing_skills}
-    fresh_names = {s["name"] for s in fresh_skills}
-
-    added = fresh_names - existing_names
-    removed = existing_names - fresh_names
-    common = existing_names & fresh_names
-
-    changed = 0
-    for name in common:
-        old = next(s for s in existing_skills if s["name"] == name)
-        new = next(s for s in fresh_skills if s["name"] == name)
-        if old != new:
-            changed += 1
-
-    print(f"  {yellow('STALE')} Catalog is out of date")
-    if added:
-        print(f"    Added:   {', '.join(sorted(added))}")
-    if removed:
-        print(f"    Removed: {', '.join(sorted(removed))}")
-    if changed:
-        print(f"    Changed: {changed} skill(s)")
+  if not catalog_path.exists():
+    print(f"  {red('FAIL')} No skills-catalog.json found")
     print(f"  {dim('Run: python scripts/update-catalog.py')}")
     return 1
+
+  try:
+    existing = json.loads(catalog_path.read_text(encoding="utf-8"))
+  except Exception as e:
+    print(f"  {red('FAIL')} Cannot read catalog: {e}")
+    return 1
+
+  # Build a fresh catalog in memory by importing the builder internals
+  from dev.catalog.build_catalog import (
+    extract_skill_py,
+    read_pkg_json,
+  )
+
+  skills_dir = ROOT / "skills"
+  if not skills_dir.is_dir():
+    print(f"  {red('FAIL')} No skills/ directory")
+    return 1
+
+  entries = sorted(
+    e.name
+    for e in skills_dir.iterdir()
+    if e.is_dir() and not e.name.startswith(".") and e.name != "__pycache__"
+  )
+
+  fresh_skills: list[dict] = []
+  for dir_name in entries:
+    dir_path = skills_dir / dir_name
+    skill_data = extract_skill_py(dir_path / "skill.py")
+    pkg_data = read_pkg_json(dir_path / "package.json")
+
+    name = (skill_data or {}).get("name") or (pkg_data or {}).get("name") or dir_name
+    description = (skill_data or {}).get("description") or (pkg_data or {}).get("description") or ""
+
+    # Convert tick_interval_minutes if present
+    tick_interval_minutes = (skill_data or {}).get("tick_interval_minutes")
+
+    fresh_skills.append(
+      {
+        "name": name,
+        "description": description,
+        "icon": None,
+        "version": ((skill_data or {}).get("version") or (pkg_data or {}).get("version") or None),
+        "tools": (skill_data or {}).get("tools", []),
+        "hooks": (skill_data or {}).get("hooks", []),
+        "tickIntervalMinutes": tick_interval_minutes,
+        "path": f"skills/{dir_name}",
+      }
+    )
+
+  fresh_skills.sort(key=lambda e: e["name"])
+
+  # Compare skill entries (ignore generatedAt timestamp)
+  existing_skills = existing.get("skills", [])
+
+  if existing_skills == fresh_skills:
+    print(f"  {green('OK')} Catalog is up to date ({len(fresh_skills)} skills)")
+    return 0
+
+  # Find differences
+  existing_names = {s["name"] for s in existing_skills}
+  fresh_names = {s["name"] for s in fresh_skills}
+
+  added = fresh_names - existing_names
+  removed = existing_names - fresh_names
+  common = existing_names & fresh_names
+
+  changed = 0
+  for name in common:
+    old = next(s for s in existing_skills if s["name"] == name)
+    new = next(s for s in fresh_skills if s["name"] == name)
+    if old != new:
+      changed += 1
+
+  print(f"  {yellow('STALE')} Catalog is out of date")
+  if added:
+    print(f"    Added:   {', '.join(sorted(added))}")
+  if removed:
+    print(f"    Removed: {', '.join(sorted(removed))}")
+  if changed:
+    print(f"    Changed: {changed} skill(s)")
+  print(f"  {dim('Run: python scripts/update-catalog.py')}")
+  return 1
 
 
 # ---------------------------------------------------------------------------
@@ -173,40 +169,40 @@ def check_catalog() -> int:
 
 
 def show_verbose(catalog_path: Path) -> None:
-    """Print detailed catalog contents."""
-    try:
-        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
-    except Exception:
-        return
+  """Print detailed catalog contents."""
+  try:
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+  except Exception:
+    return
 
-    skills = catalog.get("skills", [])
+  skills = catalog.get("skills", [])
+  print()
+  print(bold("  Catalog Details"))
+  print(f"  {'─' * 50}")
+  print(f"  Generated: {dim(catalog.get('generatedAt', '?'))}")
+  print(f"  Skills:    {green(str(len(skills)))}")
+  print()
+
+  for s in skills:
+    name = s.get("name", "?")
+    version = s.get("version") or "?"
+    tools = s.get("tools", [])
+    hooks = s.get("hooks", [])
+    tick = s.get("tickIntervalMinutes")
+    desc = s.get("description", "")
+
+    print(f"  {bold(name)} {dim(f'v{version}')}")
+    if desc:
+      print(f"    {dim(desc[:80])}")
+    if tools:
+      print(f"    Tools: {len(tools)} — {dim(', '.join(tools[:5]))}")
+      if len(tools) > 5:
+        print(f"           {dim(f'... and {len(tools) - 5} more')}")
+    if hooks:
+      print(f"    Hooks: {dim(', '.join(hooks))}")
+    if tick is not None:
+      print(f"    Tick:  {dim(f'{tick} minutes')}")
     print()
-    print(bold("  Catalog Details"))
-    print(f"  {'─' * 50}")
-    print(f"  Generated: {dim(catalog.get('generatedAt', '?'))}")
-    print(f"  Skills:    {green(str(len(skills)))}")
-    print()
-
-    for s in skills:
-        name = s.get("name", "?")
-        version = s.get("version") or "?"
-        tools = s.get("tools", [])
-        hooks = s.get("hooks", [])
-        tick = s.get("tickIntervalMinutes")
-        desc = s.get("description", "")
-
-        print(f"  {bold(name)} {dim(f'v{version}')}")
-        if desc:
-            print(f"    {dim(desc[:80])}")
-        if tools:
-            print(f"    Tools: {len(tools)} — {dim(', '.join(tools[:5]))}")
-            if len(tools) > 5:
-                print(f"           {dim(f'... and {len(tools) - 5} more')}")
-        if hooks:
-            print(f"    Hooks: {dim(', '.join(hooks))}")
-        if tick is not None:
-            print(f"    Tick:  {dim(f'{tick} minutes')}")
-        print()
 
 
 # ---------------------------------------------------------------------------
@@ -215,29 +211,29 @@ def show_verbose(catalog_path: Path) -> None:
 
 
 def main() -> None:
-    args = sys.argv[1:]
+  args = sys.argv[1:]
 
+  print()
+  print(bold("  Skills Catalog Updater"))
+  print()
+
+  if "--check" in args:
+    code = check_catalog()
     print()
-    print(bold("  Skills Catalog Updater"))
-    print()
+    sys.exit(code)
 
-    if "--check" in args:
-        code = check_catalog()
-        print()
-        sys.exit(code)
+  # Build the catalog using the existing builder
+  build_catalog_main()
 
-    # Build the catalog using the existing builder
-    build_catalog_main()
+  catalog_path = ROOT / "skills-catalog.json"
 
-    catalog_path = ROOT / "skills-catalog.json"
+  if "--verbose" in args or "-v" in args:
+    show_verbose(catalog_path)
 
-    if "--verbose" in args or "-v" in args:
-        show_verbose(catalog_path)
-
-    if catalog_path.exists():
-        print(f"  {green('Done.')} Catalog written to {dim(str(catalog_path.relative_to(ROOT)))}")
-    print()
+  if catalog_path.exists():
+    print(f"  {green('Done.')} Catalog written to {dim(str(catalog_path.relative_to(ROOT)))}")
+  print()
 
 
 if __name__ == "__main__":
-    main()
+  main()

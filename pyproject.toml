@@ -7,10 +7,12 @@ name = "alphahuman-skills"
 version = "1.0.0"
 description = "AlphaHuman Skills repository"
 requires-python = ">=3.11"
+license = {text = "MIT"}
 
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+indent-width = 2
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -86,5 +88,6 @@ ignore_missing_imports = true
 [tool.isort]
 profile = "black"
 line_length = 100
+indent = 2
 skip_gitignore = true
 known_first_party = ["dev", "skills"]

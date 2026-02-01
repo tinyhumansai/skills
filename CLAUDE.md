@@ -11,7 +11,7 @@ This is the **AlphaHuman Skills** repository — a plugin/extension system for t
 Each skill is a directory under `skills/` containing:
 
 - **skill.py** — Python module exporting a `skill` variable (a `SkillDefinition` from `dev.types.skill_types`). Provides lifecycle hooks, custom AI tools, and periodic tasks.
-- **setup.py** *(optional)* — Setup flow handlers for interactive configuration wizards (e.g., Telegram auth).
+- **setup.py** _(optional)_ — Setup flow handlers for interactive configuration wizards (e.g., Telegram auth).
 - **manifest.json** — Skill metadata (id, name, version, runtime, dependencies, setup config).
 
 ### Skill Lifecycle
@@ -30,18 +30,18 @@ Communication uses JSON-RPC 2.0 methods: `setup/start`, `setup/submit`, `setup/c
 
 Every hook receives a `SkillContext` with:
 
-| Property | Purpose |
-|----------|---------|
-| `memory` | Read/write/search the shared memory system |
-| `session` | Current session manager |
-| `tools` | Register/unregister AI tools at runtime |
-| `entities` | Query the platform entity graph (contacts, chats, wallets) |
-| `data_dir` | Path to skill's isolated persistent data directory |
-| `read_data(filename)` / `write_data(filename, content)` | File I/O within `data_dir` |
-| `log(message)` | Debug logging |
-| `get_state()` / `set_state(partial)` | Skill state store |
-| `emit_event(name, data)` | Emit events for intelligence rules |
-| `get_options()` | Returns current runtime option values as a dict |
+| Property                                                | Purpose                                                    |
+| ------------------------------------------------------- | ---------------------------------------------------------- |
+| `memory`                                                | Read/write/search the shared memory system                 |
+| `session`                                               | Current session manager                                    |
+| `tools`                                                 | Register/unregister AI tools at runtime                    |
+| `entities`                                              | Query the platform entity graph (contacts, chats, wallets) |
+| `data_dir`                                              | Path to skill's isolated persistent data directory         |
+| `read_data(filename)` / `write_data(filename, content)` | File I/O within `data_dir`                                 |
+| `log(message)`                                          | Debug logging                                              |
+| `get_state()` / `set_state(partial)`                    | Skill state store                                          |
+| `emit_event(name, data)`                                | Emit events for intelligence rules                         |
+| `get_options()`                                         | Returns current runtime option values as a dict            |
 
 ### Tool Registration Pattern
 
@@ -166,6 +166,7 @@ mypy .
 ### Pre-Push Hook
 
 A pre-push git hook automatically runs all checks before pushing. The hook runs:
+
 - `ruff check .` — Linting
 - `ruff format --check .` — Format verification
 - `mypy .` — Type checking

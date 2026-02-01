@@ -11,14 +11,14 @@ from .memory_flush import on_memory_flush
 from .status import on_status
 
 __all__ = [
-    "on_load",
-    "_load_configuration",
-    "on_unload",
-    "on_session_start",
-    "on_session_end",
-    "on_tick",
-    "on_before_message",
-    "on_after_response",
-    "on_memory_flush",
-    "on_status",
+  "on_load",
+  "_load_configuration",
+  "on_unload",
+  "on_session_start",
+  "on_session_end",
+  "on_tick",
+  "on_before_message",
+  "on_after_response",
+  "on_memory_flush",
+  "on_status",
 ]

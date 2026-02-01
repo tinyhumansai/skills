@@ -11,25 +11,25 @@ import logging
 import sys
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="[%(name)s] %(levelname)s: %(message)s",
-    stream=sys.stderr,
+  level=logging.INFO,
+  format="[%(name)s] %(levelname)s: %(message)s",
+  stream=sys.stderr,
 )
 
 
 def main() -> None:
-    if "--mcp" in sys.argv:
-        import asyncio
-        from .server import run_server
+  if "--mcp" in sys.argv:
+    import asyncio
+    from .server import run_server
 
-        asyncio.run(run_server())
-    else:
-        from dev.runtime.server import SkillServer
-        from .skill import skill
+    asyncio.run(run_server())
+  else:
+    from dev.runtime.server import SkillServer
+    from .skill import skill
 
-        server = SkillServer(skill)
-        server.start()
+    server = SkillServer(skill)
+    server.start()
 
 
 if __name__ == "__main__":
-    main()
+  main()

@@ -9,12 +9,12 @@ from __future__ import annotations
 from typing import Callable
 
 from .types import (
-    OtterState,
-    OtterSpeech,
-    OtterSpeaker,
-    OtterUser,
-    OtterConnectionStatus,
-    initial_state,
+  OtterState,
+  OtterSpeech,
+  OtterSpeaker,
+  OtterUser,
+  OtterConnectionStatus,
+  initial_state,
 )
 
 _state: OtterState = initial_state()
@@ -27,24 +27,24 @@ _listeners: list[Callable[[], None]] = []
 
 
 def get_state() -> OtterState:
-    return _state
+  return _state
 
 
 def subscribe(listener: Callable[[], None]) -> Callable[[], None]:
-    _listeners.append(listener)
+  _listeners.append(listener)
 
-    def unsubscribe() -> None:
-        try:
-            _listeners.remove(listener)
-        except ValueError:
-            pass
+  def unsubscribe() -> None:
+    try:
+      _listeners.remove(listener)
+    except ValueError:
+      pass
 
-    return unsubscribe
+  return unsubscribe
 
 
 def _notify() -> None:
-    for fn in _listeners:
-        fn()
+  for fn in _listeners:
+    fn()
 
 
 # ---------------------------------------------------------------------------
@@ -53,33 +53,33 @@ def _notify() -> None:
 
 
 def set_connection_status(status: OtterConnectionStatus) -> None:
-    global _state
-    updates: dict = {"connection_status": status}
-    if status != "error":
-        updates["connection_error"] = None
-    _state = _state.model_copy(update=updates)
-    _notify()
+  global _state
+  updates: dict = {"connection_status": status}
+  if status != "error":
+    updates["connection_error"] = None
+  _state = _state.model_copy(update=updates)
+  _notify()
 
 
 def set_connection_error(error: str | None) -> None:
-    global _state
-    updates: dict = {"connection_error": error}
-    if error:
-        updates["connection_status"] = "error"
-    _state = _state.model_copy(update=updates)
-    _notify()
+  global _state
+  updates: dict = {"connection_error": error}
+  if error:
+    updates["connection_status"] = "error"
+  _state = _state.model_copy(update=updates)
+  _notify()
 
 
 def set_is_initialized(value: bool) -> None:
-    global _state
-    _state = _state.model_copy(update={"is_initialized": value})
-    _notify()
+  global _state
+  _state = _state.model_copy(update={"is_initialized": value})
+  _notify()
 
 
 def set_current_user(user: OtterUser | None) -> None:
-    global _state
-    _state = _state.model_copy(update={"current_user": user})
-    _notify()
+  global _state
+  _state = _state.model_copy(update={"current_user": user})
+  _notify()
 
 
 # ---------------------------------------------------------------------------
@@ -88,47 +88,47 @@ def set_current_user(user: OtterUser | None) -> None:
 
 
 def set_speeches(speeches: dict[str, OtterSpeech], order: list[str]) -> None:
-    global _state
-    _state = _state.model_copy(
-        update={
-            "speeches": speeches,
-            "speeches_order": order,
-            "total_meetings": len(order),
-        }
-    )
-    _notify()
+  global _state
+  _state = _state.model_copy(
+    update={
+      "speeches": speeches,
+      "speeches_order": order,
+      "total_meetings": len(order),
+    }
+  )
+  _notify()
 
 
 def add_speech(speech: OtterSpeech) -> None:
-    global _state
-    speeches = {**_state.speeches, speech.speech_id: speech}
-    order = (
-        _state.speeches_order
-        if speech.speech_id in _state.speeches_order
-        else [speech.speech_id, *_state.speeches_order]
-    )
-    _state = _state.model_copy(
-        update={
-            "speeches": speeches,
-            "speeches_order": order,
-            "total_meetings": len(order),
-        }
-    )
-    _notify()
+  global _state
+  speeches = {**_state.speeches, speech.speech_id: speech}
+  order = (
+    _state.speeches_order
+    if speech.speech_id in _state.speeches_order
+    else [speech.speech_id, *_state.speeches_order]
+  )
+  _state = _state.model_copy(
+    update={
+      "speeches": speeches,
+      "speeches_order": order,
+      "total_meetings": len(order),
+    }
+  )
+  _notify()
 
 
 def update_speech(speech_id: str, updates: dict) -> None:
-    global _state
-    existing = _state.speeches.get(speech_id)
-    if not existing:
-        return
-    updated = existing.model_copy(update=updates)
-    _state = _state.model_copy(update={"speeches": {**_state.speeches, speech_id: updated}})
-    _notify()
+  global _state
+  existing = _state.speeches.get(speech_id)
+  if not existing:
+    return
+  updated = existing.model_copy(update=updates)
+  _state = _state.model_copy(update={"speeches": {**_state.speeches, speech_id: updated}})
+  _notify()
 
 
 def get_speech(speech_id: str) -> OtterSpeech | None:
-    return _state.speeches.get(speech_id)
+  return _state.speeches.get(speech_id)
 
 
 # ---------------------------------------------------------------------------
@@ -137,16 +137,16 @@ def get_speech(speech_id: str) -> OtterSpeech | None:
 
 
 def set_speakers(speakers: dict[str, OtterSpeaker]) -> None:
-    global _state
-    _state = _state.model_copy(update={"speakers": speakers})
-    _notify()
+  global _state
+  _state = _state.model_copy(update={"speakers": speakers})
+  _notify()
 
 
 def add_speaker(speaker: OtterSpeaker) -> None:
-    global _state
-    speakers = {**_state.speakers, speaker.speaker_id: speaker}
-    _state = _state.model_copy(update={"speakers": speakers})
-    _notify()
+  global _state
+  speakers = {**_state.speakers, speaker.speaker_id: speaker}
+  _state = _state.model_copy(update={"speakers": speakers})
+  _notify()
 
 
 # ---------------------------------------------------------------------------
@@ -155,14 +155,14 @@ def add_speaker(speaker: OtterSpeaker) -> None:
 
 
 def set_sync_status(is_syncing: bool | None = None, last_sync: float | None = None) -> None:
-    global _state
-    updates: dict = {}
-    if is_syncing is not None:
-        updates["is_syncing"] = is_syncing
-    if last_sync is not None:
-        updates["last_sync"] = last_sync
-    _state = _state.model_copy(update=updates)
-    _notify()
+  global _state
+  updates: dict = {}
+  if is_syncing is not None:
+    updates["is_syncing"] = is_syncing
+  if last_sync is not None:
+    updates["last_sync"] = last_sync
+  _state = _state.model_copy(update=updates)
+  _notify()
 
 
 # ---------------------------------------------------------------------------
@@ -171,6 +171,6 @@ def set_sync_status(is_syncing: bool | None = None, last_sync: float | None = No
 
 
 def reset_state() -> None:
-    global _state
-    _state = initial_state()
-    _notify()
+  global _state
+  _state = initial_state()
+  _notify()

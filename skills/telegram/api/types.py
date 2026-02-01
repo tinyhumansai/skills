@@ -12,6 +12,7 @@ T = TypeVar("T")
 
 @dataclass
 class ApiResult(Generic[T]):
-    """Result wrapper for API calls with optional caching."""
-    data: T
-    from_cache: bool = False
+  """Result wrapper for API calls with optional caching."""
+
+  data: T
+  from_cache: bool = False

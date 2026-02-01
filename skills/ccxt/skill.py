@@ -13,11 +13,11 @@ import logging
 from typing import Any
 
 from dev.types.skill_types import (
-    SkillDefinition,
-    SkillHooks,
-    SkillTool,
-    ToolDefinition,
-    ToolResult as SkillToolResult,
+  SkillDefinition,
+  SkillHooks,
+  SkillTool,
+  ToolDefinition,
+  ToolResult as SkillToolResult,
 )
 from dev.types.setup_types import SetupStep, SetupResult
 
@@ -34,32 +34,32 @@ log = logging.getLogger("skill.ccxt.skill")
 
 
 def _make_execute(tool_name: str):
-    """Create an async execute function for a given tool name."""
+  """Create an async execute function for a given tool name."""
 
-    async def execute(args: dict[str, Any]) -> SkillToolResult:
-        result = await dispatch_tool(tool_name, args)
-        return SkillToolResult(content=result.content, is_error=result.is_error)
+  async def execute(args: dict[str, Any]) -> SkillToolResult:
+    result = await dispatch_tool(tool_name, args)
+    return SkillToolResult(content=result.content, is_error=result.is_error)
 
-    return execute
+  return execute
 
 
 def _convert_tools() -> list[SkillTool]:
-    """Convert MCP Tool definitions to SkillTool objects."""
-    skill_tools: list[SkillTool] = []
-    for mcp_tool in ALL_TOOLS:
-        schema = mcp_tool.inputSchema if isinstance(mcp_tool.inputSchema, dict) else {}
-        definition = ToolDefinition(
-            name=mcp_tool.name,
-            description=mcp_tool.description or "",
-            parameters=schema,
-        )
-        skill_tools.append(
-            SkillTool(
-                definition=definition,
-                execute=_make_execute(mcp_tool.name),
-            )
-        )
-    return skill_tools
+  """Convert MCP Tool definitions to SkillTool objects."""
+  skill_tools: list[SkillTool] = []
+  for mcp_tool in ALL_TOOLS:
+    schema = mcp_tool.inputSchema if isinstance(mcp_tool.inputSchema, dict) else {}
+    definition = ToolDefinition(
+      name=mcp_tool.name,
+      description=mcp_tool.description or "",
+      parameters=schema,
+    )
+    skill_tools.append(
+      SkillTool(
+        definition=definition,
+        execute=_make_execute(mcp_tool.name),
+      )
+    )
+  return skill_tools
 
 
 # ---------------------------------------------------------------------------
@@ -68,63 +68,63 @@ def _convert_tools() -> list[SkillTool]:
 
 
 async def _on_load(ctx: Any) -> None:
-    """Initialize CCXT manager using SkillContext."""
-    from .server import on_skill_load
+  """Initialize CCXT manager using SkillContext."""
+  from .server import on_skill_load
 
-    # Read config from data dir if it exists
-    config: dict[str, Any] = {}
-    try:
-        raw = await ctx.read_data("config.json")
-        if raw:
-            config = json.loads(raw)
-            log.info("Loaded config.json: exchanges=%s", len(config.get("exchanges", [])))
-        else:
-            log.info("config.json is empty or not found")
-    except Exception as exc:
-        log.warning("Failed to read config.json: %s", exc)
+  # Read config from data dir if it exists
+  config: dict[str, Any] = {}
+  try:
+    raw = await ctx.read_data("config.json")
+    if raw:
+      config = json.loads(raw)
+      log.info("Loaded config.json: exchanges=%s", len(config.get("exchanges", [])))
+    else:
+      log.info("config.json is empty or not found")
+  except Exception as exc:
+    log.warning("Failed to read config.json: %s", exc)
 
-    # Build params dict that on_skill_load expects
-    params: dict[str, Any] = {
-        "dataDir": ctx.data_dir,
-        "config": config,
-    }
+  # Build params dict that on_skill_load expects
+  params: dict[str, Any] = {
+    "dataDir": ctx.data_dir,
+    "config": config,
+  }
 
-    # Pass set_state as a callback for host sync
-    def set_state_fn(partial: dict[str, Any]) -> None:
-        ctx.set_state(partial)
+  # Pass set_state as a callback for host sync
+  def set_state_fn(partial: dict[str, Any]) -> None:
+    ctx.set_state(partial)
 
-    await on_skill_load(params, set_state_fn=set_state_fn)
+  await on_skill_load(params, set_state_fn=set_state_fn)
 
 
 async def _on_unload(ctx: Any) -> None:
-    from .server import on_skill_unload
+  from .server import on_skill_unload
 
-    await on_skill_unload()
+  await on_skill_unload()
 
 
 async def _on_tick(ctx: Any) -> None:
-    from .server import on_skill_tick
+  from .server import on_skill_tick
 
-    await on_skill_tick()
+  await on_skill_tick()
 
 
 async def _on_status(ctx: Any) -> dict[str, Any]:
-    """Return current skill status information."""
-    from .client.ccxt_client import get_ccxt_manager
+  """Return current skill status information."""
+  from .client.ccxt_client import get_ccxt_manager
 
-    manager = get_ccxt_manager()
-    if not manager:
-        return {
-            "initialized": False,
-            "exchange_count": 0,
-        }
-
-    exchanges = manager.list_exchanges()
+  manager = get_ccxt_manager()
+  if not manager:
     return {
-        "initialized": True,
-        "exchange_count": len(exchanges),
-        "exchanges": exchanges,
+      "initialized": False,
+      "exchange_count": 0,
     }
+
+  exchanges = manager.list_exchanges()
+  return {
+    "initialized": True,
+    "exchange_count": len(exchanges),
+    "exchanges": exchanges,
+  }
 
 
 # ---------------------------------------------------------------------------
@@ -133,15 +133,15 @@ async def _on_status(ctx: Any) -> dict[str, Any]:
 
 
 async def _on_disconnect(ctx: Any) -> None:
-    """Clear exchange connections and config."""
-    from .server import on_skill_unload
+  """Clear exchange connections and config."""
+  from .server import on_skill_unload
 
-    await on_skill_unload()
+  await on_skill_unload()
 
-    try:
-        await ctx.write_data("config.json", "{}")
-    except Exception:
-        log.warning("Failed to clear config.json on disconnect")
+  try:
+    await ctx.write_data("config.json", "{}")
+  except Exception:
+    log.warning("Failed to clear config.json on disconnect")
 
 
 # ---------------------------------------------------------------------------
@@ -149,15 +149,15 @@ async def _on_disconnect(ctx: Any) -> None:
 # ---------------------------------------------------------------------------
 
 skill = SkillDefinition(
-    hooks=SkillHooks(
-        on_load=_on_load,
-        on_unload=_on_unload,
-        on_tick=_on_tick,
-        on_status=_on_status,
-        on_disconnect=_on_disconnect,
-        on_setup_start=on_setup_start,
-        on_setup_submit=on_setup_submit,
-        on_setup_cancel=on_setup_cancel,
-    ),
-    tools=_convert_tools(),
+  hooks=SkillHooks(
+    on_load=_on_load,
+    on_unload=_on_unload,
+    on_tick=_on_tick,
+    on_status=_on_status,
+    on_disconnect=_on_disconnect,
+    on_setup_start=on_setup_start,
+    on_setup_submit=on_setup_submit,
+    on_setup_cancel=on_setup_cancel,
+  ),
+  tools=_convert_tools(),
 )

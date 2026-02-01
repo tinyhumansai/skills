@@ -11,29 +11,29 @@ import logging
 import sys
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="[%(name)s] %(levelname)s: %(message)s",
-    stream=sys.stderr,
+  level=logging.INFO,
+  format="[%(name)s] %(levelname)s: %(message)s",
+  stream=sys.stderr,
 )
 
 
 def main() -> None:
-    if "--mcp" in sys.argv:
-        import asyncio
-        from .skill import skill
+  if "--mcp" in sys.argv:
+    import asyncio
+    from .skill import skill
 
-        # MCP mode not implemented for Otter — fall through to SkillServer
-        from dev.runtime.server import SkillServer
+    # MCP mode not implemented for Otter — fall through to SkillServer
+    from dev.runtime.server import SkillServer
 
-        server = SkillServer(skill)
-        server.start()
-    else:
-        from dev.runtime.server import SkillServer
-        from .skill import skill
+    server = SkillServer(skill)
+    server.start()
+  else:
+    from dev.runtime.server import SkillServer
+    from .skill import skill
 
-        server = SkillServer(skill)
-        server.start()
+    server = SkillServer(skill)
+    server.start()
 
 
 if __name__ == "__main__":
-    main()
+  main()

@@ -13,27 +13,27 @@ log = logging.getLogger("skill.slack.handlers.workspace")
 
 
 async def get_workspace_info(args: dict[str, Any]) -> ToolResult:
-    """Get workspace information."""
-    try:
-        client = get_client()
-        if not client:
-            return ToolResult(content="Slack client not initialized", is_error=True)
+  """Get workspace information."""
+  try:
+    client = get_client()
+    if not client:
+      return ToolResult(content="Slack client not initialized", is_error=True)
 
-        result = await client.auth_test()
-        team = result.get("team", "")
-        team_id = result.get("team_id", "")
-        user = result.get("user", "")
-        user_id = result.get("user_id", "")
+    result = await client.auth_test()
+    team = result.get("team", "")
+    team_id = result.get("team_id", "")
+    user = result.get("user", "")
+    user_id = result.get("user_id", "")
 
-        info = {
-            "team": team,
-            "team_id": team_id,
-            "user": user,
-            "user_id": user_id,
-            "url": result.get("url", ""),
-        }
+    info = {
+      "team": team,
+      "team_id": team_id,
+      "user": user,
+      "user_id": user_id,
+      "url": result.get("url", ""),
+    }
 
-        return ToolResult(content=json.dumps(info, indent=2))
+    return ToolResult(content=json.dumps(info, indent=2))
 
-    except Exception as e:
-        return log_and_format_error("get_workspace_info", e, ErrorCategory.API)
+  except Exception as e:
+    return log_and_format_error("get_workspace_info", e, ErrorCategory.API)

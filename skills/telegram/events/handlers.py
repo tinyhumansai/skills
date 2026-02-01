@@ -21,8 +21,8 @@ log = logging.getLogger("skill.telegram.events")
 
 
 async def register_event_handlers(client: TelegramClient) -> None:
-    """Register all Telethon event handlers on the given client."""
-    await register_message_handlers(client)
-    await register_chat_handlers(client)
-    await register_raw_handlers(client)
-    log.info("Event handlers registered")
+  """Register all Telethon event handlers on the given client."""
+  await register_message_handlers(client)
+  await register_chat_handlers(client)
+  await register_raw_handlers(client)
+  log.info("Event handlers registered")

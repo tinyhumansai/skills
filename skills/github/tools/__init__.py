@@ -20,14 +20,14 @@ from .notification import notification_tools
 from .api import api_tools
 
 ALL_TOOLS: list[Tool] = [
-    *repo_tools,
-    *issue_tools,
-    *pr_tools,
-    *search_tools,
-    *code_tools,
-    *release_tools,
-    *gist_tools,
-    *actions_tools,
-    *notification_tools,
-    *api_tools,
+  *repo_tools,
+  *issue_tools,
+  *pr_tools,
+  *search_tools,
+  *code_tools,
+  *release_tools,
+  *gist_tools,
+  *actions_tools,
+  *notification_tools,
+  *api_tools,
 ]

@@ -14,17 +14,17 @@ from . import speech, search, user
 DISPATCH: dict[str, Any] = {}
 
 for mod in (speech, search, user):
-    for name in dir(mod):
-        if name.startswith("_"):
-            continue
-        fn = getattr(mod, name)
-        if inspect.iscoroutinefunction(fn) and fn.__module__ == mod.__name__:
-            DISPATCH[name] = fn
+  for name in dir(mod):
+    if name.startswith("_"):
+      continue
+    fn = getattr(mod, name)
+    if inspect.iscoroutinefunction(fn) and fn.__module__ == mod.__name__:
+      DISPATCH[name] = fn
 
 
 async def dispatch_tool(name: str, arguments: dict[str, Any]) -> ToolResult:
-    """Look up and execute a tool handler by name."""
-    handler = DISPATCH.get(name)
-    if handler is None:
-        return ToolResult(content=f"Unknown tool: {name}", is_error=True)
-    return await handler(arguments)
+  """Look up and execute a tool handler by name."""
+  handler = DISPATCH.get(name)
+  if handler is None:
+    return ToolResult(content=f"Unknown tool: {name}", is_error=True)
+  return await handler(arguments)

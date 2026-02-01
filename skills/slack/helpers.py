@@ -18,8 +18,8 @@ log = logging.getLogger("skill.slack.helpers")
 
 @dataclass
 class ToolResult:
-    content: str
-    is_error: bool = False
+  content: str
+  is_error: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -28,31 +28,31 @@ class ToolResult:
 
 
 class ErrorCategory(str, Enum):
-    MESSAGE = "MESSAGE"
-    CHANNEL = "CHANNEL"
-    USER = "USER"
-    SEARCH = "SEARCH"
-    AUTH = "AUTH"
-    VALIDATION = "VALIDATION"
-    API = "API"
+  MESSAGE = "MESSAGE"
+  CHANNEL = "CHANNEL"
+  USER = "USER"
+  SEARCH = "SEARCH"
+  AUTH = "AUTH"
+  VALIDATION = "VALIDATION"
+  API = "API"
 
 
 def log_and_format_error(
-    function_name: str,
-    error: Exception,
-    category: str | ErrorCategory | None = None,
+  function_name: str,
+  error: Exception,
+  category: str | ErrorCategory | None = None,
 ) -> ToolResult:
-    prefix = category.value if isinstance(category, ErrorCategory) else (category or "GEN")
-    hash_val = sum(ord(c) for c in function_name) % 1000
-    error_code = f"{prefix}-ERR-{hash_val:03d}"
+  prefix = category.value if isinstance(category, ErrorCategory) else (category or "GEN")
+  hash_val = sum(ord(c) for c in function_name) % 1000
+  error_code = f"{prefix}-ERR-{hash_val:03d}"
 
-    log.error("[Slack] Error in %s - Code: %s - %s", function_name, error_code, error)
+  log.error("[Slack] Error in %s - Code: %s - %s", function_name, error_code, error)
 
-    from .validation import ValidationError
+  from .validation import ValidationError
 
-    if isinstance(error, ValidationError):
-        user_message = str(error)
-    else:
-        user_message = f"An error occurred (code: {error_code}). Check logs for details."
+  if isinstance(error, ValidationError):
+    user_message = str(error)
+  else:
+    user_message = f"An error occurred (code: {error_code}). Check logs for details."
 
-    return ToolResult(content=user_message, is_error=True)
+  return ToolResult(content=user_message, is_error=True)

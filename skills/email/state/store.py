@@ -9,11 +9,11 @@ from __future__ import annotations
 from typing import Callable
 
 from .types import (
-    EmailState,
-    EmailAccount,
-    EmailFolder,
-    EmailConnectionStatus,
-    initial_state,
+  EmailState,
+  EmailAccount,
+  EmailFolder,
+  EmailConnectionStatus,
+  initial_state,
 )
 
 _state: EmailState = initial_state()
@@ -26,24 +26,24 @@ _listeners: list[Callable[[], None]] = []
 
 
 def get_state() -> EmailState:
-    return _state
+  return _state
 
 
 def subscribe(listener: Callable[[], None]) -> Callable[[], None]:
-    _listeners.append(listener)
+  _listeners.append(listener)
 
-    def unsubscribe() -> None:
-        try:
-            _listeners.remove(listener)
-        except ValueError:
-            pass
+  def unsubscribe() -> None:
+    try:
+      _listeners.remove(listener)
+    except ValueError:
+      pass
 
-    return unsubscribe
+  return unsubscribe
 
 
 def _notify() -> None:
-    for fn in _listeners:
-        fn()
+  for fn in _listeners:
+    fn()
 
 
 # ---------------------------------------------------------------------------
@@ -52,32 +52,32 @@ def _notify() -> None:
 
 
 def set_connection_status(status: EmailConnectionStatus) -> None:
-    global _state
-    _state = _state.model_copy(update={"connection_status": status})
-    if status != "error":
-        _state = _state.model_copy(update={"connection_error": None})
-    _notify()
+  global _state
+  _state = _state.model_copy(update={"connection_status": status})
+  if status != "error":
+    _state = _state.model_copy(update={"connection_error": None})
+  _notify()
 
 
 def set_connection_error(error: str | None) -> None:
-    global _state
-    updates: dict = {"connection_error": error}
-    if error:
-        updates["connection_status"] = "error"
-    _state = _state.model_copy(update=updates)
-    _notify()
+  global _state
+  updates: dict = {"connection_error": error}
+  if error:
+    updates["connection_status"] = "error"
+  _state = _state.model_copy(update=updates)
+  _notify()
 
 
 def set_is_initialized(value: bool) -> None:
-    global _state
-    _state = _state.model_copy(update={"is_initialized": value})
-    _notify()
+  global _state
+  _state = _state.model_copy(update={"is_initialized": value})
+  _notify()
 
 
 def set_account(account: EmailAccount | None) -> None:
-    global _state
-    _state = _state.model_copy(update={"account": account})
-    _notify()
+  global _state
+  _state = _state.model_copy(update={"account": account})
+  _notify()
 
 
 # ---------------------------------------------------------------------------
@@ -86,22 +86,22 @@ def set_account(account: EmailAccount | None) -> None:
 
 
 def set_folders(folders: dict[str, EmailFolder]) -> None:
-    global _state
-    total_unread = sum(f.unseen_messages for f in folders.values())
-    _state = _state.model_copy(update={"folders": folders, "total_unread": total_unread})
-    _notify()
+  global _state
+  total_unread = sum(f.unseen_messages for f in folders.values())
+  _state = _state.model_copy(update={"folders": folders, "total_unread": total_unread})
+  _notify()
 
 
 def update_folder(name: str, folder: EmailFolder) -> None:
-    global _state
-    folders = {**_state.folders, name: folder}
-    total_unread = sum(f.unseen_messages for f in folders.values())
-    _state = _state.model_copy(update={"folders": folders, "total_unread": total_unread})
-    _notify()
+  global _state
+  folders = {**_state.folders, name: folder}
+  total_unread = sum(f.unseen_messages for f in folders.values())
+  _state = _state.model_copy(update={"folders": folders, "total_unread": total_unread})
+  _notify()
 
 
 def get_folder(name: str) -> EmailFolder | None:
-    return _state.folders.get(name)
+  return _state.folders.get(name)
 
 
 # ---------------------------------------------------------------------------
@@ -110,15 +110,15 @@ def get_folder(name: str) -> EmailFolder | None:
 
 
 def set_sync_status(is_syncing: bool) -> None:
-    global _state
-    _state = _state.model_copy(update={"is_syncing": is_syncing})
-    _notify()
+  global _state
+  _state = _state.model_copy(update={"is_syncing": is_syncing})
+  _notify()
 
 
 def set_last_sync(timestamp: float) -> None:
-    global _state
-    _state = _state.model_copy(update={"last_sync": timestamp})
-    _notify()
+  global _state
+  _state = _state.model_copy(update={"last_sync": timestamp})
+  _notify()
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +127,6 @@ def set_last_sync(timestamp: float) -> None:
 
 
 def reset_state() -> None:
-    global _state
-    _state = initial_state()
-    _notify()
+  global _state
+  _state = initial_state()
+  _notify()

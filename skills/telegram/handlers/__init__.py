@@ -13,18 +13,18 @@ from . import chat, message, contact, admin, media, settings, search
 DISPATCH: dict[str, Any] = {}
 
 for mod in (chat, message, contact, admin, media, settings, search):
-    for name in dir(mod):
-        fn = getattr(mod, name)
-        if callable(fn) and not name.startswith("_"):
-            DISPATCH[name] = fn
+  for name in dir(mod):
+    fn = getattr(mod, name)
+    if callable(fn) and not name.startswith("_"):
+      DISPATCH[name] = fn
 
 
 async def dispatch_tool(name: str, arguments: dict[str, Any]) -> ToolResult:
-    """Look up and execute a tool handler by name."""
-    # Convert tool name from hyphenated (e.g., "get-chats") to underscore format (e.g., "get_chats")
-    # for Python function name lookup
-    handler_name = name.replace("-", "_")
-    handler = DISPATCH.get(handler_name)
-    if handler is None:
-        return ToolResult(content=f"Unknown tool: {name}", is_error=True)
-    return await handler(arguments)
+  """Look up and execute a tool handler by name."""
+  # Convert tool name from hyphenated (e.g., "get-chats") to underscore format (e.g., "get_chats")
+  # for Python function name lookup
+  handler_name = name.replace("-", "_")
+  handler = DISPATCH.get(handler_name)
+  if handler is None:
+    return ToolResult(content=f"Unknown tool: {name}", is_error=True)
+  return await handler(arguments)
