@@ -8,10 +8,9 @@ Provides functionality to split large Python files into smaller modules.
 from __future__ import annotations
 
 import re
-import sys
 from pathlib import Path
 
-from .analyze import FileAnalyzer, ROOT
+from .analyze import FileAnalyzer
 
 
 class FileSplitter:

@@ -39,4 +39,4 @@ async def dispatch_tool(tool_name: str, args: dict[str, Any]) -> Any:
     return await handler(args)
   except Exception as e:
     log.exception("Error executing tool %s: %s", tool_name, e)
-    return {"content": f"Error: {str(e)}", "is_error": True}
+    return {"content": f"Error: {e!s}", "is_error": True}

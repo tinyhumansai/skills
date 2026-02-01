@@ -31,7 +31,7 @@ async def on_skill_load(params: dict[str, Any], set_state_fn: Any | None = None)
 
     config_path = os.path.join(data_dir, "config.json")
     if os.path.exists(config_path):
-      with open(config_path, "r") as f:
+      with open(config_path) as f:
         config = json.load(f)
 
     provider = config.get("provider", "")
@@ -53,7 +53,7 @@ async def on_skill_load(params: dict[str, Any], set_state_fn: Any | None = None)
             set_connection_status("error")
         except Exception as e:
           log.error("Failed to initialize Google Calendar client: %s", e)
-          set_connection_error(f"Failed to initialize: {str(e)}")
+          set_connection_error(f"Failed to initialize: {e!s}")
           set_connection_status("error")
       else:
         set_connection_error("No credentials found in config")

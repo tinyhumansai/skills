@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
 
 from .analyze import ROOT, analyze_files, print_report
 from .split import split_file

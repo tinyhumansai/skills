@@ -11,8 +11,8 @@ from mcp.types import Tool
 
 from .tools_content import CONTENT_TOOLS
 from .tools_interaction import INTERACTION_TOOLS
-from .tools_network import NETWORK_TOOLS
 from .tools_navigation import NAVIGATION_TOOLS
+from .tools_network import NETWORK_TOOLS
 from .tools_other import OTHER_TOOLS
 from .tools_storage import STORAGE_TOOLS
 from .tools_wait import WAIT_TOOLS

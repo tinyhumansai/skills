@@ -67,7 +67,7 @@ def format_event_detail(event: dict) -> str:
     if end_time:
       lines.append(f"End: {end_time}")
   elif "date" in start:
-    lines.append(f"All-day event")
+    lines.append("All-day event")
     lines.append(f"Date: {start['date']}")
     if end.get("date"):
       lines.append(f"End date: {end['date']}")
