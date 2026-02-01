@@ -33,6 +33,7 @@ class CcxtManager:
         password: str = "",
         sandbox: bool = False,
         options: dict[str, Any] | None = None,
+        settings: list[dict[str, Any]] | None = None,
     ) -> bool:
         """
         Add or update an exchange connection.
@@ -44,7 +45,8 @@ class CcxtManager:
             secret: API secret
             password: API password (for some exchanges)
             sandbox: Use sandbox/testnet mode
-            options: Additional exchange-specific options
+            options: Additional exchange-specific options (dict)
+            settings: Array of setting objects to merge into options
 
         Returns:
             True if successful, False otherwise
@@ -59,12 +61,24 @@ class CcxtManager:
                     log.error("Exchange %s not found in CCXT", exchange_name)
                     return False
 
+            # Merge settings array into options if provided
+            merged_options = dict(options or {})
+            if settings:
+                for setting_obj in settings:
+                    if isinstance(setting_obj, dict):
+                        # If it's an object with "key" and "value", use that structure
+                        if "key" in setting_obj and "value" in setting_obj:
+                            merged_options[setting_obj["key"]] = setting_obj["value"]
+                        else:
+                            # Otherwise merge all keys from the object
+                            merged_options.update(setting_obj)
+
             # Build config
             config: dict[str, Any] = {
                 "apiKey": api_key,
                 "secret": secret,
                 "enableRateLimit": True,
-                "options": options or {},
+                "options": merged_options,
             }
 
             if password:
@@ -90,7 +104,8 @@ class CcxtManager:
                 "secret": secret,
                 "password": password,
                 "sandbox": sandbox,
-                "options": options or {},
+                "options": merged_options,
+                "settings": settings,  # Store raw settings array if provided
             }
 
             log.info("Added exchange %s (%s)", exchange_id, exchange_name)

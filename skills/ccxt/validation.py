@@ -43,3 +43,23 @@ def opt_string_list(args: dict[str, Any], key: str) -> list[str] | None:
     if isinstance(v, list):
         return [str(p).strip() for p in v if p]
     return None
+
+
+def opt_list(args: dict[str, Any], key: str) -> list[Any] | None:
+    """Read an optional list from args."""
+    v = args.get(key)
+    if v is None:
+        return None
+    if isinstance(v, list):
+        return v
+    return None
+
+
+def req_list(args: dict[str, Any], key: str) -> list[Any]:
+    """Read a required list from args."""
+    v = args.get(key)
+    if not isinstance(v, list):
+        raise ValidationError(f"Missing required parameter: {key} (must be a list)")
+    if not v:
+        raise ValidationError(f"Parameter {key} cannot be empty")
+    return v

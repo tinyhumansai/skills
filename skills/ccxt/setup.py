@@ -157,6 +157,14 @@ STEP_ADD_EXCHANGE = SetupStep(
             required=False,
             default=False,
         ),
+        SetupField(
+            name="settings",
+            type="text",
+            label="Exchange Settings (JSON)",
+            description="Optional CCXT exchange settings as JSON. Can be an object or array of setting objects. Example: {\"defaultType\": \"spot\"} or [{\"key\": \"defaultType\", \"value\": \"spot\"}]",
+            required=False,
+            placeholder='{"defaultType": "spot"}',
+        ),
     ],
 )
 
@@ -330,6 +338,47 @@ async def _handle_exchange_add(
 
     password = str(values.get("password", "")).strip()
     sandbox = bool(values.get("sandbox", False))
+    
+    # Parse settings/options
+    options: dict[str, Any] = {}
+    settings_json = str(values.get("settings", "")).strip()
+    if settings_json:
+        try:
+            settings_data = json.loads(settings_json)
+            # Handle array of setting objects: [{"key": "value", ...}, ...]
+            if isinstance(settings_data, list):
+                # Convert array of objects to a single options dict
+                for setting_obj in settings_data:
+                    if isinstance(setting_obj, dict):
+                        # If it's an object with "key" and "value", use that structure
+                        if "key" in setting_obj and "value" in setting_obj:
+                            options[setting_obj["key"]] = setting_obj["value"]
+                        else:
+                            # Otherwise merge all keys from the object
+                            options.update(setting_obj)
+            # Handle single object: {"key": "value", ...}
+            elif isinstance(settings_data, dict):
+                options = settings_data
+            else:
+                return SetupResult(
+                    status="error",
+                    errors=[
+                        SetupFieldError(
+                            field="settings",
+                            message="Settings must be a JSON object or array of objects",
+                        )
+                    ],
+                )
+        except json.JSONDecodeError as e:
+            return SetupResult(
+                status="error",
+                errors=[
+                    SetupFieldError(
+                        field="settings",
+                        message=f"Invalid JSON in settings: {e}",
+                    )
+                ],
+            )
 
     # Add exchange to list
     exchange_config = {
@@ -339,7 +388,8 @@ async def _handle_exchange_add(
         "secret": secret,
         "password": password,
         "sandbox": sandbox,
-        "options": {},
+        "options": options,
+        "settings": settings_json if settings_json else None,  # Store raw JSON for reference
     }
 
     _exchanges.append(exchange_config)

@@ -53,6 +53,14 @@ trading_tools: list[Tool] = [
                     "type": "number",
                     "description": "Limit price (required for limit orders)",
                 },
+                "settings": {
+                    "type": "array",
+                    "description": "Optional array of setting objects to pass to the order. Each object can have key-value pairs for order parameters.",
+                    "items": {
+                        "type": "object",
+                        "description": "Setting object with order parameters",
+                    },
+                },
             },
             "required": ["exchange_id", "symbol", "side", "type", "amount"],
         },

@@ -13,6 +13,7 @@ from .account import (
     get_exchange_info,
     list_exchanges,
     test_connection,
+    update_exchange_settings,
 )
 from .market import (
     fetch_markets,
@@ -39,6 +40,7 @@ HANDLERS: dict[str, Any] = {
     "get_exchange_info": get_exchange_info,
     "test_connection": test_connection,
     "get_available_exchanges": get_available_exchanges,
+    "update_exchange_settings": update_exchange_settings,
     # Market
     "fetch_ticker": fetch_ticker,
     "fetch_tickers": fetch_tickers,

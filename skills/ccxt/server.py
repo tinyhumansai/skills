@@ -71,10 +71,27 @@ async def on_skill_load(
         password = exc_config.get("password", "")
         sandbox = exc_config.get("sandbox", False)
         options = exc_config.get("options", {})
+        settings = exc_config.get("settings")
 
         if not exchange_id or not exchange_name:
             log.warning("Skipping invalid exchange config: missing exchange_id or exchange_name")
             continue
+
+        # Convert settings JSON string to array if present
+        settings_array = None
+        if settings:
+            if isinstance(settings, str):
+                try:
+                    settings_data = json.loads(settings)
+                    if isinstance(settings_data, list):
+                        settings_array = settings_data
+                    elif isinstance(settings_data, dict):
+                        # Convert single object to array format
+                        settings_array = [settings_data]
+                except json.JSONDecodeError:
+                    log.warning("Invalid settings JSON for exchange %s", exchange_id)
+            elif isinstance(settings, list):
+                settings_array = settings
 
         success = manager.add_exchange(
             exchange_id=exchange_id,
@@ -84,6 +101,7 @@ async def on_skill_load(
             password=password,
             sandbox=sandbox,
             options=options,
+            settings=settings_array,
         )
 
         if success:

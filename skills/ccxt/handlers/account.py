@@ -8,7 +8,7 @@ from typing import Any
 
 from ..client.ccxt_client import get_ccxt_manager
 from ..helpers import ToolResult, log_and_format_error, ErrorCategory
-from ..validation import req_string
+from ..validation import req_string, req_list
 
 
 async def list_exchanges(args: dict[str, Any]) -> ToolResult:
@@ -117,3 +117,54 @@ async def get_available_exchanges(args: dict[str, Any]) -> ToolResult:
         )
     except Exception as e:
         return log_and_format_error("get_available_exchanges", e, ErrorCategory.ACCOUNT)
+
+
+async def update_exchange_settings(args: dict[str, Any]) -> ToolResult:
+    """Update settings for an existing exchange connection."""
+    try:
+        exchange_id = req_string(args, "exchange_id")
+        settings = req_list(args, "settings")
+        
+        manager = get_ccxt_manager()
+        if not manager:
+            return ToolResult(
+                content="CCXT manager not initialized.",
+                is_error=True,
+            )
+
+        config = manager.get_config(exchange_id)
+        if not config:
+            return ToolResult(
+                content=f"Exchange '{exchange_id}' not found.",
+                is_error=True,
+            )
+
+        # Merge settings array into options
+        current_options = dict(config.get("options", {}))
+        for setting_obj in settings:
+            if isinstance(setting_obj, dict):
+                # If it's an object with "key" and "value", use that structure
+                if "key" in setting_obj and "value" in setting_obj:
+                    current_options[setting_obj["key"]] = setting_obj["value"]
+                else:
+                    # Otherwise merge all keys from the object
+                    current_options.update(setting_obj)
+
+        # Update the exchange with new options
+        exchange = manager.get_exchange(exchange_id)
+        if exchange:
+            # Update exchange options
+            exchange.options.update(current_options)
+
+        # Update stored config
+        config["options"] = current_options
+        config["settings"] = settings
+
+        lines = [
+            f"Updated settings for {exchange_id}:",
+            f"  Settings applied: {len(settings)} setting object(s)",
+        ]
+
+        return ToolResult(content="\n".join(lines))
+    except Exception as e:
+        return log_and_format_error("update_exchange_settings", e, ErrorCategory.ACCOUNT)

@@ -8,7 +8,7 @@ from typing import Any
 
 from ..client.ccxt_client import get_ccxt_manager
 from ..helpers import ToolResult, log_and_format_error, ErrorCategory
-from ..validation import req_string, opt_string, opt_number
+from ..validation import req_string, opt_string, opt_number, opt_list
 
 
 async def fetch_balance(args: dict[str, Any]) -> ToolResult:
@@ -78,6 +78,18 @@ async def create_order(args: dict[str, Any]) -> ToolResult:
         if order_type == "limit":
             price = float(req_string(args, "price"))
             order_params["price"] = price
+
+        # Process settings array if provided
+        settings = opt_list(args, "settings")
+        if settings:
+            for setting_obj in settings:
+                if isinstance(setting_obj, dict):
+                    # If it's an object with "key" and "value", use that structure
+                    if "key" in setting_obj and "value" in setting_obj:
+                        order_params[setting_obj["key"]] = setting_obj["value"]
+                    else:
+                        # Otherwise merge all keys from the object
+                        order_params.update(setting_obj)
 
         order = await exchange.create_order(**order_params)
         lines = [
