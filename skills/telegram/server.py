@@ -248,9 +248,7 @@ async def _run_ai_summarization(db: Any) -> None:
   )
 
   if response and (_upsert_entity_fn and _upsert_relationship_fn):
-    await apply_summarization_results(
-      response, _upsert_entity_fn, _upsert_relationship_fn
-    )
+    await apply_summarization_results(response, _upsert_entity_fn, _upsert_relationship_fn)
 
 
 def _build_chat_context() -> list[dict[str, Any]]:
@@ -261,13 +259,15 @@ def _build_chat_context() -> list[dict[str, Any]]:
     chat = state.chats.get(chat_id)
     if not chat:
       continue
-    chats.append({
-      "id": chat.id,
-      "title": chat.title,
-      "type": chat.type,
-      "participants_count": chat.participants_count,
-      "unread_count": chat.unread_count,
-    })
+    chats.append(
+      {
+        "id": chat.id,
+        "title": chat.title,
+        "type": chat.type,
+        "participants_count": chat.participants_count,
+        "unread_count": chat.unread_count,
+      }
+    )
   return chats
 
 

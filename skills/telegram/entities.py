@@ -312,9 +312,7 @@ async def apply_summarization_results(
         metadata={"chat_id": summary["chatId"]},
       )
     except Exception:
-      log.debug(
-        "Failed to upsert AI summary for chat %s", summary.get("chatId"), exc_info=True
-      )
+      log.debug("Failed to upsert AI summary for chat %s", summary.get("chatId"), exc_info=True)
 
   topic_count = len(response.get("topics", []))
   conn_count = len(response.get("connections", []))
