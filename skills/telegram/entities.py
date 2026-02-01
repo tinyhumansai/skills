@@ -252,7 +252,10 @@ async def emit_summaries(
             except Exception:
                 log.debug(
                     "Failed to upsert %s relationship for %s -> %s",
-                    rel_type, entity_source_id, chat_id, exc_info=True,
+                    rel_type,
+                    entity_source_id,
+                    chat_id,
+                    exc_info=True,
                 )
 
     log.info("Emitted %d summary entities", len(rows))

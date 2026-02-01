@@ -62,8 +62,6 @@ async def list_speakers(args: dict[str, Any]) -> ToolResult:
         for s in speakers:
             lines.append(f"[{s.speaker_id}] {s.name or 'Unknown'}")
 
-        return ToolResult(
-            content=f"Found {len(speakers)} speaker(s):\n" + "\n".join(lines)
-        )
+        return ToolResult(content=f"Found {len(speakers)} speaker(s):\n" + "\n".join(lines))
     except Exception as e:
         return log_and_format_error("list_speakers", e, ErrorCategory.USER)

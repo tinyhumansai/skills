@@ -25,17 +25,20 @@ _listeners: list[Callable[[], None]] = []
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def get_state() -> OtterState:
     return _state
 
 
 def subscribe(listener: Callable[[], None]) -> Callable[[], None]:
     _listeners.append(listener)
+
     def unsubscribe() -> None:
         try:
             _listeners.remove(listener)
         except ValueError:
             pass
+
     return unsubscribe
 
 
@@ -47,6 +50,7 @@ def _notify() -> None:
 # ---------------------------------------------------------------------------
 # Connection
 # ---------------------------------------------------------------------------
+
 
 def set_connection_status(status: OtterConnectionStatus) -> None:
     global _state
@@ -82,13 +86,16 @@ def set_current_user(user: OtterUser | None) -> None:
 # Speeches
 # ---------------------------------------------------------------------------
 
+
 def set_speeches(speeches: dict[str, OtterSpeech], order: list[str]) -> None:
     global _state
-    _state = _state.model_copy(update={
-        "speeches": speeches,
-        "speeches_order": order,
-        "total_meetings": len(order),
-    })
+    _state = _state.model_copy(
+        update={
+            "speeches": speeches,
+            "speeches_order": order,
+            "total_meetings": len(order),
+        }
+    )
     _notify()
 
 
@@ -100,11 +107,13 @@ def add_speech(speech: OtterSpeech) -> None:
         if speech.speech_id in _state.speeches_order
         else [speech.speech_id, *_state.speeches_order]
     )
-    _state = _state.model_copy(update={
-        "speeches": speeches,
-        "speeches_order": order,
-        "total_meetings": len(order),
-    })
+    _state = _state.model_copy(
+        update={
+            "speeches": speeches,
+            "speeches_order": order,
+            "total_meetings": len(order),
+        }
+    )
     _notify()
 
 
@@ -114,9 +123,7 @@ def update_speech(speech_id: str, updates: dict) -> None:
     if not existing:
         return
     updated = existing.model_copy(update=updates)
-    _state = _state.model_copy(update={
-        "speeches": {**_state.speeches, speech_id: updated}
-    })
+    _state = _state.model_copy(update={"speeches": {**_state.speeches, speech_id: updated}})
     _notify()
 
 
@@ -127,6 +134,7 @@ def get_speech(speech_id: str) -> OtterSpeech | None:
 # ---------------------------------------------------------------------------
 # Speakers
 # ---------------------------------------------------------------------------
+
 
 def set_speakers(speakers: dict[str, OtterSpeaker]) -> None:
     global _state
@@ -145,6 +153,7 @@ def add_speaker(speaker: OtterSpeaker) -> None:
 # Sync
 # ---------------------------------------------------------------------------
 
+
 def set_sync_status(is_syncing: bool | None = None, last_sync: float | None = None) -> None:
     global _state
     updates: dict = {}
@@ -159,6 +168,7 @@ def set_sync_status(is_syncing: bool | None = None, last_sync: float | None = No
 # ---------------------------------------------------------------------------
 # Reset
 # ---------------------------------------------------------------------------
+
 
 def reset_state() -> None:
     global _state

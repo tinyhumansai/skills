@@ -120,6 +120,7 @@ async def get_sync_status(args: dict[str, Any]) -> ToolResult:
         ]
         if state.last_sync:
             from datetime import datetime, timezone
+
             last = datetime.fromtimestamp(state.last_sync, tz=timezone.utc).isoformat()
             lines.append(f"Last sync: {last}")
         else:

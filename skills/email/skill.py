@@ -33,6 +33,7 @@ log = logging.getLogger("skill.email.skill")
 # Convert MCP Tool objects -> SkillTool objects
 # ---------------------------------------------------------------------------
 
+
 def _make_execute(tool_name: str):
     """Create an async execute function for a given tool name."""
 
@@ -66,6 +67,7 @@ def _convert_tools() -> list[SkillTool]:
 # Lifecycle hooks adapted for SkillContext
 # ---------------------------------------------------------------------------
 
+
 async def _on_load(ctx: Any) -> None:
     """Initialize IMAP + SMTP + SQLite using SkillContext."""
     from .server import on_skill_load
@@ -94,17 +96,20 @@ async def _on_load(ctx: Any) -> None:
 
 async def _on_unload(ctx: Any) -> None:
     from .server import on_skill_unload
+
     await on_skill_unload()
 
 
 async def _on_tick(ctx: Any) -> None:
     from .server import on_skill_tick
+
     await on_skill_tick()
 
 
 async def _on_status(ctx: Any) -> dict[str, Any]:
     """Return current skill status information."""
     from .state.store import get_state
+
     state = get_state()
     return {
         "connection_status": state.connection_status,
@@ -147,8 +152,11 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "create_folder", "delete_folder", "get_folder_status",
-            "list_folders", "rename_folder",
+            "create_folder",
+            "delete_folder",
+            "get_folder_status",
+            "list_folders",
+            "rename_folder",
         ],
     ),
     SkillOptionDefinition(
@@ -159,8 +167,12 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "count_messages", "get_mailbox_summary", "get_message",
-            "get_recent_messages", "get_thread", "get_unread_count",
+            "count_messages",
+            "get_mailbox_summary",
+            "get_message",
+            "get_recent_messages",
+            "get_thread",
+            "get_unread_count",
             "get_unread_messages",
         ],
     ),
@@ -172,7 +184,9 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "forward_email", "reply_to_email", "send_email",
+            "forward_email",
+            "reply_to_email",
+            "send_email",
         ],
     ),
     SkillOptionDefinition(
@@ -183,8 +197,13 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "archive_message", "delete_message", "flag_message",
-            "mark_read", "mark_unread", "move_message", "unflag_message",
+            "archive_message",
+            "delete_message",
+            "flag_message",
+            "mark_read",
+            "mark_unread",
+            "move_message",
+            "unflag_message",
         ],
     ),
     SkillOptionDefinition(
@@ -195,7 +214,9 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "get_attachment_info", "list_attachments", "save_attachment",
+            "get_attachment_info",
+            "list_attachments",
+            "save_attachment",
         ],
     ),
     SkillOptionDefinition(
@@ -206,7 +227,10 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "delete_draft", "list_drafts", "save_draft", "update_draft",
+            "delete_draft",
+            "list_drafts",
+            "save_draft",
+            "update_draft",
         ],
     ),
     SkillOptionDefinition(
@@ -217,8 +241,12 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "get_account_info", "get_sync_status", "list_messages",
-            "search_contacts", "search_messages", "test_connection",
+            "get_account_info",
+            "get_sync_status",
+            "list_messages",
+            "search_contacts",
+            "search_messages",
+            "test_connection",
         ],
     ),
 ]

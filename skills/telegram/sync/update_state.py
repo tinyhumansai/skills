@@ -39,9 +39,7 @@ async def load_update_state() -> dict[str, int] | None:
         db = await get_db()
         state = await db_get_update_state(db)
         if state:
-            store.set_sync_pts(
-                state["pts"], state["qts"], state["date"], state["seq"]
-            )
+            store.set_sync_pts(state["pts"], state["qts"], state["date"], state["seq"])
         return state
     except Exception:
         log.exception("Failed to load update state")

@@ -152,15 +152,21 @@ async def register_raw_handlers(client: TelegramClient) -> None:
 # Individual handlers
 # ---------------------------------------------------------------------------
 
+
 async def _handle_user_status(event: UpdateUserStatus) -> None:
     user_id = str(event.user_id)
     status_name = type(event.status).__name__ if event.status else "unknown"
     try:
         db = await get_db()
-        await insert_event(db, "user_status", None, {
-            "user_id": user_id,
-            "status": status_name,
-        })
+        await insert_event(
+            db,
+            "user_status",
+            None,
+            {
+                "user_id": user_id,
+                "status": status_name,
+            },
+        )
     except Exception:
         pass  # Non-critical
 
@@ -183,10 +189,15 @@ async def _handle_read_inbox(event: Any) -> None:
 
         try:
             db = await get_db()
-            await insert_event(db, "messages_read", chat_id, {
-                "max_id": max_id,
-                "direction": "inbox",
-            })
+            await insert_event(
+                db,
+                "messages_read",
+                chat_id,
+                {
+                    "max_id": max_id,
+                    "direction": "inbox",
+                },
+            )
         except Exception:
             pass
 
@@ -204,10 +215,15 @@ async def _handle_read_outbox(event: Any) -> None:
     if chat_id:
         try:
             db = await get_db()
-            await insert_event(db, "messages_read", chat_id, {
-                "max_id": max_id,
-                "direction": "outbox",
-            })
+            await insert_event(
+                db,
+                "messages_read",
+                chat_id,
+                {
+                    "max_id": max_id,
+                    "direction": "outbox",
+                },
+            )
         except Exception:
             pass
 
@@ -231,9 +247,14 @@ async def _handle_draft_message(event: UpdateDraftMessage) -> None:
 
     try:
         db = await get_db()
-        await insert_event(db, "draft_update", chat_id, {
-            "draft": draft_text,
-        })
+        await insert_event(
+            db,
+            "draft_update",
+            chat_id,
+            {
+                "draft": draft_text,
+            },
+        )
     except Exception:
         pass
 
@@ -257,9 +278,14 @@ async def _handle_dialog_pinned(event: UpdateDialogPinned) -> None:
 
     try:
         db = await get_db()
-        await insert_event(db, "dialog_pinned", chat_id, {
-            "pinned": pinned,
-        })
+        await insert_event(
+            db,
+            "dialog_pinned",
+            chat_id,
+            {
+                "pinned": pinned,
+            },
+        )
     except Exception:
         pass
 
@@ -280,9 +306,14 @@ async def _handle_pinned_dialogs(event: UpdatePinnedDialogs) -> None:
 
     try:
         db = await get_db()
-        await insert_event(db, "pinned_dialogs_reorder", None, {
-            "pinned_ids": pinned_ids,
-        })
+        await insert_event(
+            db,
+            "pinned_dialogs_reorder",
+            None,
+            {
+                "pinned_ids": pinned_ids,
+            },
+        )
     except Exception:
         pass
 
@@ -303,9 +334,14 @@ async def _handle_chat_participants(event: UpdateChatParticipants) -> None:
 
     try:
         db = await get_db()
-        await insert_event(db, "participants_update", chat_id, {
-            "count": count,
-        })
+        await insert_event(
+            db,
+            "participants_update",
+            chat_id,
+            {
+                "count": count,
+            },
+        )
     except Exception:
         pass
 
@@ -331,10 +367,15 @@ async def _handle_notify_settings(event: UpdateNotifySettings) -> None:
 
     try:
         db = await get_db()
-        await insert_event(db, "notify_settings", chat_id, {
-            "is_muted": is_muted,
-            "mute_until": mute_until,
-        })
+        await insert_event(
+            db,
+            "notify_settings",
+            chat_id,
+            {
+                "is_muted": is_muted,
+                "mute_until": mute_until,
+            },
+        )
     except Exception:
         pass
 
@@ -347,10 +388,15 @@ async def _handle_typing(chat_id: str, from_id: str, event: Any) -> None:
 
     try:
         db = await get_db()
-        await insert_event(db, "typing", chat_id or None, {
-            "from_id": from_id,
-            "action": action_name,
-        })
+        await insert_event(
+            db,
+            "typing",
+            chat_id or None,
+            {
+                "from_id": from_id,
+                "action": action_name,
+            },
+        )
     except Exception:
         pass
 
@@ -380,10 +426,15 @@ async def _handle_pinned_messages(event: Any) -> None:
 
     try:
         db = await get_db()
-        await insert_event(db, "pinned_messages", chat_id or None, {
-            "message_ids": msg_ids,
-            "pinned": pinned,
-        })
+        await insert_event(
+            db,
+            "pinned_messages",
+            chat_id or None,
+            {
+                "message_ids": msg_ids,
+                "pinned": pinned,
+            },
+        )
     except Exception:
         pass
 
@@ -395,9 +446,14 @@ async def _handle_delete_messages(event: UpdateDeleteMessages) -> None:
 
     try:
         db = await get_db()
-        await insert_event(db, "messages_deleted_raw", None, {
-            "message_ids": msg_ids,
-        })
+        await insert_event(
+            db,
+            "messages_deleted_raw",
+            None,
+            {
+                "message_ids": msg_ids,
+            },
+        )
     except Exception:
         pass
 
@@ -413,9 +469,14 @@ async def _handle_delete_channel_messages(event: UpdateDeleteChannelMessages) ->
 
     try:
         db = await get_db()
-        await insert_event(db, "messages_deleted_raw", channel_id, {
-            "message_ids": msg_ids,
-        })
+        await insert_event(
+            db,
+            "messages_deleted_raw",
+            channel_id,
+            {
+                "message_ids": msg_ids,
+            },
+        )
     except Exception:
         pass
 
@@ -436,10 +497,15 @@ async def _handle_folder_peers(event: UpdateFolderPeers) -> None:
 
         try:
             db = await get_db()
-            await insert_event(db, "folder_update", chat_id, {
-                "folder_id": folder_id,
-                "is_archived": is_archived,
-            })
+            await insert_event(
+                db,
+                "folder_update",
+                chat_id,
+                {
+                    "folder_id": folder_id,
+                    "is_archived": is_archived,
+                },
+            )
         except Exception:
             pass
 
@@ -457,8 +523,13 @@ async def _handle_read_contents(event: Any) -> None:
     if msg_ids:
         try:
             db = await get_db()
-            await insert_event(db, "content_read", chat_id or None, {
-                "message_ids": msg_ids,
-            })
+            await insert_event(
+                db,
+                "content_read",
+                chat_id or None,
+                {
+                    "message_ids": msg_ids,
+                },
+            )
         except Exception:
             pass

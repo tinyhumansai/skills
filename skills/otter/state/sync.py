@@ -39,7 +39,9 @@ def _on_state_change() -> None:
     loop = asyncio.get_event_loop()
     if _debounce_handle is not None:
         _debounce_handle.cancel()
-    _debounce_handle = loop.call_later(DEBOUNCE_S, lambda: asyncio.ensure_future(_push_host_state()))
+    _debounce_handle = loop.call_later(
+        DEBOUNCE_S, lambda: asyncio.ensure_future(_push_host_state())
+    )
 
 
 def _build_host_state() -> OtterHostState:

@@ -27,17 +27,18 @@ async def send_message(args: dict[str, Any]) -> ToolResult:
         if not client:
             return ToolResult(content="Slack client not initialized", is_error=True)
 
-        result = await client.chat_post_message(
-            channel_id, text, thread_ts=thread_ts
-        )
+        result = await client.chat_post_message(channel_id, text, thread_ts=thread_ts)
         message = result.get("message", {})
 
         return ToolResult(
-            content=json.dumps({
-                "ts": message.get("ts"),
-                "channel": message.get("channel"),
-                "text": message.get("text"),
-            }, indent=2)
+            content=json.dumps(
+                {
+                    "ts": message.get("ts"),
+                    "channel": message.get("channel"),
+                    "text": message.get("text"),
+                },
+                indent=2,
+            )
         )
 
     except ValidationError as e:
@@ -68,13 +69,15 @@ async def get_messages(args: dict[str, Any]) -> ToolResult:
 
         messages = []
         for msg in result.get("messages", []):
-            messages.append({
-                "ts": msg.get("ts"),
-                "user": msg.get("user"),
-                "text": msg.get("text"),
-                "type": msg.get("type"),
-                "subtype": msg.get("subtype"),
-            })
+            messages.append(
+                {
+                    "ts": msg.get("ts"),
+                    "user": msg.get("user"),
+                    "text": msg.get("text"),
+                    "type": msg.get("type"),
+                    "subtype": msg.get("subtype"),
+                }
+            )
 
         return ToolResult(content=json.dumps({"messages": messages}, indent=2))
 

@@ -36,18 +36,58 @@ log = logging.getLogger("skill.wallet.setup")
 # ---------------------------------------------------------------------------
 
 EVM_NETWORKS = [
-    {"value": "ethereum", "label": "Ethereum Mainnet", "chain_id": "1", "rpc": "https://eth.llamarpc.com"},
-    {"value": "polygon", "label": "Polygon", "chain_id": "137", "rpc": "https://polygon.llamarpc.com"},
-    {"value": "bsc", "label": "BNB Smart Chain", "chain_id": "56", "rpc": "https://bsc.llamarpc.com"},
-    {"value": "arbitrum", "label": "Arbitrum One", "chain_id": "42161", "rpc": "https://arb1.arbitrum.io/rpc"},
-    {"value": "optimism", "label": "Optimism", "chain_id": "10", "rpc": "https://mainnet.optimism.io"},
-    {"value": "avalanche", "label": "Avalanche C-Chain", "chain_id": "43114", "rpc": "https://avalanche.public-rpc.com"},
+    {
+        "value": "ethereum",
+        "label": "Ethereum Mainnet",
+        "chain_id": "1",
+        "rpc": "https://eth.llamarpc.com",
+    },
+    {
+        "value": "polygon",
+        "label": "Polygon",
+        "chain_id": "137",
+        "rpc": "https://polygon.llamarpc.com",
+    },
+    {
+        "value": "bsc",
+        "label": "BNB Smart Chain",
+        "chain_id": "56",
+        "rpc": "https://bsc.llamarpc.com",
+    },
+    {
+        "value": "arbitrum",
+        "label": "Arbitrum One",
+        "chain_id": "42161",
+        "rpc": "https://arb1.arbitrum.io/rpc",
+    },
+    {
+        "value": "optimism",
+        "label": "Optimism",
+        "chain_id": "10",
+        "rpc": "https://mainnet.optimism.io",
+    },
+    {
+        "value": "avalanche",
+        "label": "Avalanche C-Chain",
+        "chain_id": "43114",
+        "rpc": "https://avalanche.public-rpc.com",
+    },
     {"value": "base", "label": "Base", "chain_id": "8453", "rpc": "https://mainnet.base.org"},
 ]
 
 SOL_NETWORKS = [
-    {"value": "solana_mainnet", "label": "Solana Mainnet", "chain_id": "mainnet-beta", "rpc": "https://api.mainnet-beta.solana.com"},
-    {"value": "solana_devnet", "label": "Solana Devnet", "chain_id": "devnet", "rpc": "https://api.devnet.solana.com"},
+    {
+        "value": "solana_mainnet",
+        "label": "Solana Mainnet",
+        "chain_id": "mainnet-beta",
+        "rpc": "https://api.mainnet-beta.solana.com",
+    },
+    {
+        "value": "solana_devnet",
+        "label": "Solana Devnet",
+        "chain_id": "devnet",
+        "rpc": "https://api.devnet.solana.com",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -171,9 +211,7 @@ async def on_setup_start(ctx: Any) -> SetupStep:
     return STEP_SEED_PHRASE
 
 
-async def on_setup_submit(
-    ctx: Any, step_id: str, values: dict[str, Any]
-) -> SetupResult:
+async def on_setup_submit(ctx: Any, step_id: str, values: dict[str, Any]) -> SetupResult:
     """Validate and process a submitted step."""
     if step_id == "seed_phrase":
         return await _handle_seed_phrase(ctx, values)
@@ -198,9 +236,7 @@ async def on_setup_cancel(ctx: Any) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def _handle_seed_phrase(
-    ctx: Any, values: dict[str, Any]
-) -> SetupResult:
+async def _handle_seed_phrase(ctx: Any, values: dict[str, Any]) -> SetupResult:
     """Validate seed phrase and derive seed bytes."""
     global _seed_phrase, _seed_bytes
 
@@ -226,7 +262,12 @@ async def _handle_seed_phrase(
         if not mnemo.check(raw_phrase):
             return SetupResult(
                 status="error",
-                errors=[SetupFieldError(field="seed_phrase", message="Invalid seed phrase — words not in BIP39 wordlist")],
+                errors=[
+                    SetupFieldError(
+                        field="seed_phrase",
+                        message="Invalid seed phrase — words not in BIP39 wordlist",
+                    )
+                ],
             )
         _seed_bytes = seed_from_mnemonic(mnemo, raw_phrase)
         _seed_phrase = raw_phrase
@@ -239,9 +280,7 @@ async def _handle_seed_phrase(
     return SetupResult(status="next", next_step=STEP_WALLETS)
 
 
-async def _handle_wallets(
-    ctx: Any, values: dict[str, Any]
-) -> SetupResult:
+async def _handle_wallets(ctx: Any, values: dict[str, Any]) -> SetupResult:
     """Process wallet selections."""
     global _wallet_selections
 
@@ -283,9 +322,7 @@ async def _handle_wallets(
     return SetupResult(status="next", next_step=STEP_NETWORKS)
 
 
-async def _handle_networks(
-    ctx: Any, values: dict[str, Any]
-) -> SetupResult:
+async def _handle_networks(ctx: Any, values: dict[str, Any]) -> SetupResult:
     """Process network selections and complete setup."""
     global _network_selections
 
@@ -310,13 +347,17 @@ async def _handle_networks(
     if has_evm_wallets and not evm_networks:
         return SetupResult(
             status="error",
-            errors=[SetupFieldError(field="evm_networks", message="Select at least one EVM network")],
+            errors=[
+                SetupFieldError(field="evm_networks", message="Select at least one EVM network")
+            ],
         )
 
     if has_sol_wallets and not sol_networks:
         return SetupResult(
             status="error",
-            errors=[SetupFieldError(field="sol_networks", message="Select at least one Solana network")],
+            errors=[
+                SetupFieldError(field="sol_networks", message="Select at least one Solana network")
+            ],
         )
 
     _network_selections = {
@@ -349,12 +390,14 @@ async def _complete_setup(ctx: Any) -> SetupResult:
         if wallet_key.startswith("evm_"):
             index = int(wallet_key.split("_")[1])
             account = Account.from_mnemonic(_seed_phrase, account_path=f"m/44'/60'/0'/0/{index}")
-            wallets.append({
-                "index": index,
-                "chain_type": "evm",
-                "address": account.address,
-                "label": f"EVM Wallet {index}",
-            })
+            wallets.append(
+                {
+                    "index": index,
+                    "chain_type": "evm",
+                    "address": account.address,
+                    "label": f"EVM Wallet {index}",
+                }
+            )
 
     # Derive Solana wallets
     for wallet_key in sorted(_wallet_selections.keys()):
@@ -368,33 +411,39 @@ async def _complete_setup(ctx: Any) -> SetupResult:
             keypair_seed = hashlib.sha256(combined).digest()[:32]
             keypair = Keypair.from_bytes(keypair_seed)
             pubkey = keypair.pubkey()
-            wallets.append({
-                "index": index,
-                "chain_type": "sol",
-                "address": str(pubkey),
-                "label": f"Solana Wallet {index}",
-            })
+            wallets.append(
+                {
+                    "index": index,
+                    "chain_type": "sol",
+                    "address": str(pubkey),
+                    "label": f"Solana Wallet {index}",
+                }
+            )
 
     # Build network configs
     for net_value in _network_selections.get("evm", []):
         net_info = next((n for n in EVM_NETWORKS if n["value"] == net_value), None)
         if net_info:
-            networks_config.append({
-                "chain_id": net_info["chain_id"],
-                "name": net_info["label"],
-                "rpc_url": net_info["rpc"],
-                "chain_type": "evm",
-            })
+            networks_config.append(
+                {
+                    "chain_id": net_info["chain_id"],
+                    "name": net_info["label"],
+                    "rpc_url": net_info["rpc"],
+                    "chain_type": "evm",
+                }
+            )
 
     for net_value in _network_selections.get("sol", []):
         net_info = next((n for n in SOL_NETWORKS if n["value"] == net_value), None)
         if net_info:
-            networks_config.append({
-                "chain_id": net_info["chain_id"],
-                "name": net_info["label"],
-                "rpc_url": net_info["rpc"],
-                "chain_type": "sol",
-            })
+            networks_config.append(
+                {
+                    "chain_id": net_info["chain_id"],
+                    "name": net_info["label"],
+                    "rpc_url": net_info["rpc"],
+                    "chain_type": "sol",
+                }
+            )
 
     # Persist config
     # NOTE: In production, seed phrase should be encrypted before storage

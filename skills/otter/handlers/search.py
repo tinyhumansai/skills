@@ -58,7 +58,8 @@ async def search_meetings(args: dict[str, Any]) -> ToolResult:
                         lines.append(f"[{sid}] {title}: {excerpt_preview}")
 
                     return ToolResult(
-                        content=f"Found matches in {len(seen)} meeting(s) (from cache):\n" + "\n".join(lines)
+                        content=f"Found matches in {len(seen)} meeting(s) (from cache):\n"
+                        + "\n".join(lines)
                     )
             except Exception:
                 pass
@@ -68,11 +69,11 @@ async def search_meetings(args: dict[str, Any]) -> ToolResult:
         for s in speeches:
             date_str = ""
             if s.created_at:
-                date_str = datetime.fromtimestamp(s.created_at, tz=timezone.utc).strftime("%Y-%m-%d")
+                date_str = datetime.fromtimestamp(s.created_at, tz=timezone.utc).strftime(
+                    "%Y-%m-%d"
+                )
             duration_str = format_duration(s.duration) if s.duration else ""
-            lines.append(
-                f"[{s.speech_id}] {s.title or 'Untitled'} — {date_str} — {duration_str}"
-            )
+            lines.append(f"[{s.speech_id}] {s.title or 'Untitled'} — {date_str} — {duration_str}")
 
         return ToolResult(content=f"Found {len(speeches)} meeting(s):\n" + "\n".join(lines))
     except Exception as e:
@@ -95,10 +96,7 @@ async def search_in_meeting(args: dict[str, Any]) -> ToolResult:
             # Fetch transcript from API and search locally
             segments = await speech_api.fetch_transcript(speech_id)
             query_lower = query.lower()
-            matching = [
-                s for s in segments
-                if query_lower in s.text.lower()
-            ]
+            matching = [s for s in segments if query_lower in s.text.lower()]
             if not matching:
                 return ToolResult(content=f'No matches for "{query}" in meeting {speech_id}.')
 
@@ -109,7 +107,8 @@ async def search_in_meeting(args: dict[str, Any]) -> ToolResult:
                 lines.append(f"{time_str} {speaker}{seg.text}")
 
             return ToolResult(
-                content=f'Found {len(matching)} match(es) for "{query}":\n' + truncate_transcript("\n".join(lines))
+                content=f'Found {len(matching)} match(es) for "{query}":\n'
+                + truncate_transcript("\n".join(lines))
             )
 
         # Format cached results

@@ -22,7 +22,7 @@ NOTION_QUERY_DATABASE = ToolDefinition(
             },
             "sorts": {
                 "type": "array",
-                "description": "Array of sort objects, e.g. [{\"property\": \"Name\", \"direction\": \"ascending\"}]",
+                "description": 'Array of sort objects, e.g. [{"property": "Name", "direction": "ascending"}]',
                 "items": {"type": "object"},
             },
             "page_size": {

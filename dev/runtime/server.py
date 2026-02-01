@@ -30,18 +30,12 @@ class SkillServer:
     """JSON-RPC 2.0 server that bridges a Python skill to the AlphaHuman host."""
 
     def __init__(self, skill: SkillDefinition) -> None:
-        self._all_tools: dict[str, SkillTool] = {
-            t.definition.name: t for t in skill.tools
-        }
+        self._all_tools: dict[str, SkillTool] = {t.definition.name: t for t in skill.tools}
         self._tools: dict[str, SkillTool] = dict(self._all_tools)
         self._hooks = skill.hooks
         self._skill = skill
-        self._option_defs: dict[str, SkillOptionDefinition] = {
-            o.name: o for o in skill.options
-        }
-        self._options: dict[str, Any] = {
-            o.name: o.default for o in skill.options
-        }
+        self._option_defs: dict[str, SkillOptionDefinition] = {o.name: o for o in skill.options}
+        self._options: dict[str, Any] = {o.name: o.default for o in skill.options}
         self._pending: dict[int | str, asyncio.Future[Any]] = {}
         self._next_id = 1
         self._manifest: dict[str, str] | None = None
@@ -160,11 +154,12 @@ class SkillServer:
         protocol = asyncio.StreamReaderProtocol(reader)
         await loop.connect_read_pipe(lambda: protocol, sys.stdin)
 
-        transport, _ = await loop.connect_write_pipe(
-            asyncio.BaseProtocol, sys.stdout
-        )
+        transport, _ = await loop.connect_write_pipe(asyncio.BaseProtocol, sys.stdout)
         self._writer = asyncio.StreamWriter(
-            transport, protocol, reader, loop  # type: ignore[arg-type]
+            transport,
+            protocol,
+            reader,
+            loop,  # type: ignore[arg-type]
         )
 
         while True:
@@ -332,7 +327,9 @@ class SkillServer:
             payload: dict[str, Any] = {
                 "status": result.status,
                 "nextStep": self._serialize_step(result.next_step) if result.next_step else None,
-                "errors": [{"field": e.field, "message": e.message} for e in result.errors] if result.errors else None,
+                "errors": [{"field": e.field, "message": e.message} for e in result.errors]
+                if result.errors
+                else None,
                 "message": result.message,
             }
             return payload
@@ -452,11 +449,7 @@ class SkillServer:
             if od.type == "boolean" and od.tool_filter:
                 if not self._options.get(od.name, od.default):
                     excluded.update(od.tool_filter)
-        self._tools = {
-            name: tool
-            for name, tool in self._all_tools.items()
-            if name not in excluded
-        }
+        self._tools = {name: tool for name, tool in self._all_tools.items() if name not in excluded}
 
     async def _persist_options(self) -> None:
         """Persist current option values to options.json via reverse RPC."""
@@ -553,7 +546,10 @@ class SkillServer:
 
             @property
             def data_dir(self) -> str:
-                return server._data_dir or f"skills/{(server._manifest or {}).get('id', 'unknown')}/data"
+                return (
+                    server._data_dir
+                    or f"skills/{(server._manifest or {}).get('id', 'unknown')}/data"
+                )
 
             async def read_data(self, filename: str) -> str:
                 return await server.read_data(filename)

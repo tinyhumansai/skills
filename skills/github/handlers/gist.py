@@ -86,8 +86,7 @@ async def create_gist(args: dict[str, Any]) -> ToolResult:
         user = await run_sync(gh.get_user)
 
         input_files = {
-            name: InputFileContent(content=str(content))
-            for name, content in files_arg.items()
+            name: InputFileContent(content=str(content)) for name, content in files_arg.items()
         }
 
         gist = await run_sync(user.create_gist, public, input_files, description)
@@ -110,8 +109,7 @@ async def edit_gist(args: dict[str, Any]) -> ToolResult:
             kwargs["description"] = description
         if isinstance(files_arg, dict) and files_arg:
             input_files = {
-                name: InputFileContent(content=str(content))
-                for name, content in files_arg.items()
+                name: InputFileContent(content=str(content)) for name, content in files_arg.items()
             }
             kwargs["files"] = input_files
 

@@ -84,16 +84,18 @@ async def get_messages(
         entity = await client.get_input_entity(chat_id)
 
         result = await mtproto.with_flood_wait_handling(
-            lambda: client(GetHistoryRequest(
-                peer=entity,
-                limit=limit,
-                offset_id=offset,
-                offset_date=0,
-                add_offset=0,
-                max_id=0,
-                min_id=0,
-                hash=0,
-            ))
+            lambda: client(
+                GetHistoryRequest(
+                    peer=entity,
+                    limit=limit,
+                    offset_id=offset,
+                    offset_date=0,
+                    add_offset=0,
+                    max_id=0,
+                    min_id=0,
+                    hash=0,
+                )
+            )
         )
 
         if not result or not hasattr(result, "messages"):
@@ -186,11 +188,13 @@ async def edit_message(
         entity = await client.get_input_entity(chat_id)
 
         await mtproto.with_flood_wait_handling(
-            lambda: client(EditMessageRequest(
-                peer=entity,
-                id=message_id,
-                message=new_text,
-            ))
+            lambda: client(
+                EditMessageRequest(
+                    peer=entity,
+                    id=message_id,
+                    message=new_text,
+                )
+            )
         )
 
         log.debug("Edited message %d in chat %s", message_id, chat_id)
@@ -213,10 +217,12 @@ async def delete_message(
         client = mtproto.get_client()
 
         await mtproto.with_flood_wait_handling(
-            lambda: client(DeleteMessagesRequest(
-                id=[message_id],
-                revoke=revoke,
-            ))
+            lambda: client(
+                DeleteMessagesRequest(
+                    id=[message_id],
+                    revoke=revoke,
+                )
+            )
         )
 
         store.remove_message(str(chat_id), message_id)
@@ -242,12 +248,14 @@ async def forward_message(
         to_entity = await client.get_input_entity(to_chat_id)
 
         result = await mtproto.with_flood_wait_handling(
-            lambda: client(ForwardMessagesRequest(
-                from_peer=from_entity,
-                to_peer=to_entity,
-                id=[message_id],
-                random_id=[random.randint(0, 10**16)],
-            ))
+            lambda: client(
+                ForwardMessagesRequest(
+                    from_peer=from_entity,
+                    to_peer=to_entity,
+                    id=[message_id],
+                    random_id=[random.randint(0, 10**16)],
+                )
+            )
         )
 
         new_id = 0
@@ -257,10 +265,18 @@ async def forward_message(
                     new_id = update.id
                     break
 
-        log.debug("Forwarded message %d from %s to %s, new ID: %d", message_id, from_chat_id, to_chat_id, new_id)
+        log.debug(
+            "Forwarded message %d from %s to %s, new ID: %d",
+            message_id,
+            from_chat_id,
+            to_chat_id,
+            new_id,
+        )
         return {"id": new_id}
     except Exception:
-        log.exception("Error forwarding message %d from %s to %s", message_id, from_chat_id, to_chat_id)
+        log.exception(
+            "Error forwarding message %d from %s to %s", message_id, from_chat_id, to_chat_id
+        )
         raise
 
 
@@ -278,11 +294,13 @@ async def pin_message(
         entity = await client.get_input_entity(chat_id)
 
         await mtproto.with_flood_wait_handling(
-            lambda: client(UpdatePinnedMessageRequest(
-                peer=entity,
-                id=message_id,
-                silent=not notify,
-            ))
+            lambda: client(
+                UpdatePinnedMessageRequest(
+                    peer=entity,
+                    id=message_id,
+                    silent=not notify,
+                )
+            )
         )
 
         log.debug("Pinned message %d in chat %s", message_id, chat_id)
@@ -305,11 +323,13 @@ async def unpin_message(
         entity = await client.get_input_entity(chat_id)
 
         await mtproto.with_flood_wait_handling(
-            lambda: client(UpdatePinnedMessageRequest(
-                peer=entity,
-                id=message_id,
-                unpin=True,
-            ))
+            lambda: client(
+                UpdatePinnedMessageRequest(
+                    peer=entity,
+                    id=message_id,
+                    unpin=True,
+                )
+            )
         )
 
         log.debug("Unpinned message %d in chat %s", message_id, chat_id)
@@ -333,17 +353,21 @@ async def mark_as_read(chat_id: str) -> dict[str, bool]:
 
         if is_channel and isinstance(entity, InputChannel):
             await mtproto.with_flood_wait_handling(
-                lambda: client(ChannelReadHistoryRequest(
-                    channel=entity,
-                    max_id=0,
-                ))
+                lambda: client(
+                    ChannelReadHistoryRequest(
+                        channel=entity,
+                        max_id=0,
+                    )
+                )
             )
         else:
             await mtproto.with_flood_wait_handling(
-                lambda: client(ReadHistoryRequest(
-                    peer=entity,
-                    max_id=0,
-                ))
+                lambda: client(
+                    ReadHistoryRequest(
+                        peer=entity,
+                        max_id=0,
+                    )
+                )
             )
 
         log.debug("Marked messages as read in chat %s", chat_id)
@@ -363,19 +387,21 @@ async def get_pinned_messages(chat_id: str) -> ApiResult[list[TelegramMessage]]:
         entity = await client.get_input_entity(chat_id)
 
         result = await mtproto.with_flood_wait_handling(
-            lambda: client(SearchRequest(
-                peer=entity,
-                q="",
-                filter=InputMessagesFilterPinned(),
-                min_date=0,
-                max_date=0,
-                offset_id=0,
-                add_offset=0,
-                limit=100,
-                max_id=0,
-                min_id=0,
-                hash=0,
-            ))
+            lambda: client(
+                SearchRequest(
+                    peer=entity,
+                    q="",
+                    filter=InputMessagesFilterPinned(),
+                    min_date=0,
+                    max_date=0,
+                    offset_id=0,
+                    add_offset=0,
+                    limit=100,
+                    max_id=0,
+                    min_id=0,
+                    hash=0,
+                )
+            )
         )
 
         if not result or not hasattr(result, "messages"):
@@ -409,11 +435,13 @@ async def send_reaction(
         entity = await client.get_input_entity(chat_id)
 
         await mtproto.with_flood_wait_handling(
-            lambda: client(SendReactionRequest(
-                peer=entity,
-                msg_id=message_id,
-                reaction=[ReactionEmoji(emoticon=reaction)],
-            ))
+            lambda: client(
+                SendReactionRequest(
+                    peer=entity,
+                    msg_id=message_id,
+                    reaction=[ReactionEmoji(emoticon=reaction)],
+                )
+            )
         )
 
         log.debug("Sent reaction '%s' to message %d in chat %s", reaction, message_id, chat_id)
@@ -437,11 +465,13 @@ async def remove_reaction(
         entity = await client.get_input_entity(chat_id)
 
         await mtproto.with_flood_wait_handling(
-            lambda: client(SendReactionRequest(
-                peer=entity,
-                msg_id=message_id,
-                reaction=[],
-            ))
+            lambda: client(
+                SendReactionRequest(
+                    peer=entity,
+                    msg_id=message_id,
+                    reaction=[],
+                )
+            )
         )
 
         log.debug("Removed reaction from message %d in chat %s", message_id, chat_id)
@@ -464,10 +494,12 @@ async def get_message_reactions(
         entity = await client.get_input_entity(chat_id)
 
         result = await mtproto.with_flood_wait_handling(
-            lambda: client(GetMessagesReactionsRequest(
-                peer=entity,
-                id=[message_id],
-            ))
+            lambda: client(
+                GetMessagesReactionsRequest(
+                    peer=entity,
+                    id=[message_id],
+                )
+            )
         )
 
         updates = getattr(result, "updates", [])
@@ -492,16 +524,18 @@ async def get_history(
         entity = await client.get_input_entity(chat_id)
 
         result = await mtproto.with_flood_wait_handling(
-            lambda: client(GetHistoryRequest(
-                peer=entity,
-                limit=limit,
-                offset_id=offset_id or 0,
-                offset_date=0,
-                add_offset=0,
-                max_id=0,
-                min_id=0,
-                hash=0,
-            ))
+            lambda: client(
+                GetHistoryRequest(
+                    peer=entity,
+                    limit=limit,
+                    offset_id=offset_id or 0,
+                    offset_date=0,
+                    add_offset=0,
+                    max_id=0,
+                    min_id=0,
+                    hash=0,
+                )
+            )
         )
 
         if not result or not hasattr(result, "messages"):
@@ -539,9 +573,7 @@ async def save_draft(
         if reply_to_msg_id:
             kwargs["reply_to"] = InputReplyToMessage(reply_to_msg_id=reply_to_msg_id)
 
-        await mtproto.with_flood_wait_handling(
-            lambda: client(SaveDraftRequest(**kwargs))
-        )
+        await mtproto.with_flood_wait_handling(lambda: client(SaveDraftRequest(**kwargs)))
 
         log.debug("Saved draft in chat %s", chat_id)
         return {"success": True}
@@ -558,9 +590,7 @@ async def get_drafts() -> ApiResult[list[Any]]:
         mtproto = get_client()
         client = mtproto.get_client()
 
-        result = await mtproto.with_flood_wait_handling(
-            lambda: client(GetAllDraftsRequest())
-        )
+        result = await mtproto.with_flood_wait_handling(lambda: client(GetAllDraftsRequest()))
 
         updates = getattr(result, "updates", [])
         log.debug("Fetched all drafts")
@@ -580,10 +610,12 @@ async def clear_draft(chat_id: str) -> dict[str, bool]:
         entity = await client.get_input_entity(chat_id)
 
         await mtproto.with_flood_wait_handling(
-            lambda: client(SaveDraftRequest(
-                peer=entity,
-                message="",
-            ))
+            lambda: client(
+                SaveDraftRequest(
+                    peer=entity,
+                    message="",
+                )
+            )
         )
 
         log.debug("Cleared draft in chat %s", chat_id)
@@ -625,12 +657,14 @@ async def create_poll(
         media = InputMediaPoll(poll=poll)
 
         result = await mtproto.with_flood_wait_handling(
-            lambda: client(SendMediaRequest(
-                peer=entity,
-                media=media,
-                message="",
-                random_id=random.randint(0, 10**16),
-            ))
+            lambda: client(
+                SendMediaRequest(
+                    peer=entity,
+                    media=media,
+                    message="",
+                    random_id=random.randint(0, 10**16),
+                )
+            )
         )
 
         new_id = 0
@@ -665,13 +699,15 @@ async def list_topics(chat_id: str) -> ApiResult[list[Any]]:
             return ApiResult(data=[], from_cache=False)
 
         result = await mtproto.with_flood_wait_handling(
-            lambda: client(GetForumTopicsRequest(
-                channel=entity,
-                offset_date=0,
-                offset_id=0,
-                offset_topic=0,
-                limit=100,
-            ))
+            lambda: client(
+                GetForumTopicsRequest(
+                    channel=entity,
+                    offset_date=0,
+                    offset_id=0,
+                    offset_topic=0,
+                    limit=100,
+                )
+            )
         )
 
         topics = getattr(result, "topics", [])

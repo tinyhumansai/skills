@@ -109,6 +109,7 @@ async def _on_load(ctx: Any) -> None:
         )
 
         from .state.store import SlackUser
+
         store.set_current_user(
             SlackUser(
                 id=auth_result.get("user_id", ""),
@@ -173,6 +174,7 @@ async def _on_tick(ctx: Any) -> None:
 async def _on_status(ctx: Any) -> dict[str, Any]:
     """Return current skill status information."""
     from .state import store
+
     state = store.get_state()
     return {
         "connection_status": state.connection_status,
@@ -225,9 +227,16 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "list_channels", "get_channel", "create_channel", "join_channel",
-            "leave_channel", "archive_channel", "unarchive_channel",
-            "set_channel_topic", "set_channel_purpose", "get_channel_members",
+            "list_channels",
+            "get_channel",
+            "create_channel",
+            "join_channel",
+            "leave_channel",
+            "archive_channel",
+            "unarchive_channel",
+            "set_channel_topic",
+            "set_channel_purpose",
+            "get_channel_members",
         ],
     ),
     SkillOptionDefinition(
@@ -238,7 +247,10 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "send_message", "get_messages", "edit_message", "delete_message",
+            "send_message",
+            "get_messages",
+            "edit_message",
+            "delete_message",
             "get_message_permalink",
         ],
     ),
@@ -250,7 +262,11 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "list_users", "get_user", "get_user_by_email", "open_dm", "list_dms",
+            "list_users",
+            "get_user",
+            "get_user_by_email",
+            "open_dm",
+            "list_dms",
         ],
     ),
     SkillOptionDefinition(
@@ -261,7 +277,8 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "search_messages", "search_all",
+            "search_messages",
+            "search_all",
         ],
     ),
 ]

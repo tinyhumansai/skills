@@ -16,7 +16,10 @@ code_tools: list[Tool] = [
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
                 "path": {"type": "string", "description": "File path within the repository"},
-                "ref": {"type": "string", "description": "Git ref (branch, tag, or commit SHA). Defaults to the default branch"},
+                "ref": {
+                    "type": "string",
+                    "description": "Git ref (branch, tag, or commit SHA). Defaults to the default branch",
+                },
             },
             "required": ["owner", "repo", "path"],
         },
@@ -29,8 +32,14 @@ code_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
-                "path": {"type": "string", "description": "Directory path within the repository. Defaults to the root"},
-                "ref": {"type": "string", "description": "Git ref (branch, tag, or commit SHA). Defaults to the default branch"},
+                "path": {
+                    "type": "string",
+                    "description": "Directory path within the repository. Defaults to the root",
+                },
+                "ref": {
+                    "type": "string",
+                    "description": "Git ref (branch, tag, or commit SHA). Defaults to the default branch",
+                },
             },
             "required": ["owner", "repo"],
         },

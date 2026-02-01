@@ -97,7 +97,9 @@ async def emit_initial_entities(
             except Exception:
                 log.debug(
                     "Failed to upsert speaker_in for %s -> %s",
-                    speaker.speaker_id, speech_id, exc_info=True,
+                    speaker.speaker_id,
+                    speech_id,
+                    exc_info=True,
                 )
 
     log.info(
@@ -185,7 +187,9 @@ async def emit_summaries(
             except Exception:
                 log.debug(
                     "Failed to upsert summarizes for %s -> %s",
-                    entity_source_id, meeting_id, exc_info=True,
+                    entity_source_id,
+                    meeting_id,
+                    exc_info=True,
                 )
 
     log.info("Emitted %d summary entities", len(rows))

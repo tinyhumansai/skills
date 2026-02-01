@@ -187,13 +187,20 @@ async def get_history(args: dict[str, Any]) -> ToolResult:
     try:
         chat_id = validate_id(args.get("chat_id"), "chat_id")
         limit = opt_number(args, "limit", 20)
-        offset_id = args.get("offset_id") if isinstance(args.get("offset_id"), (int, float)) else None
+        offset_id = (
+            args.get("offset_id") if isinstance(args.get("offset_id"), (int, float)) else None
+        )
 
-        result = await message_api.get_history(str(chat_id), limit, int(offset_id) if offset_id else None)
+        result = await message_api.get_history(
+            str(chat_id), limit, int(offset_id) if offset_id else None
+        )
         if not result.data:
             return ToolResult(content=f"No message history in chat {chat_id}.")
 
-        lines = [f"[{format_message(m).id}] {format_message(m).date}: {format_message(m).text}" for m in result.data]
+        lines = [
+            f"[{format_message(m).id}] {format_message(m).date}: {format_message(m).text}"
+            for m in result.data
+        ]
         return ToolResult(content="\n".join(lines))
     except Exception as e:
         return log_and_format_error("get_history", e, ErrorCategory.MSG)
@@ -207,7 +214,10 @@ async def get_pinned_messages(args: dict[str, Any]) -> ToolResult:
         if not result.data:
             return ToolResult(content=f"No pinned messages in chat {chat_id}.")
 
-        lines = [f"[{format_message(m).id}] {format_message(m).date}: {format_message(m).text}" for m in result.data]
+        lines = [
+            f"[{format_message(m).id}] {format_message(m).date}: {format_message(m).text}"
+            for m in result.data
+        ]
         return ToolResult(content="\n".join(lines))
     except Exception as e:
         return log_and_format_error("get_pinned_messages", e, ErrorCategory.MSG)
@@ -256,7 +266,9 @@ async def list_inline_buttons(args: dict[str, Any]) -> ToolResult:
     try:
         chat_id = validate_id(args.get("chat_id"), "chat_id")
         message_id = validate_positive_int(args.get("message_id"), "message_id")
-        return ToolResult(content=f"Inline buttons for message {message_id} in chat {chat_id}: check message media/replyMarkup.")
+        return ToolResult(
+            content=f"Inline buttons for message {message_id} in chat {chat_id}: check message media/replyMarkup."
+        )
     except Exception as e:
         return log_and_format_error("list_inline_buttons", e, ErrorCategory.MSG)
 
@@ -265,7 +277,9 @@ async def press_inline_button(args: dict[str, Any]) -> ToolResult:
     try:
         chat_id = validate_id(args.get("chat_id"), "chat_id")
         message_id = validate_positive_int(args.get("message_id"), "message_id")
-        return ToolResult(content=f"Inline button press for message {message_id} in chat {chat_id} — requires raw message data.")
+        return ToolResult(
+            content=f"Inline button press for message {message_id} in chat {chat_id} — requires raw message data."
+        )
     except Exception as e:
         return log_and_format_error("press_inline_button", e, ErrorCategory.MSG)
 
@@ -276,9 +290,15 @@ async def save_draft(args: dict[str, Any]) -> ToolResult:
         text = args.get("text", "")
         if not isinstance(text, str) or not text:
             return ToolResult(content="Draft text is required", is_error=True)
-        reply_to_msg_id = args.get("reply_to_message_id") if isinstance(args.get("reply_to_message_id"), (int, float)) else None
+        reply_to_msg_id = (
+            args.get("reply_to_message_id")
+            if isinstance(args.get("reply_to_message_id"), (int, float))
+            else None
+        )
 
-        await message_api.save_draft(str(chat_id), text, int(reply_to_msg_id) if reply_to_msg_id else None)
+        await message_api.save_draft(
+            str(chat_id), text, int(reply_to_msg_id) if reply_to_msg_id else None
+        )
         return ToolResult(content="Draft saved.")
     except Exception as e:
         return log_and_format_error("save_draft", e, ErrorCategory.DRAFT)
@@ -309,7 +329,11 @@ async def create_poll(args: dict[str, Any]) -> ToolResult:
         question = args.get("question", "")
         if not isinstance(question, str) or not question:
             return ToolResult(content="Question is required", is_error=True)
-        options = [str(o) for o in args.get("options", [])] if isinstance(args.get("options"), list) else []
+        options = (
+            [str(o) for o in args.get("options", [])]
+            if isinstance(args.get("options"), list)
+            else []
+        )
         if len(options) < 2:
             return ToolResult(content="At least 2 options are required", is_error=True)
 

@@ -70,10 +70,7 @@ def _reset_state() -> None:
 STEP_CREDENTIALS = SetupStep(
     id="credentials",
     title="API Credentials",
-    description=(
-        "Enter your Telegram API credentials. "
-        "Get them at https://my.telegram.org/apps"
-    ),
+    description=("Enter your Telegram API credentials. Get them at https://my.telegram.org/apps"),
     fields=[
         SetupField(
             name="api_id",
@@ -181,9 +178,7 @@ async def on_setup_start(ctx: Any) -> SetupStep:
     return STEP_CREDENTIALS
 
 
-async def on_setup_submit(
-    ctx: Any, step_id: str, values: dict[str, Any]
-) -> SetupResult:
+async def on_setup_submit(ctx: Any, step_id: str, values: dict[str, Any]) -> SetupResult:
     """Validate and process a submitted step."""
     if step_id == "credentials":
         return await _handle_credentials(ctx, values)
@@ -216,9 +211,7 @@ async def on_setup_cancel(ctx: Any) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def _handle_credentials(
-    ctx: Any, values: dict[str, Any]
-) -> SetupResult:
+async def _handle_credentials(ctx: Any, values: dict[str, Any]) -> SetupResult:
     global _client, _api_id, _api_hash
 
     raw_id = str(values.get("api_id", "")).strip()

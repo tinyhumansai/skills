@@ -60,7 +60,9 @@ async def add_contact(args: dict[str, Any]) -> ToolResult:
         if not isinstance(first_name, str) or not first_name:
             return ToolResult(content="First name is required", is_error=True)
         last_name = args.get("last_name", "") if isinstance(args.get("last_name"), str) else ""
-        phone_number = args.get("phone_number", "") if isinstance(args.get("phone_number"), str) else ""
+        phone_number = (
+            args.get("phone_number", "") if isinstance(args.get("phone_number"), str) else ""
+        )
         user_id = args.get("user_id") if isinstance(args.get("user_id"), str) else None
         if not phone_number and not user_id:
             return ToolResult(content="Phone number or user ID is required", is_error=True)

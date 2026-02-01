@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 class SlackUser(BaseModel):
     """Slack user info."""
+
     id: str
     name: str
     team_id: str | None = None
@@ -20,6 +21,7 @@ class SlackUser(BaseModel):
 @dataclass
 class SlackState:
     """Slack skill state."""
+
     connection_status: str = "disconnected"  # disconnected, connecting, connected
     is_initialized: bool = False
     connection_error: str | None = None

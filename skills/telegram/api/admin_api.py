@@ -89,13 +89,15 @@ async def get_participants(
         filter_obj = filter_map.get(filter_type, ChannelParticipantsRecent())
 
         mtproto = get_client()
-        result = await mtproto.invoke(GetParticipantsRequest(
-            channel=channel,
-            filter=filter_obj,
-            offset=0,
-            limit=limit,
-            hash=0,
-        ))
+        result = await mtproto.invoke(
+            GetParticipantsRequest(
+                channel=channel,
+                filter=filter_obj,
+                offset=0,
+                limit=limit,
+                hash=0,
+            )
+        )
 
         if not isinstance(result, channels.ChannelParticipants):
             return ApiResult(data=[], from_cache=False)
@@ -119,13 +121,15 @@ async def get_admins(chat_id: str) -> ApiResult[list[Any]]:
         channel = await _get_input_channel(chat_id)
         mtproto = get_client()
 
-        result = await mtproto.invoke(GetParticipantsRequest(
-            channel=channel,
-            filter=ChannelParticipantsAdmins(),
-            offset=0,
-            limit=100,
-            hash=0,
-        ))
+        result = await mtproto.invoke(
+            GetParticipantsRequest(
+                channel=channel,
+                filter=ChannelParticipantsAdmins(),
+                offset=0,
+                limit=100,
+                hash=0,
+            )
+        )
 
         if not isinstance(result, channels.ChannelParticipants):
             return ApiResult(data=[], from_cache=False)
@@ -149,13 +153,15 @@ async def get_banned_users(chat_id: str, limit: int = 100) -> ApiResult[list[Any
         channel = await _get_input_channel(chat_id)
         mtproto = get_client()
 
-        result = await mtproto.invoke(GetParticipantsRequest(
-            channel=channel,
-            filter=ChannelParticipantsKicked(q=""),
-            offset=0,
-            limit=limit,
-            hash=0,
-        ))
+        result = await mtproto.invoke(
+            GetParticipantsRequest(
+                channel=channel,
+                filter=ChannelParticipantsKicked(q=""),
+                offset=0,
+                limit=limit,
+                hash=0,
+            )
+        )
 
         if not isinstance(result, channels.ChannelParticipants):
             return ApiResult(data=[], from_cache=False)
@@ -202,12 +208,14 @@ async def promote_admin(
         )
 
         mtproto = get_client()
-        await mtproto.invoke(EditAdminRequest(
-            channel=channel,
-            user_id=user,
-            admin_rights=admin_rights,
-            rank=title or "",
-        ))
+        await mtproto.invoke(
+            EditAdminRequest(
+                channel=channel,
+                user_id=user,
+                admin_rights=admin_rights,
+                rank=title or "",
+            )
+        )
 
         return ApiResult(data=True, from_cache=False)
     except Exception:
@@ -242,12 +250,14 @@ async def demote_admin(chat_id: str, user_id: str) -> ApiResult[bool]:
         )
 
         mtproto = get_client()
-        await mtproto.invoke(EditAdminRequest(
-            channel=channel,
-            user_id=user,
-            admin_rights=no_rights,
-            rank="",
-        ))
+        await mtproto.invoke(
+            EditAdminRequest(
+                channel=channel,
+                user_id=user,
+                admin_rights=no_rights,
+                rank="",
+            )
+        )
 
         return ApiResult(data=True, from_cache=False)
     except Exception:
@@ -292,11 +302,13 @@ async def ban_user(
         )
 
         mtproto = get_client()
-        await mtproto.invoke(EditBannedRequest(
-            channel=channel,
-            participant=user,
-            banned_rights=banned_rights,
-        ))
+        await mtproto.invoke(
+            EditBannedRequest(
+                channel=channel,
+                participant=user,
+                banned_rights=banned_rights,
+            )
+        )
 
         return ApiResult(data=True, from_cache=False)
     except Exception:
@@ -337,11 +349,13 @@ async def unban_user(chat_id: str, user_id: str) -> ApiResult[bool]:
         )
 
         mtproto = get_client()
-        await mtproto.invoke(EditBannedRequest(
-            channel=channel,
-            participant=user,
-            banned_rights=no_restrictions,
-        ))
+        await mtproto.invoke(
+            EditBannedRequest(
+                channel=channel,
+                participant=user,
+                banned_rights=no_restrictions,
+            )
+        )
 
         return ApiResult(data=True, from_cache=False)
     except Exception:
@@ -357,15 +371,17 @@ async def get_recent_actions(chat_id: str, limit: int = 20) -> ApiResult[list[An
         channel = await _get_input_channel(chat_id)
         mtproto = get_client()
 
-        result = await mtproto.invoke(GetAdminLogRequest(
-            channel=channel,
-            q="",
-            events_filter=None,
-            admins=None,
-            max_id=0,
-            min_id=0,
-            limit=limit,
-        ))
+        result = await mtproto.invoke(
+            GetAdminLogRequest(
+                channel=channel,
+                q="",
+                events_filter=None,
+                admins=None,
+                max_id=0,
+                min_id=0,
+                limit=limit,
+            )
+        )
 
         actions = [
             {

@@ -71,18 +71,24 @@ async def register_message_handlers(client: TelegramClient) -> None:
                 db = await get_db()
                 await upsert_message(db, telegram_msg)
                 await db.commit()
-                await insert_event(db, "new_message", chat_id, {
-                    "message_id": telegram_msg.id,
-                    "from_id": telegram_msg.from_id,
-                    "text": telegram_msg.message[:200] if telegram_msg.message else "",
-                    "is_outgoing": telegram_msg.is_outgoing,
-                })
+                await insert_event(
+                    db,
+                    "new_message",
+                    chat_id,
+                    {
+                        "message_id": telegram_msg.id,
+                        "from_id": telegram_msg.from_id,
+                        "text": telegram_msg.message[:200] if telegram_msg.message else "",
+                        "is_outgoing": telegram_msg.is_outgoing,
+                    },
+                )
             except Exception:
                 log.exception("Failed to persist new message to SQLite")
 
             # Incrementally update chat entity with new unread count
             try:
                 from ..server import get_entity_callbacks
+
                 upsert_entity_fn, upsert_rel_fn = get_entity_callbacks()
                 if upsert_entity_fn:
                     updated_chat = store.get_chat_by_id(chat_id)
@@ -126,10 +132,14 @@ async def register_message_handlers(client: TelegramClient) -> None:
             message_id = str(msg.id)
 
             # Update in-memory store
-            store.update_message(chat_id, message_id, {
-                "message": msg.message or "",
-                "is_edited": True,
-            })
+            store.update_message(
+                chat_id,
+                message_id,
+                {
+                    "message": msg.message or "",
+                    "is_edited": True,
+                },
+            )
 
             # Persist to SQLite
             try:
@@ -138,10 +148,15 @@ async def register_message_handlers(client: TelegramClient) -> None:
                 if telegram_msg:
                     await upsert_message(db, telegram_msg)
                     await db.commit()
-                await insert_event(db, "message_edited", chat_id, {
-                    "message_id": message_id,
-                    "new_text": (msg.message or "")[:200],
-                })
+                await insert_event(
+                    db,
+                    "message_edited",
+                    chat_id,
+                    {
+                        "message_id": message_id,
+                        "new_text": (msg.message or "")[:200],
+                    },
+                )
             except Exception:
                 log.exception("Failed to persist edited message to SQLite")
 
@@ -174,9 +189,14 @@ async def register_message_handlers(client: TelegramClient) -> None:
                 for mid in str_ids:
                     if chat_id:
                         await db_delete_message(db, chat_id, mid)
-                await insert_event(db, "message_deleted", chat_id or None, {
-                    "message_ids": str_ids,
-                })
+                await insert_event(
+                    db,
+                    "message_deleted",
+                    chat_id or None,
+                    {
+                        "message_ids": str_ids,
+                    },
+                )
             except Exception:
                 log.exception("Failed to persist deleted messages to SQLite")
 

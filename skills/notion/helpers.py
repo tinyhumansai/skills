@@ -18,6 +18,7 @@ log = logging.getLogger("skill.notion.helpers")
 # Tool result
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ToolResult:
     content: str
@@ -51,6 +52,7 @@ async def enforce_rate_limit(tier: ToolTier = "read") -> None:
 # Error handling
 # ---------------------------------------------------------------------------
 
+
 def format_api_error(function_name: str, error: Exception) -> ToolResult:
     """Format a Notion API error into a user-friendly ToolResult."""
     from notion_client import APIResponseError
@@ -83,6 +85,7 @@ def format_api_error(function_name: str, error: Exception) -> ToolResult:
 # ---------------------------------------------------------------------------
 # Formatting utilities
 # ---------------------------------------------------------------------------
+
 
 def extract_title(page_or_db: dict[str, Any]) -> str:
     """Extract the title string from a page or database object."""

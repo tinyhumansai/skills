@@ -28,7 +28,10 @@ async def get_participants(args: dict[str, Any]) -> ToolResult:
         for p in result.data:
             user = p.get("user")
             if user:
-                name = " ".join(part for part in [user.first_name, user.last_name] if part) or "Unknown"
+                name = (
+                    " ".join(part for part in [user.first_name, user.last_name] if part)
+                    or "Unknown"
+                )
                 username = f" @{user.username}" if user.username else ""
                 lines.append(f"{name} (ID: {user.id}){username}")
             else:
@@ -50,7 +53,10 @@ async def get_admins(args: dict[str, Any]) -> ToolResult:
         for a in result.data:
             user = a.get("user")
             if user:
-                name = " ".join(part for part in [user.first_name, user.last_name] if part) or "Unknown"
+                name = (
+                    " ".join(part for part in [user.first_name, user.last_name] if part)
+                    or "Unknown"
+                )
                 username = f" @{user.username}" if user.username else ""
                 lines.append(f"{name} (ID: {user.id}){username}")
             else:
@@ -108,9 +114,13 @@ async def ban_user(args: dict[str, Any]) -> ToolResult:
     try:
         chat_id = validate_id(args.get("chat_id"), "chat_id")
         user_id = validate_id(args.get("user_id"), "user_id")
-        until_date = args.get("until_date") if isinstance(args.get("until_date"), (int, float)) else None
+        until_date = (
+            args.get("until_date") if isinstance(args.get("until_date"), (int, float)) else None
+        )
 
-        await admin_api.ban_user(str(chat_id), str(user_id), int(until_date) if until_date else None)
+        await admin_api.ban_user(
+            str(chat_id), str(user_id), int(until_date) if until_date else None
+        )
         return ToolResult(content=f"User {user_id} banned from chat {chat_id}.")
     except Exception as e:
         return log_and_format_error("ban_user", e, ErrorCategory.ADMIN)

@@ -31,7 +31,9 @@ async def notion_list_all_pages(args: dict[str, Any]) -> ToolResult:
         results = response.get("results", [])
 
         if not results:
-            return ToolResult(content="No pages found. Make sure pages are shared with your integration.")
+            return ToolResult(
+                content="No pages found. Make sure pages are shared with your integration."
+            )
 
         lines = [f"Found {len(results)} page(s):\n"]
         for page in results:
@@ -70,7 +72,9 @@ async def notion_list_all_databases(args: dict[str, Any]) -> ToolResult:
         results = response.get("results", [])
 
         if not results:
-            return ToolResult(content="No databases found. Make sure databases are shared with your integration.")
+            return ToolResult(
+                content="No databases found. Make sure databases are shared with your integration."
+            )
 
         lines = [f"Found {len(results)} database(s):\n"]
         for db in results:

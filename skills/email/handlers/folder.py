@@ -58,7 +58,7 @@ async def rename_folder(args: dict[str, Any]) -> ToolResult:
         result = await folder_api.rename_folder(old_name, new_name)
         if result:
             return ToolResult(content=f'Folder renamed from "{old_name}" to "{new_name}".')
-        return ToolResult(content=f'Failed to rename folder.', is_error=True)
+        return ToolResult(content=f"Failed to rename folder.", is_error=True)
     except Exception as e:
         return log_and_format_error("rename_folder", e, ErrorCategory.FOLDER)
 

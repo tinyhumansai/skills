@@ -103,13 +103,15 @@ async def add_contact(
         else:
             input_user = InputUser(user_id=0, access_hash=0)
 
-        result = await mtproto.invoke(AddContactRequest(
-            id=input_user,
-            first_name=first_name,
-            last_name=last_name,
-            phone=phone_number,
-            add_phone_privacy_exception=False,
-        ))
+        result = await mtproto.invoke(
+            AddContactRequest(
+                id=input_user,
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone_number,
+                add_phone_privacy_exception=False,
+            )
+        )
 
         user = build_user(result.users[0]) if result.users else None
         return ApiResult(data=user, from_cache=False)
@@ -227,9 +229,7 @@ async def import_contacts(
             for c in contact_list
         ]
 
-        result = await mtproto.invoke(
-            ImportContactsRequest(contacts=input_contacts)
-        )
+        result = await mtproto.invoke(ImportContactsRequest(contacts=input_contacts))
 
         users = [build_user(u) for u in result.users]
         return ApiResult(data=users, from_cache=False)
@@ -252,11 +252,13 @@ async def export_contacts() -> ApiResult[list[dict[str, str]]]:
         exported = []
         for user in result.users:
             u = build_user(user)
-            exported.append({
-                "phone": u.phone_number or "",
-                "firstName": u.first_name or "",
-                "lastName": u.last_name or "",
-            })
+            exported.append(
+                {
+                    "phone": u.phone_number or "",
+                    "firstName": u.first_name or "",
+                    "lastName": u.last_name or "",
+                }
+            )
 
         return ApiResult(data=exported, from_cache=False)
     except Exception:
@@ -281,10 +283,7 @@ async def get_contact_chats(limit: int = 20) -> ApiResult[list[Any]]:
     """Get private chats (contacts) from cache."""
     try:
         state = store.get_state()
-        contact_chats = [
-            c for c in state.chats.values()
-            if c.type == "private"
-        ][:limit]
+        contact_chats = [c for c in state.chats.values() if c.type == "private"][:limit]
         return ApiResult(data=contact_chats, from_cache=True)
     except Exception:
         log.exception("Error getting contact chats")

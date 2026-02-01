@@ -73,31 +73,31 @@ def extract_skill_py_fallback(skill_py_path: Path) -> dict[str, Any] | None:
         return None
 
     result: dict[str, Any] = {}
-    
+
     # Extract name, description, version using regex (simple and reliable)
     name_match = re.search(r'name\s*=\s*["\']([^"\']+)["\']', content)
     if name_match:
         result["name"] = name_match.group(1)
-    
+
     desc_match = re.search(r'description\s*=\s*["\']([^"\']+)["\']', content)
     if desc_match:
         result["description"] = desc_match.group(1)
-    
+
     version_match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', content)
     if version_match:
         result["version"] = version_match.group(1)
-    
+
     # Extract tick_interval and convert to minutes
-    tick_match = re.search(r'tick_interval\s*=\s*(\d+)', content)
+    tick_match = re.search(r"tick_interval\s*=\s*(\d+)", content)
     if tick_match:
         tick_ms = int(tick_match.group(1))
         # Convert milliseconds to minutes (round to 1 decimal place)
         result["tick_interval_minutes"] = round(tick_ms / 60_000, 1)
-    
+
     # Try to extract tools using AST (more reliable than regex)
     try:
         tree = ast.parse(content, filename=str(skill_py_path))
-        
+
         # Find the skill = SkillDefinition(...) assignment
         for node in ast.walk(tree):
             if isinstance(node, ast.Assign):
@@ -107,7 +107,7 @@ def extract_skill_py_fallback(skill_py_path: Path) -> dict[str, Any] | None:
                             # Extract tools from SkillDefinition call
                             tools: list[str] = []
                             hooks: list[str] = []
-                            
+
                             # Look for tools= argument
                             for keyword in node.value.keywords:
                                 if keyword.arg == "tools":
@@ -123,9 +123,13 @@ def extract_skill_py_fallback(skill_py_path: Path) -> dict[str, Any] | None:
                                                         if isinstance(kw.value, ast.Call):
                                                             for def_kw in kw.value.keywords:
                                                                 if def_kw.arg == "name":
-                                                                    if isinstance(def_kw.value, ast.Constant):
-                                                                        tools.append(def_kw.value.value)
-                                    
+                                                                    if isinstance(
+                                                                        def_kw.value, ast.Constant
+                                                                    ):
+                                                                        tools.append(
+                                                                            def_kw.value.value
+                                                                        )
+
                                     # Also check for variable reference (e.g., tools=_TOOLS)
                                     elif isinstance(keyword.value, ast.Name):
                                         # Find the variable definition
@@ -133,16 +137,37 @@ def extract_skill_py_fallback(skill_py_path: Path) -> dict[str, Any] | None:
                                         for stmt in ast.walk(tree):
                                             if isinstance(stmt, ast.Assign):
                                                 for tgt in stmt.targets:
-                                                    if isinstance(tgt, ast.Name) and tgt.id == var_name:
-                                                        if isinstance(stmt.value, (ast.List, ast.Tuple)):
+                                                    if (
+                                                        isinstance(tgt, ast.Name)
+                                                        and tgt.id == var_name
+                                                    ):
+                                                        if isinstance(
+                                                            stmt.value, (ast.List, ast.Tuple)
+                                                        ):
                                                             for elt in stmt.value.elts:
                                                                 if isinstance(elt, ast.Call):
                                                                     for kw in elt.keywords:
-                                                                        if kw.arg == "definition" and isinstance(kw.value, ast.Call):
-                                                                            for def_kw in kw.value.keywords:
-                                                                                if def_kw.arg == "name" and isinstance(def_kw.value, ast.Constant):
-                                                                                    tools.append(def_kw.value.value)
-                            
+                                                                        if (
+                                                                            kw.arg == "definition"
+                                                                            and isinstance(
+                                                                                kw.value, ast.Call
+                                                                            )
+                                                                        ):
+                                                                            for (
+                                                                                def_kw
+                                                                            ) in kw.value.keywords:
+                                                                                if (
+                                                                                    def_kw.arg
+                                                                                    == "name"
+                                                                                    and isinstance(
+                                                                                        def_kw.value,
+                                                                                        ast.Constant,
+                                                                                    )
+                                                                                ):
+                                                                                    tools.append(
+                                                                                        def_kw.value.value
+                                                                                    )
+
                             # Look for hooks= argument
                             for keyword in node.value.keywords:
                                 if keyword.arg == "hooks":
@@ -152,22 +177,27 @@ def extract_skill_py_fallback(skill_py_path: Path) -> dict[str, Any] | None:
                                             hook_name = kw.arg
                                             if hook_name and kw.value is not None:
                                                 # Check if it's not None
-                                                if not (isinstance(kw.value, ast.Constant) and kw.value.value is None):
+                                                if not (
+                                                    isinstance(kw.value, ast.Constant)
+                                                    and kw.value.value is None
+                                                ):
                                                     hooks.append(hook_name)
-                            
+
                             # Look for tick_interval= argument
                             for keyword in node.value.keywords:
                                 if keyword.arg == "tick_interval":
                                     if isinstance(keyword.value, ast.Constant):
                                         tick_ms = keyword.value.value
                                         if isinstance(tick_ms, int):
-                                            result["tick_interval_minutes"] = round(tick_ms / 60_000, 1)
-                            
+                                            result["tick_interval_minutes"] = round(
+                                                tick_ms / 60_000, 1
+                                            )
+
                             if tools:
                                 result["tools"] = tools
                             if hooks:
                                 result["hooks"] = hooks
-                            
+
                             break
     except Exception:
         # AST parsing failed, fall back to regex for tools
@@ -178,22 +208,39 @@ def extract_skill_py_fallback(skill_py_path: Path) -> dict[str, Any] | None:
             tool_names = re.findall(r'name\s*=\s*["\']([a-z_][a-z0-9_]*)["\']', content)
             # Filter out common non-tool names
             filtered_tools = [
-                n for n in tool_names
-                if n not in ("on_load", "on_unload", "on_tick", "on_session_start", 
-                            "on_session_end", "on_before_message", "on_after_response")
+                n
+                for n in tool_names
+                if n
+                not in (
+                    "on_load",
+                    "on_unload",
+                    "on_tick",
+                    "on_session_start",
+                    "on_session_end",
+                    "on_before_message",
+                    "on_after_response",
+                )
             ]
             if filtered_tools:
                 result["tools"] = filtered_tools
-        
+
         # Extract hooks using regex
         hooks_found = []
-        for hook in ("on_load", "on_unload", "on_session_start", "on_session_end",
-                    "on_before_message", "on_after_response", "on_memory_flush", "on_tick"):
+        for hook in (
+            "on_load",
+            "on_unload",
+            "on_session_start",
+            "on_session_end",
+            "on_before_message",
+            "on_after_response",
+            "on_memory_flush",
+            "on_tick",
+        ):
             if re.search(rf"{hook}\s*=\s*\w", content):
                 hooks_found.append(hook)
         if hooks_found:
             result["hooks"] = hooks_found
-    
+
     return result if result else None
 
 
@@ -209,24 +256,24 @@ def extract_skill_py(skill_py_path: Path) -> dict[str, Any] | None:
         repo_root = skill_py_path.parent.parent.parent
         skill_dir = skill_py_path.parent
         skill_dir_name = skill_dir.name
-        
+
         # Ensure repo root is in sys.path for absolute imports (dev.types, etc.)
         if str(repo_root) not in sys.path:
             sys.path.insert(0, str(repo_root))
-        
+
         # Set up module name and package for relative imports
         # Module name should be skills.<skill_name>.skill
         module_name = f"skills.{skill_dir_name}.skill"
-        
+
         spec = importlib.util.spec_from_file_location(module_name, skill_py_path)
         if spec is None or spec.loader is None:
             return None
-        
+
         module = importlib.util.module_from_spec(spec)
         # Set __package__ so relative imports work (e.g., "from .setup import ...")
         module.__package__ = f"skills.{skill_dir_name}"
         module.__name__ = module_name
-        
+
         spec.loader.exec_module(module)
     except Exception as exc:
         # Import failed (likely missing dependencies), try fallback extraction
@@ -258,8 +305,14 @@ def extract_skill_py(skill_py_path: Path) -> dict[str, Any] | None:
     hooks: list[str] = []
     if skill.hooks:
         for field_name in [
-            "on_load", "on_unload", "on_session_start", "on_session_end",
-            "on_before_message", "on_after_response", "on_memory_flush", "on_tick",
+            "on_load",
+            "on_unload",
+            "on_session_start",
+            "on_session_end",
+            "on_before_message",
+            "on_after_response",
+            "on_memory_flush",
+            "on_tick",
         ]:
             if getattr(skill.hooks, field_name, None) is not None:
                 hooks.append(field_name)
@@ -268,7 +321,7 @@ def extract_skill_py(skill_py_path: Path) -> dict[str, Any] | None:
     tick_interval_minutes = None
     if skill.tick_interval is not None:
         tick_interval_minutes = round(skill.tick_interval / 60_000, 1)
-    
+
     return {
         "name": skill.name,
         "description": skill.description,
@@ -341,11 +394,7 @@ def main() -> None:
         pkg_data = read_pkg_json(dir_path / "package.json")
 
         # 3. Determine name (priority: skill.py > package.json > dirName)
-        name = (
-            (skill_data or {}).get("name")
-            or (pkg_data or {}).get("name")
-            or dir_name
-        )
+        name = (skill_data or {}).get("name") or (pkg_data or {}).get("name") or dir_name
 
         # 4. Check for duplicates
         if name in seen_names:
@@ -355,9 +404,7 @@ def main() -> None:
 
         # 5. Determine description
         description = (
-            (skill_data or {}).get("description")
-            or (pkg_data or {}).get("description")
-            or ""
+            (skill_data or {}).get("description") or (pkg_data or {}).get("description") or ""
         )
         if not description:
             print(f"  {WARN} No description found for {rel_path}", file=sys.stderr)
@@ -369,9 +416,7 @@ def main() -> None:
             "description": description,
             "icon": None,
             "version": (
-                (skill_data or {}).get("version")
-                or (pkg_data or {}).get("version")
-                or None
+                (skill_data or {}).get("version") or (pkg_data or {}).get("version") or None
             ),
             "tools": (skill_data or {}).get("tools", []),
             "hooks": (skill_data or {}).get("hooks", []),

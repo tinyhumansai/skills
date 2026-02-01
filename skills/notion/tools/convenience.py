@@ -42,7 +42,15 @@ NOTION_APPEND_TEXT = ToolDefinition(
             },
             "type": {
                 "type": "string",
-                "enum": ["paragraph", "heading_1", "heading_2", "heading_3", "bulleted_list_item", "numbered_list_item", "to_do"],
+                "enum": [
+                    "paragraph",
+                    "heading_1",
+                    "heading_2",
+                    "heading_3",
+                    "bulleted_list_item",
+                    "numbered_list_item",
+                    "to_do",
+                ],
                 "description": "Block type (default: paragraph)",
                 "default": "paragraph",
             },

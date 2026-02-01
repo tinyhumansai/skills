@@ -14,9 +14,17 @@ message_tools: list[Tool] = [
             "type": "object",
             "properties": {
                 "folder": {"type": "string", "description": "Folder name", "default": "INBOX"},
-                "limit": {"type": "number", "description": "Maximum messages to return", "default": 20},
+                "limit": {
+                    "type": "number",
+                    "description": "Maximum messages to return",
+                    "default": 20,
+                },
                 "offset": {"type": "number", "description": "Offset for pagination", "default": 0},
-                "sort": {"type": "string", "description": "Sort order: date_desc or date_asc", "default": "date_desc"},
+                "sort": {
+                    "type": "string",
+                    "description": "Sort order: date_desc or date_asc",
+                    "default": "date_desc",
+                },
             },
         },
     ),
@@ -28,7 +36,11 @@ message_tools: list[Tool] = [
             "properties": {
                 "message_id": {"type": "number", "description": "The UID of the message"},
                 "folder": {"type": "string", "description": "Folder name", "default": "INBOX"},
-                "format": {"type": "string", "description": "Body format: text, html, or raw", "default": "text"},
+                "format": {
+                    "type": "string",
+                    "description": "Body format: text, html, or raw",
+                    "default": "text",
+                },
             },
             "required": ["message_id"],
         },
@@ -45,9 +57,18 @@ message_tools: list[Tool] = [
                 "from_addr": {"type": "string", "description": "Filter by sender email address"},
                 "to_addr": {"type": "string", "description": "Filter by recipient email address"},
                 "subject": {"type": "string", "description": "Filter by subject text"},
-                "since": {"type": "string", "description": "Messages after this date (DD-Mon-YYYY)"},
-                "before": {"type": "string", "description": "Messages before this date (DD-Mon-YYYY)"},
-                "has_attachment": {"type": "boolean", "description": "Filter for messages with attachments"},
+                "since": {
+                    "type": "string",
+                    "description": "Messages after this date (DD-Mon-YYYY)",
+                },
+                "before": {
+                    "type": "string",
+                    "description": "Messages before this date (DD-Mon-YYYY)",
+                },
+                "has_attachment": {
+                    "type": "boolean",
+                    "description": "Filter for messages with attachments",
+                },
             },
         },
     ),
@@ -90,7 +111,11 @@ message_tools: list[Tool] = [
         inputSchema={
             "type": "object",
             "properties": {
-                "hours": {"type": "number", "description": "Number of hours to look back", "default": 24},
+                "hours": {
+                    "type": "number",
+                    "description": "Number of hours to look back",
+                    "default": 24,
+                },
                 "folder": {"type": "string", "description": "Folder name", "default": "INBOX"},
                 "limit": {"type": "number", "description": "Maximum messages", "default": 20},
             },

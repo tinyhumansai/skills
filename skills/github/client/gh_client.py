@@ -84,6 +84,7 @@ class GhClient:
 # Module-level helper
 # ---------------------------------------------------------------------------
 
+
 async def run_sync(fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
     """Public helper to run any synchronous PyGithub call in a thread."""
     return await _run_sync(fn, *args, **kwargs)

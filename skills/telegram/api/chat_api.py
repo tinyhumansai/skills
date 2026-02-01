@@ -71,15 +71,14 @@ async def get_chats(limit: int = 20) -> ApiResult[list[TelegramChat]]:
         mtproto = get_client()
         client = mtproto.get_client()
 
-        dialogs = await mtproto.with_flood_wait_handling(
-            lambda: client.get_dialogs(limit=limit)
-        )
+        dialogs = await mtproto.with_flood_wait_handling(lambda: client.get_dialogs(limit=limit))
 
         chats: list[TelegramChat] = []
         for d in dialogs:
             chat = build_chat(d.dialog, d.entity)
             if d.message:
                 from ..client.builders import build_message
+
                 last_msg = build_message(d.message, chat.id)
                 if last_msg:
                     chat.last_message = last_msg
@@ -109,9 +108,7 @@ async def get_chat(chat_id: str | int) -> ApiResult[TelegramChat | None]:
     try:
         mtproto = get_client()
         client = mtproto.get_client()
-        entity = await mtproto.with_flood_wait_handling(
-            lambda: client.get_entity(chat_id)
-        )
+        entity = await mtproto.with_flood_wait_handling(lambda: client.get_entity(chat_id))
 
         chat = build_chat(entity)
         store.add_chats([chat])
@@ -135,10 +132,12 @@ async def create_group(title: str, user_ids: list[str]) -> ApiResult[TelegramCha
         for uid in user_ids:
             entity = await client.get_entity(uid)
             if isinstance(entity, User):
-                input_users.append(InputUser(
-                    user_id=entity.id,
-                    access_hash=entity.access_hash or 0,
-                ))
+                input_users.append(
+                    InputUser(
+                        user_id=entity.id,
+                        access_hash=entity.access_hash or 0,
+                    )
+                )
 
         if not input_users:
             log.debug("createGroup: no valid users provided")
@@ -174,11 +173,13 @@ async def create_channel(
         client = mtproto.get_client()
 
         result = await mtproto.with_flood_wait_handling(
-            lambda: client(CreateChannelRequest(
-                title=title,
-                about=description or "",
-                megagroup=megagroup,
-            ))
+            lambda: client(
+                CreateChannelRequest(
+                    title=title,
+                    about=description or "",
+                    megagroup=megagroup,
+                )
+            )
         )
 
         if hasattr(result, "chats") and result.chats:
@@ -210,10 +211,12 @@ async def invite_to_group(chat_id: str, user_ids: list[str]) -> ApiResult[bool]:
         for uid in user_ids:
             entity = await client.get_entity(uid)
             if isinstance(entity, User):
-                input_users.append(InputUser(
-                    user_id=entity.id,
-                    access_hash=entity.access_hash or 0,
-                ))
+                input_users.append(
+                    InputUser(
+                        user_id=entity.id,
+                        access_hash=entity.access_hash or 0,
+                    )
+                )
 
         if not input_users:
             return ApiResult(data=False, from_cache=False)
@@ -227,19 +230,23 @@ async def invite_to_group(chat_id: str, user_ids: list[str]) -> ApiResult[bool]:
                     access_hash=channel_entity.access_hash or 0,
                 )
                 await mtproto.with_flood_wait_handling(
-                    lambda: client(InviteToChannelRequest(
-                        channel=input_channel,
-                        users=input_users,
-                    ))
+                    lambda: client(
+                        InviteToChannelRequest(
+                            channel=input_channel,
+                            users=input_users,
+                        )
+                    )
                 )
         else:
             for iu in input_users:
                 await mtproto.with_flood_wait_handling(
-                    lambda: client(AddChatUserRequest(
-                        chat_id=int(chat_id),
-                        user_id=iu,
-                        fwd_limit=100,
-                    ))
+                    lambda: client(
+                        AddChatUserRequest(
+                            chat_id=int(chat_id),
+                            user_id=iu,
+                            fwd_limit=100,
+                        )
+                    )
                 )
 
         log.debug("inviteToGroup: successfully invited users")
@@ -267,20 +274,24 @@ async def edit_chat_title(chat_id: str, new_title: str) -> ApiResult[bool]:
             entity = await client.get_entity(int(chat_id))
             if isinstance(entity, Channel):
                 await mtproto.with_flood_wait_handling(
-                    lambda: client(ChannelEditTitleRequest(
-                        channel=InputChannel(
-                            channel_id=entity.id,
-                            access_hash=entity.access_hash or 0,
-                        ),
-                        title=new_title,
-                    ))
+                    lambda: client(
+                        ChannelEditTitleRequest(
+                            channel=InputChannel(
+                                channel_id=entity.id,
+                                access_hash=entity.access_hash or 0,
+                            ),
+                            title=new_title,
+                        )
+                    )
                 )
         else:
             await mtproto.with_flood_wait_handling(
-                lambda: client(EditChatTitleRequest(
-                    chat_id=int(chat_id),
-                    title=new_title,
-                ))
+                lambda: client(
+                    EditChatTitleRequest(
+                        chat_id=int(chat_id),
+                        title=new_title,
+                    )
+                )
             )
 
         store.update_chat(chat_id, {"title": new_title})
@@ -310,20 +321,24 @@ async def delete_chat_photo(chat_id: str) -> ApiResult[bool]:
             entity = await client.get_entity(int(chat_id))
             if isinstance(entity, Channel):
                 await mtproto.with_flood_wait_handling(
-                    lambda: client(ChannelEditPhotoRequest(
-                        channel=InputChannel(
-                            channel_id=entity.id,
-                            access_hash=entity.access_hash or 0,
-                        ),
-                        photo=empty_photo,
-                    ))
+                    lambda: client(
+                        ChannelEditPhotoRequest(
+                            channel=InputChannel(
+                                channel_id=entity.id,
+                                access_hash=entity.access_hash or 0,
+                            ),
+                            photo=empty_photo,
+                        )
+                    )
                 )
         else:
             await mtproto.with_flood_wait_handling(
-                lambda: client(EditChatPhotoRequest(
-                    chat_id=int(chat_id),
-                    photo=empty_photo,
-                ))
+                lambda: client(
+                    EditChatPhotoRequest(
+                        chat_id=int(chat_id),
+                        photo=empty_photo,
+                    )
+                )
             )
 
         log.debug("deleteChatPhoto: successfully deleted photo")
@@ -351,23 +366,27 @@ async def leave_chat(chat_id: str) -> ApiResult[bool]:
             entity = await client.get_entity(int(chat_id))
             if isinstance(entity, Channel):
                 await mtproto.with_flood_wait_handling(
-                    lambda: client(LeaveChannelRequest(
-                        channel=InputChannel(
-                            channel_id=entity.id,
-                            access_hash=entity.access_hash or 0,
-                        ),
-                    ))
+                    lambda: client(
+                        LeaveChannelRequest(
+                            channel=InputChannel(
+                                channel_id=entity.id,
+                                access_hash=entity.access_hash or 0,
+                            ),
+                        )
+                    )
                 )
         else:
             me = await client.get_me()
             await mtproto.with_flood_wait_handling(
-                lambda: client(DeleteChatUserRequest(
-                    chat_id=int(chat_id),
-                    user_id=InputUser(
-                        user_id=me.id,
-                        access_hash=me.access_hash or 0,
-                    ),
-                ))
+                lambda: client(
+                    DeleteChatUserRequest(
+                        chat_id=int(chat_id),
+                        user_id=InputUser(
+                            user_id=me.id,
+                            access_hash=me.access_hash or 0,
+                        ),
+                    )
+                )
             )
 
         store.remove_chat(chat_id)
@@ -416,11 +435,13 @@ async def export_chat_invite(
         entity = await client.get_input_entity(chat_id)
 
         result = await mtproto.with_flood_wait_handling(
-            lambda: client(ExportChatInviteRequest(
-                peer=entity,
-                expire_date=expire_date,
-                usage_limit=usage_limit,
-            ))
+            lambda: client(
+                ExportChatInviteRequest(
+                    peer=entity,
+                    expire_date=expire_date,
+                    usage_limit=usage_limit,
+                )
+            )
         )
 
         if isinstance(result, ChatInviteExported):
@@ -480,21 +501,21 @@ async def subscribe_public_channel(username: str) -> ApiResult[TelegramChat | No
         client = mtproto.get_client()
 
         clean_username = username.lstrip("@")
-        entity = await mtproto.with_flood_wait_handling(
-            lambda: client.get_entity(clean_username)
-        )
+        entity = await mtproto.with_flood_wait_handling(lambda: client.get_entity(clean_username))
 
         if not isinstance(entity, Channel):
             log.debug("subscribePublicChannel: entity is not a channel")
             return ApiResult(data=None, from_cache=False)
 
         result = await mtproto.with_flood_wait_handling(
-            lambda: client(JoinChannelRequest(
-                channel=InputChannel(
-                    channel_id=entity.id,
-                    access_hash=entity.access_hash or 0,
-                ),
-            ))
+            lambda: client(
+                JoinChannelRequest(
+                    channel=InputChannel(
+                        channel_id=entity.id,
+                        access_hash=entity.access_hash or 0,
+                    ),
+                )
+            )
         )
 
         if hasattr(result, "chats") and result.chats:

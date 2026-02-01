@@ -13,13 +13,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-TelegramConnectionStatus = Literal[
-    "disconnected", "connecting", "connected", "error"
-]
+TelegramConnectionStatus = Literal["disconnected", "connecting", "connected", "error"]
 
-TelegramAuthStatus = Literal[
-    "not_authenticated", "authenticating", "authenticated", "error"
-]
+TelegramAuthStatus = Literal["not_authenticated", "authenticating", "authenticated", "error"]
 
 
 class TelegramUser(BaseModel):
@@ -87,6 +83,7 @@ MAIN_THREAD_ID = "__main__"
 
 class TelegramState(BaseModel):
     """Full in-process state."""
+
     # Connection
     connection_status: TelegramConnectionStatus = "disconnected"
     connection_error: str | None = None
@@ -134,6 +131,7 @@ class TelegramState(BaseModel):
 
 class TelegramHostState(BaseModel):
     """Subset pushed to host for React UI consumption."""
+
     connection_status: TelegramConnectionStatus = "disconnected"
     auth_status: TelegramAuthStatus = "not_authenticated"
     is_initialized: bool = False

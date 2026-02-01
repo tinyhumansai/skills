@@ -94,7 +94,7 @@ def generate_skill_py(
     if state:
         parts.append("    # Load persisted state")
         parts.append("    try:")
-        parts.append('        import json')
+        parts.append("        import json")
         parts.append('        data = await ctx.read_data("state.json")')
         parts.append("        ctx.set_state(json.loads(data))")
         parts.append("    except FileNotFoundError:")
@@ -143,7 +143,7 @@ def generate_skill_py(
         tool_fn_name = name.replace("-", "_") + "_action"
         parts.append(f"async def {tool_fn_name}(args: dict) -> ToolResult:")
         parts.append('    input_val = args.get("input", "")')
-        parts.append("    return ToolResult(content=f\"Result: {input_val}\")")
+        parts.append('    return ToolResult(content=f"Result: {input_val}")')
         parts.append("")
         parts.append("")
 
@@ -156,7 +156,9 @@ def generate_skill_py(
     # Hooks
     hooks_args: list[str] = ["on_load=on_load", "on_session_start=on_session_start"]
     if transforms:
-        hooks_args.extend(["on_before_message=on_before_message", "on_after_response=on_after_response"])
+        hooks_args.extend(
+            ["on_before_message=on_before_message", "on_after_response=on_after_response"]
+        )
     if tick:
         hooks_args.append("on_tick=on_tick")
     if state:
@@ -177,7 +179,9 @@ def generate_skill_py(
         parts.append("                parameters={")
         parts.append('                    "type": "object",')
         parts.append('                    "properties": {')
-        parts.append('                        "input": {"type": "string", "description": "TODO: describe parameter"},')
+        parts.append(
+            '                        "input": {"type": "string", "description": "TODO: describe parameter"},'
+        )
         parts.append("                    },")
         parts.append('                    "required": ["input"],')
         parts.append("                },")

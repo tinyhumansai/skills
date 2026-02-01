@@ -18,3 +18,11 @@ __pycache__/
 .venv/
 venv/
 skills/*/data/*
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/

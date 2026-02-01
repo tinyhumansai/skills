@@ -13,9 +13,21 @@ api_tools: list[Tool] = [
         inputSchema={
             "type": "object",
             "properties": {
-                "endpoint": {"type": "string", "description": "API endpoint path (e.g. '/repos/owner/repo/branches')"},
-                "method": {"type": "string", "description": "HTTP method", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"], "default": "GET"},
-                "body": {"type": "object", "description": "Request body (for POST/PUT/PATCH)", "additionalProperties": True},
+                "endpoint": {
+                    "type": "string",
+                    "description": "API endpoint path (e.g. '/repos/owner/repo/branches')",
+                },
+                "method": {
+                    "type": "string",
+                    "description": "HTTP method",
+                    "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+                    "default": "GET",
+                },
+                "body": {
+                    "type": "object",
+                    "description": "Request body (for POST/PUT/PATCH)",
+                    "additionalProperties": True,
+                },
             },
             "required": ["endpoint"],
         },

@@ -62,10 +62,12 @@ async def on_skill_load(
 
     # Sync state to host if available
     if set_state_fn:
-        set_state_fn({
-            "authenticated": authed,
-            "username": client.username if authed else "",
-        })
+        set_state_fn(
+            {
+                "authenticated": authed,
+                "username": client.username if authed else "",
+            }
+        )
 
 
 async def on_skill_unload() -> None:
@@ -85,6 +87,7 @@ async def on_skill_tick() -> None:
         if not client.is_authed:
             return
         from .client.gh_client import run_sync
+
         user = await run_sync(client.gh.get_user)
         notifications = await run_sync(user.get_notifications)
         count = await run_sync(lambda: notifications.totalCount)

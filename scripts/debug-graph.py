@@ -252,9 +252,9 @@ def print_node_detail(graph: EntityGraph, node_id: str) -> None:
 def export_dot(graph: EntityGraph) -> str:
     """Export graph in DOT (Graphviz) format."""
     lines = ["digraph EntityGraph {"]
-    lines.append('  rankdir=LR;')
-    lines.append('  node [shape=box, style=filled];')
-    lines.append('')
+    lines.append("  rankdir=LR;")
+    lines.append("  node [shape=box, style=filled];")
+    lines.append("")
 
     # Color mapping
     colors = {
@@ -277,7 +277,7 @@ def export_dot(graph: EntityGraph) -> str:
         label = f"{title}\\n({short_type})"
         lines.append(f'  "{node_id}" [label="{label}", fillcolor="{color}"];')
 
-    lines.append('')
+    lines.append("")
 
     # Emit edges
     for r in graph.relationships:
@@ -286,8 +286,8 @@ def export_dot(graph: EntityGraph) -> str:
         rtype = r["type"]
         lines.append(f'  "{src}" -> "{tgt}" [label="{rtype}"];')
 
-    lines.append('}')
-    return '\n'.join(lines)
+    lines.append("}")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -371,7 +371,7 @@ def interactive_repl(graph: EntityGraph) -> None:
                 print(f"  {yellow('No results for')} {arg}")
                 continue
             print()
-            print(f"  {bold(f'Results for \"{arg}\"')} ({len(results)})")
+            print(f"  {bold(f'Results for "{arg}"')} ({len(results)})")
             print()
             for e in results[:20]:
                 title = e.get("title") or "?"

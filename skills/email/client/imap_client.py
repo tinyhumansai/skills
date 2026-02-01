@@ -199,7 +199,8 @@ class ImapClient:
         uid_str = ",".join(str(u) for u in uids)
         try:
             response = await self._imap.uid(
-                "fetch", uid_str,
+                "fetch",
+                uid_str,
                 "(UID FLAGS ENVELOPE BODYSTRUCTURE RFC822.SIZE)",
             )
             if response.result != "OK":
@@ -320,6 +321,7 @@ class ImapClient:
 # Module-level singleton
 # ---------------------------------------------------------------------------
 
+
 def create_imap_client(host: str, port: int, use_ssl: bool = True) -> ImapClient:
     """Create and register the singleton IMAP client."""
     global _client
@@ -335,6 +337,7 @@ def get_imap_client() -> ImapClient | None:
 # ---------------------------------------------------------------------------
 # Response parsing helpers
 # ---------------------------------------------------------------------------
+
 
 def _parse_select_response(lines: list[str]) -> dict[str, Any]:
     """Parse SELECT/EXAMINE response for counts and UIDVALIDITY."""

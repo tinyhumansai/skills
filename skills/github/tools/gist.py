@@ -13,8 +13,15 @@ gist_tools: list[Tool] = [
         inputSchema={
             "type": "object",
             "properties": {
-                "limit": {"type": "number", "description": "Maximum number of gists to return", "default": 30},
-                "username": {"type": "string", "description": "GitHub username. Defaults to the authenticated user"},
+                "limit": {
+                    "type": "number",
+                    "description": "Maximum number of gists to return",
+                    "default": 30,
+                },
+                "username": {
+                    "type": "string",
+                    "description": "GitHub username. Defaults to the authenticated user",
+                },
             },
         },
     ),
@@ -37,7 +44,7 @@ gist_tools: list[Tool] = [
             "properties": {
                 "files": {
                     "type": "object",
-                    "description": "Map of filename to file content, e.g. {\"hello.py\": {\"content\": \"print('hello')\"}}",
+                    "description": 'Map of filename to file content, e.g. {"hello.py": {"content": "print(\'hello\')"}}',
                     "additionalProperties": {
                         "type": "object",
                         "properties": {
@@ -47,7 +54,11 @@ gist_tools: list[Tool] = [
                     },
                 },
                 "description": {"type": "string", "description": "Gist description"},
-                "public": {"type": "boolean", "description": "Whether the gist is public", "default": False},
+                "public": {
+                    "type": "boolean",
+                    "description": "Whether the gist is public",
+                    "default": False,
+                },
             },
             "required": ["files"],
         },

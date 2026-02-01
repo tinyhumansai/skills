@@ -1,0 +1,90 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alphahuman-skills"
+version = "1.0.0"
+description = "AlphaHuman Skills repository"
+requires-python = ">=3.11"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "PTH", # flake8-use-pathlib
+    "RUF", # Ruff-specific rules
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+    "T201",  # print statements (allowed in scripts)
+    "ARG001", # unused function argument (common in handlers)
+    "ARG002", # unused method argument
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "*.egg-info",
+    "dist",
+    "build",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # unused imports allowed in __init__.py
+"scripts/*" = ["T201"]    # print statements allowed in scripts
+"dev/harness/*" = ["T201"]  # print statements allowed in test harness
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = [
+    "mcp.*",
+    "ccxt.*",
+    "telethon.*",
+    "slack_sdk.*",
+    "notion_client.*",
+    "openai.*",
+]
+ignore_missing_imports = true
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_gitignore = true
+known_first_party = ["dev", "skills"]

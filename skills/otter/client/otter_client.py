@@ -20,6 +20,7 @@ REQUEST_TIMEOUT = 30
 
 class OtterApiError(Exception):
     """General API error."""
+
     def __init__(self, status: int, message: str):
         self.status = status
         super().__init__(f"Otter API error {status}: {message}")
@@ -27,6 +28,7 @@ class OtterApiError(Exception):
 
 class OtterAuthError(OtterApiError):
     """Authentication error (401/403)."""
+
     pass
 
 
@@ -60,9 +62,7 @@ class OtterClient:
             await self._session.close()
             self._session = None
 
-    async def _request(
-        self, method: str, path: str, **kwargs: Any
-    ) -> dict[str, Any] | list[Any]:
+    async def _request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any] | list[Any]:
         """Make an API request with retry on 429."""
         if not self._session:
             raise OtterApiError(0, "Client not connected. Call connect() first.")
@@ -95,7 +95,7 @@ class OtterClient:
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                 if attempt < max_retries - 1:
                     log.warning("Request failed (attempt %d): %s", attempt + 1, e)
-                    await asyncio.sleep(2 ** attempt)
+                    await asyncio.sleep(2**attempt)
                     continue
                 raise OtterApiError(0, f"Request failed after {max_retries} attempts: {e}")
 
@@ -105,9 +105,7 @@ class OtterClient:
     # API methods
     # ------------------------------------------------------------------
 
-    async def get_speeches(
-        self, limit: int = 20, folder: str | None = None
-    ) -> dict[str, Any]:
+    async def get_speeches(self, limit: int = 20, folder: str | None = None) -> dict[str, Any]:
         """List speeches (meetings)."""
         params: dict[str, Any] = {"limit": limit}
         if folder:
@@ -130,9 +128,7 @@ class OtterClient:
         """Get recognized speakers."""
         return await self._request("GET", "/speakers")
 
-    async def search_speeches(
-        self, query: str, limit: int = 20
-    ) -> dict[str, Any]:
+    async def search_speeches(self, query: str, limit: int = 20) -> dict[str, Any]:
         """Search across all speeches."""
         params: dict[str, Any] = {"query": query, "limit": limit}
         return await self._request("GET", "/speeches/search", params=params)

@@ -102,6 +102,7 @@ async def on_skill_load(
             me = await client.get_client().get_me()
             if me:
                 from .client.builders import build_user
+
                 store.set_current_user(build_user(me))
 
             # Register event handlers for real-time updates
@@ -109,11 +110,13 @@ async def on_skill_load(
 
             # Launch initial sync as background task
             # (loads dialogs, caches users, preloads messages, emits entities)
-            asyncio.create_task(_run_initial_sync_safe(
-                client.get_client(),
-                upsert_entity_fn,
-                upsert_relationship_fn,
-            ))
+            asyncio.create_task(
+                _run_initial_sync_safe(
+                    client.get_client(),
+                    upsert_entity_fn,
+                    upsert_relationship_fn,
+                )
+            )
         else:
             store.set_auth_status("not_authenticated")
             log.warning(

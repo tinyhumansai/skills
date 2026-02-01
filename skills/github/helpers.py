@@ -16,6 +16,7 @@ log = logging.getLogger("skill.github.helpers")
 # Tool result
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ToolResult:
     content: str
@@ -25,6 +26,7 @@ class ToolResult:
 # ---------------------------------------------------------------------------
 # Error handling
 # ---------------------------------------------------------------------------
+
 
 class ErrorCategory(str, Enum):
     REPO = "REPO"
@@ -53,6 +55,7 @@ def log_and_format_error(
     log.error("[GH] Error in %s - Code: %s - %s", function_name, error_code, error)
 
     from .validation import ValidationError
+
     if isinstance(error, ValidationError):
         user_message = str(error)
     else:
@@ -64,6 +67,7 @@ def log_and_format_error(
 # ---------------------------------------------------------------------------
 # Formatting helpers
 # ---------------------------------------------------------------------------
+
 
 def format_repo_line(r: dict[str, Any]) -> str:
     """Format a single repo dict into a display line."""

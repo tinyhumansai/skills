@@ -109,34 +109,28 @@ def check_catalog() -> int:
         skill_data = extract_skill_py(dir_path / "skill.py")
         pkg_data = read_pkg_json(dir_path / "package.json")
 
-        name = (
-            (skill_data or {}).get("name")
-            or (pkg_data or {}).get("name")
-            or dir_name
-        )
+        name = (skill_data or {}).get("name") or (pkg_data or {}).get("name") or dir_name
         description = (
-            (skill_data or {}).get("description")
-            or (pkg_data or {}).get("description")
-            or ""
+            (skill_data or {}).get("description") or (pkg_data or {}).get("description") or ""
         )
 
         # Convert tick_interval_minutes if present
         tick_interval_minutes = (skill_data or {}).get("tick_interval_minutes")
-        
-        fresh_skills.append({
-            "name": name,
-            "description": description,
-            "icon": None,
-            "version": (
-                (skill_data or {}).get("version")
-                or (pkg_data or {}).get("version")
-                or None
-            ),
-            "tools": (skill_data or {}).get("tools", []),
-            "hooks": (skill_data or {}).get("hooks", []),
-            "tickIntervalMinutes": tick_interval_minutes,
-            "path": f"skills/{dir_name}",
-        })
+
+        fresh_skills.append(
+            {
+                "name": name,
+                "description": description,
+                "icon": None,
+                "version": (
+                    (skill_data or {}).get("version") or (pkg_data or {}).get("version") or None
+                ),
+                "tools": (skill_data or {}).get("tools", []),
+                "hooks": (skill_data or {}).get("hooks", []),
+                "tickIntervalMinutes": tick_interval_minutes,
+                "path": f"skills/{dir_name}",
+            }
+        )
 
     fresh_skills.sort(key=lambda e: e["name"])
 

@@ -170,15 +170,14 @@ def _make_credentials_step(
 # Hook handlers
 # ---------------------------------------------------------------------------
 
+
 async def on_setup_start(ctx: Any) -> SetupStep:
     """Return the first setup step."""
     _reset_state()
     return STEP_PROVIDER
 
 
-async def on_setup_submit(
-    ctx: Any, step_id: str, values: dict[str, Any]
-) -> SetupResult:
+async def on_setup_submit(ctx: Any, step_id: str, values: dict[str, Any]) -> SetupResult:
     """Validate and process a submitted step."""
     if step_id == "provider":
         return await _handle_provider(ctx, values)
@@ -200,9 +199,8 @@ async def on_setup_cancel(ctx: Any) -> None:
 # Step handlers
 # ---------------------------------------------------------------------------
 
-async def _handle_provider(
-    ctx: Any, values: dict[str, Any]
-) -> SetupResult:
+
+async def _handle_provider(ctx: Any, values: dict[str, Any]) -> SetupResult:
     global _provider, _imap_host, _imap_port, _smtp_host, _smtp_port
 
     provider_id = str(values.get("provider", "")).strip().lower()
@@ -234,9 +232,7 @@ async def _handle_provider(
     )
 
 
-async def _handle_credentials(
-    ctx: Any, values: dict[str, Any]
-) -> SetupResult:
+async def _handle_credentials(ctx: Any, values: dict[str, Any]) -> SetupResult:
     global _imap_host, _imap_port, _smtp_host, _smtp_port, _use_ssl, _email, _password
 
     # Validate required fields
@@ -287,7 +283,12 @@ async def _handle_credentials(
         if response.result != "OK":
             return SetupResult(
                 status="error",
-                errors=[SetupFieldError(field="password", message="IMAP authentication failed — check email and password")],
+                errors=[
+                    SetupFieldError(
+                        field="password",
+                        message="IMAP authentication failed — check email and password",
+                    )
+                ],
             )
 
         # Quick test: select INBOX
@@ -296,7 +297,11 @@ async def _handle_credentials(
             await imap.logout()
             return SetupResult(
                 status="error",
-                errors=[SetupFieldError(field="imap_host", message="IMAP connected but cannot select INBOX")],
+                errors=[
+                    SetupFieldError(
+                        field="imap_host", message="IMAP connected but cannot select INBOX"
+                    )
+                ],
             )
 
         await imap.logout()
@@ -306,7 +311,11 @@ async def _handle_credentials(
         if "authentication" in error_msg.lower() or "login" in error_msg.lower():
             return SetupResult(
                 status="error",
-                errors=[SetupFieldError(field="password", message=f"IMAP auth failed — {_provider_hint()}")],
+                errors=[
+                    SetupFieldError(
+                        field="password", message=f"IMAP auth failed — {_provider_hint()}"
+                    )
+                ],
             )
         return SetupResult(
             status="error",

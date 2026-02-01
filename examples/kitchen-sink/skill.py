@@ -100,8 +100,7 @@ async def execute_get_note(args: dict) -> ToolResult:
         raw = await ctx.read_data(f"{note_id}.json")
         note = json.loads(raw)
         return ToolResult(
-            content=f"**{note['title']}**\n\n{note['body']}\n\n"
-            f"_Created: {note['created_at']}_"
+            content=f"**{note['title']}**\n\n{note['body']}\n\n_Created: {note['created_at']}_"
         )
     except Exception as e:
         return ToolResult(content=f"Note not found: {e}", is_error=True)
@@ -142,9 +141,7 @@ async def execute_search_memory(args: dict) -> ToolResult:
         snippet = r.get("content", "")[:120]
         lines.append(f"- **{name}**: {snippet}")
 
-    return ToolResult(
-        content=f"Memory search results ({len(results)}):\n" + "\n".join(lines)
-    )
+    return ToolResult(content=f"Memory search results ({len(results)}):\n" + "\n".join(lines))
 
 
 async def execute_save_memory(args: dict) -> ToolResult:
@@ -185,9 +182,7 @@ async def execute_find_entities(args: dict) -> ToolResult:
         tags = ", ".join(e.tags) if e.tags else "none"
         lines.append(f"- [{e.type}] **{e.name}** (id={e.id}, tags={tags})")
 
-    return ToolResult(
-        content=f"Entities ({len(results)}):\n" + "\n".join(lines)
-    )
+    return ToolResult(content=f"Entities ({len(results)}):\n" + "\n".join(lines))
 
 
 async def execute_get_session_info(args: dict) -> ToolResult:
@@ -200,9 +195,7 @@ async def execute_get_session_info(args: dict) -> ToolResult:
     session_id = ctx.session.id
     message_count = ctx.session.get("message_count") or 0
 
-    return ToolResult(
-        content=f"Session ID: {session_id}\nMessages in session: {message_count}"
-    )
+    return ToolResult(content=f"Session ID: {session_id}\nMessages in session: {message_count}")
 
 
 # ---------------------------------------------------------------------------
@@ -395,20 +388,21 @@ async def on_session_end(ctx: SkillContext, session_id: str) -> None:
     started_at = ctx.session.get("session_started_at") or "unknown"
 
     ctx.log(
-        f"kitchen-sink: session ended — {session_id} "
-        f"({message_count} messages since {started_at})"
+        f"kitchen-sink: session ended — {session_id} ({message_count} messages since {started_at})"
     )
 
     # Save a session summary to memory for future context
     if message_count > 0:
         await ctx.memory.write(
             f"session-summary/{session_id}",
-            json.dumps({
-                "session_id": session_id,
-                "message_count": message_count,
-                "started_at": started_at,
-                "ended_at": _now(),
-            }),
+            json.dumps(
+                {
+                    "session_id": session_id,
+                    "message_count": message_count,
+                    "started_at": started_at,
+                    "ended_at": _now(),
+                }
+            ),
         )
 
 
@@ -574,9 +568,7 @@ async def on_setup_start(ctx: SkillContext) -> SetupStep:
     )
 
 
-async def on_setup_submit(
-    ctx: SkillContext, step_id: str, values: dict[str, Any]
-) -> SetupResult:
+async def on_setup_submit(ctx: SkillContext, step_id: str, values: dict[str, Any]) -> SetupResult:
     """Handle form submission for each setup step.
 
     Demonstrates: validation, multi-step flow, data persistence, SetupResult
@@ -607,9 +599,7 @@ async def on_setup_cancel(ctx: SkillContext) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def _handle_profile_step(
-    ctx: SkillContext, values: dict[str, Any]
-) -> SetupResult:
+async def _handle_profile_step(ctx: SkillContext, values: dict[str, Any]) -> SetupResult:
     """Validate the profile step and advance to notifications."""
     username = (values.get("username") or "").strip()
     experience = values.get("experience", "")
@@ -619,34 +609,30 @@ async def _handle_profile_step(
     errors: list[SetupFieldError] = []
 
     if not username:
-        errors.append(
-            SetupFieldError(field="username", message="Display name is required.")
-        )
+        errors.append(SetupFieldError(field="username", message="Display name is required."))
     elif len(username) < 2:
         errors.append(
-            SetupFieldError(
-                field="username", message="Display name must be at least 2 characters."
-            )
+            SetupFieldError(field="username", message="Display name must be at least 2 characters.")
         )
 
     if not experience:
         errors.append(
-            SetupFieldError(
-                field="experience", message="Please select your experience level."
-            )
+            SetupFieldError(field="experience", message="Please select your experience level.")
         )
 
     if errors:
         return SetupResult(status="error", errors=errors)
 
     # --- Save partial state ---
-    ctx.set_state({
-        "setup_partial": {
-            "username": username,
-            "experience": experience,
-            "preferences": preferences,
+    ctx.set_state(
+        {
+            "setup_partial": {
+                "username": username,
+                "experience": experience,
+                "preferences": preferences,
+            }
         }
-    })
+    )
 
     # --- Advance to next step ---
     return SetupResult(
@@ -690,9 +676,7 @@ async def _handle_profile_step(
     )
 
 
-async def _handle_notifications_step(
-    ctx: SkillContext, values: dict[str, Any]
-) -> SetupResult:
+async def _handle_notifications_step(ctx: SkillContext, values: dict[str, Any]) -> SetupResult:
     """Validate notifications step and complete setup."""
     enable_notifications = values.get("enable_notifications", True)
     digest_frequency = values.get("digest_frequency", "daily")

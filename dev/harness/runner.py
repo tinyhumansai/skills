@@ -152,6 +152,7 @@ async def _run(skill_dir: str, verbose: bool) -> int:
         _fail(f"Failed to import skill.py: {exc}")
         if verbose:
             import traceback
+
             traceback.print_exc()
         _print_summary()
         return 1
@@ -169,6 +170,7 @@ async def _run(skill_dir: str, verbose: bool) -> int:
 
     if skill.version:
         import re
+
         if re.match(r"^\d+\.\d+\.\d+", skill.version):
             _pass(f"version: {skill.version}")
         else:
@@ -201,13 +203,41 @@ async def _run(skill_dir: str, verbose: bool) -> int:
     hooks_obj = skill.hooks
     hook_order: list[tuple[str, Any]] = [
         ("on_load", lambda: hooks_obj.on_load(ctx) if hooks_obj and hooks_obj.on_load else None),
-        ("on_session_start", lambda: hooks_obj.on_session_start(ctx, "runner-session-001") if hooks_obj and hooks_obj.on_session_start else None),
-        ("on_before_message", lambda: hooks_obj.on_before_message(ctx, "What is the price of ETH?") if hooks_obj and hooks_obj.on_before_message else None),
-        ("on_after_response", lambda: hooks_obj.on_after_response(ctx, "ETH is currently $3,400.") if hooks_obj and hooks_obj.on_after_response else None),
+        (
+            "on_session_start",
+            lambda: hooks_obj.on_session_start(ctx, "runner-session-001")
+            if hooks_obj and hooks_obj.on_session_start
+            else None,
+        ),
+        (
+            "on_before_message",
+            lambda: hooks_obj.on_before_message(ctx, "What is the price of ETH?")
+            if hooks_obj and hooks_obj.on_before_message
+            else None,
+        ),
+        (
+            "on_after_response",
+            lambda: hooks_obj.on_after_response(ctx, "ETH is currently $3,400.")
+            if hooks_obj and hooks_obj.on_after_response
+            else None,
+        ),
         ("on_tick", lambda: hooks_obj.on_tick(ctx) if hooks_obj and hooks_obj.on_tick else None),
-        ("on_memory_flush", lambda: hooks_obj.on_memory_flush(ctx) if hooks_obj and hooks_obj.on_memory_flush else None),
-        ("on_session_end", lambda: hooks_obj.on_session_end(ctx, "runner-session-001") if hooks_obj and hooks_obj.on_session_end else None),
-        ("on_unload", lambda: hooks_obj.on_unload(ctx) if hooks_obj and hooks_obj.on_unload else None),
+        (
+            "on_memory_flush",
+            lambda: hooks_obj.on_memory_flush(ctx)
+            if hooks_obj and hooks_obj.on_memory_flush
+            else None,
+        ),
+        (
+            "on_session_end",
+            lambda: hooks_obj.on_session_end(ctx, "runner-session-001")
+            if hooks_obj and hooks_obj.on_session_end
+            else None,
+        ),
+        (
+            "on_unload",
+            lambda: hooks_obj.on_unload(ctx) if hooks_obj and hooks_obj.on_unload else None,
+        ),
     ]
 
     for hook_name, hook_fn in hook_order:
@@ -233,6 +263,7 @@ async def _run(skill_dir: str, verbose: bool) -> int:
             _fail(f"{hook_name}: threw {exc}")
             if verbose:
                 import traceback
+
                 traceback.print_exc()
 
     print()
@@ -254,7 +285,9 @@ async def _run(skill_dir: str, verbose: bool) -> int:
                 try:
                     step = await hooks_obj.on_setup_start(ctx)
                     if isinstance(step, SetupStep) and step.fields:
-                        _pass(f'on_setup_start: returned step "{step.id}" with {len(step.fields)} field(s)')
+                        _pass(
+                            f'on_setup_start: returned step "{step.id}" with {len(step.fields)} field(s)'
+                        )
                     else:
                         _fail("on_setup_start: must return SetupStep with at least one field")
                         step = None
@@ -262,6 +295,7 @@ async def _run(skill_dir: str, verbose: bool) -> int:
                     _fail(f"on_setup_start: threw {exc}")
                     if verbose:
                         import traceback
+
                         traceback.print_exc()
             else:
                 _info("on_setup_start: not defined")
@@ -271,11 +305,17 @@ async def _run(skill_dir: str, verbose: bool) -> int:
                 dummy_values: dict[str, Any] = {}
                 for field in step.fields:
                     if field.type == "text" or field.type == "password":
-                        dummy_values[field.name] = field.default if field.default is not None else "test-value"
+                        dummy_values[field.name] = (
+                            field.default if field.default is not None else "test-value"
+                        )
                     elif field.type == "number":
-                        dummy_values[field.name] = field.default if field.default is not None else 42
+                        dummy_values[field.name] = (
+                            field.default if field.default is not None else 42
+                        )
                     elif field.type == "boolean":
-                        dummy_values[field.name] = field.default if field.default is not None else True
+                        dummy_values[field.name] = (
+                            field.default if field.default is not None else True
+                        )
                     elif field.type == "select":
                         if field.options:
                             dummy_values[field.name] = field.options[0].value
@@ -289,7 +329,11 @@ async def _run(skill_dir: str, verbose: bool) -> int:
 
                 try:
                     result = await hooks_obj.on_setup_submit(ctx, step.id, dummy_values)
-                    if isinstance(result, SetupResult) and result.status in ("next", "error", "complete"):
+                    if isinstance(result, SetupResult) and result.status in (
+                        "next",
+                        "error",
+                        "complete",
+                    ):
                         _pass(f'on_setup_submit: returned status="{result.status}"')
                     else:
                         _fail("on_setup_submit: must return SetupResult with valid status")
@@ -297,6 +341,7 @@ async def _run(skill_dir: str, verbose: bool) -> int:
                     _fail(f"on_setup_submit: threw {exc}")
                     if verbose:
                         import traceback
+
                         traceback.print_exc()
             elif has_submit:
                 _info("on_setup_submit: skipped (no step from on_setup_start)")
@@ -312,6 +357,7 @@ async def _run(skill_dir: str, verbose: bool) -> int:
                     _fail(f"on_setup_cancel: threw {exc}")
                     if verbose:
                         import traceback
+
                         traceback.print_exc()
             else:
                 _info("on_setup_cancel: not defined")
@@ -353,6 +399,7 @@ async def _run(skill_dir: str, verbose: bool) -> int:
                 _fail(f"{defn.name}: threw {exc}")
                 if verbose:
                     import traceback
+
                     traceback.print_exc()
 
         print()
@@ -374,7 +421,9 @@ async def _run(skill_dir: str, verbose: bool) -> int:
 
 def _print_summary() -> None:
     print(bold("Summary"))
-    print(f"  {PASS} {pass_count} passed   {FAIL} {fail_count} failed   {WARN} {warn_count} warnings")
+    print(
+        f"  {PASS} {pass_count} passed   {FAIL} {fail_count} failed   {WARN} {warn_count} warnings"
+    )
     print()
 
 

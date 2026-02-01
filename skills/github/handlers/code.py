@@ -25,13 +25,17 @@ async def view_file(args: dict[str, Any]) -> ToolResult:
         content_file = await run_sync(repo.get_contents, path, **kwargs)
 
         if isinstance(content_file, list):
-            return ToolResult(content=f"{path} is a directory, not a file. Use list_directory instead.")
+            return ToolResult(
+                content=f"{path} is a directory, not a file. Use list_directory instead."
+            )
 
         if content_file.encoding == "base64" and content_file.content:
             decoded = base64.b64decode(content_file.content).decode("utf-8", errors="replace")
             return ToolResult(content=truncate(decoded))
         elif content_file.decoded_content:
-            return ToolResult(content=truncate(content_file.decoded_content.decode("utf-8", errors="replace")))
+            return ToolResult(
+                content=truncate(content_file.decoded_content.decode("utf-8", errors="replace"))
+            )
         else:
             return ToolResult(content="(binary or empty file)")
     except Exception as e:

@@ -37,15 +37,17 @@ async def list_channels(args: dict[str, Any]) -> ToolResult:
         channels = result.get("channels", [])
         channel_list = []
         for ch in channels[:limit]:
-            channel_list.append({
-                "id": ch.get("id"),
-                "name": ch.get("name"),
-                "is_private": ch.get("is_private", False),
-                "is_archived": ch.get("is_archived", False),
-                "topic": ch.get("topic", {}).get("value", ""),
-                "purpose": ch.get("purpose", {}).get("value", ""),
-                "member_count": ch.get("num_members", 0),
-            })
+            channel_list.append(
+                {
+                    "id": ch.get("id"),
+                    "name": ch.get("name"),
+                    "is_private": ch.get("is_private", False),
+                    "is_archived": ch.get("is_archived", False),
+                    "topic": ch.get("topic", {}).get("value", ""),
+                    "purpose": ch.get("purpose", {}).get("value", ""),
+                    "member_count": ch.get("num_members", 0),
+                }
+            )
 
         return ToolResult(content=json.dumps({"channels": channel_list}, indent=2))
 
@@ -101,11 +103,14 @@ async def create_channel(args: dict[str, Any]) -> ToolResult:
         channel = result.get("channel", {})
 
         return ToolResult(
-            content=json.dumps({
-                "id": channel.get("id"),
-                "name": channel.get("name"),
-                "is_private": channel.get("is_private", False),
-            }, indent=2)
+            content=json.dumps(
+                {
+                    "id": channel.get("id"),
+                    "name": channel.get("name"),
+                    "is_private": channel.get("is_private", False),
+                },
+                indent=2,
+            )
         )
 
     except ValidationError as e:

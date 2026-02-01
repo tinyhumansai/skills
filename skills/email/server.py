@@ -90,6 +90,7 @@ async def on_skill_load(
 
     # Set account ID on API modules
     from .api import message_api, flag_api, attachment_api, draft_api
+
     message_api.set_account_id(email_addr)
     flag_api.set_account_id(email_addr)
     attachment_api.set_account_id(email_addr)

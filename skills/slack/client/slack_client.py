@@ -20,6 +20,7 @@ REQUEST_TIMEOUT = 30
 
 class SlackApiError(Exception):
     """General API error."""
+
     def __init__(self, status: int, message: str, error: str | None = None):
         self.status = status
         self.error = error
@@ -28,6 +29,7 @@ class SlackApiError(Exception):
 
 class SlackAuthError(SlackApiError):
     """Authentication error (invalid_auth, account_inactive, etc.)."""
+
     pass
 
 
@@ -76,9 +78,7 @@ class SlackClient:
             await self._session.close()
             self._session = None
 
-    async def _request(
-        self, method: str, endpoint: str, **kwargs: Any
-    ) -> dict[str, Any]:
+    async def _request(self, method: str, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """Make an API request with retry on 429."""
         if not self._session:
             raise SlackApiError(0, "Client not connected. Call connect() first.")
@@ -113,7 +113,7 @@ class SlackClient:
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                 if attempt < max_retries - 1:
                     log.warning("Request failed (attempt %d): %s", attempt + 1, e)
-                    await asyncio.sleep(2 ** attempt)
+                    await asyncio.sleep(2**attempt)
                     continue
                 raise SlackApiError(0, f"Request failed after {max_retries} attempts: {e}")
 
@@ -168,9 +168,7 @@ class SlackClient:
         """Get information about a conversation."""
         return await self.get("/conversations.info", channel=channel)
 
-    async def conversations_create(
-        self, name: str, is_private: bool = False
-    ) -> dict[str, Any]:
+    async def conversations_create(self, name: str, is_private: bool = False) -> dict[str, Any]:
         """Create a conversation."""
         return await self.post(
             "/conversations.create",
@@ -203,19 +201,13 @@ class SlackClient:
             params["cursor"] = cursor
         return await self.get("/conversations.members", **params)
 
-    async def conversations_set_topic(
-        self, channel: str, topic: str
-    ) -> dict[str, Any]:
+    async def conversations_set_topic(self, channel: str, topic: str) -> dict[str, Any]:
         """Set the topic of a conversation."""
         return await self.post("/conversations.setTopic", channel=channel, topic=topic)
 
-    async def conversations_set_purpose(
-        self, channel: str, purpose: str
-    ) -> dict[str, Any]:
+    async def conversations_set_purpose(self, channel: str, purpose: str) -> dict[str, Any]:
         """Set the purpose of a conversation."""
-        return await self.post(
-            "/conversations.setPurpose", channel=channel, purpose=purpose
-        )
+        return await self.post("/conversations.setPurpose", channel=channel, purpose=purpose)
 
     # ---------------------------------------------------------------------------
     # Messages
@@ -253,9 +245,7 @@ class SlackClient:
             data["reply_broadcast"] = reply_broadcast
         return await self.post("/chat.postMessage", **data)
 
-    async def chat_update(
-        self, channel: str, ts: str, text: str
-    ) -> dict[str, Any]:
+    async def chat_update(self, channel: str, ts: str, text: str) -> dict[str, Any]:
         """Update a message."""
         return await self.post("/chat.update", channel=channel, ts=ts, text=text)
 
@@ -263,21 +253,15 @@ class SlackClient:
         """Delete a message."""
         return await self.post("/chat.delete", channel=channel, ts=ts)
 
-    async def chat_get_permalink(
-        self, channel: str, message_ts: str
-    ) -> dict[str, Any]:
+    async def chat_get_permalink(self, channel: str, message_ts: str) -> dict[str, Any]:
         """Get a permalink for a message."""
-        return await self.get(
-            "/chat.getPermalink", channel=channel, message_ts=message_ts
-        )
+        return await self.get("/chat.getPermalink", channel=channel, message_ts=message_ts)
 
     # ---------------------------------------------------------------------------
     # Users
     # ---------------------------------------------------------------------------
 
-    async def users_list(
-        self, limit: int = 200, cursor: str | None = None
-    ) -> dict[str, Any]:
+    async def users_list(self, limit: int = 200, cursor: str | None = None) -> dict[str, Any]:
         """List users."""
         params: dict[str, Any] = {"limit": limit}
         if cursor:
@@ -296,17 +280,11 @@ class SlackClient:
     # Search
     # ---------------------------------------------------------------------------
 
-    async def search_messages(
-        self, query: str, count: int = 20, page: int = 1
-    ) -> dict[str, Any]:
+    async def search_messages(self, query: str, count: int = 20, page: int = 1) -> dict[str, Any]:
         """Search messages."""
-        return await self.get(
-            "/search.messages", query=query, count=count, page=page
-        )
+        return await self.get("/search.messages", query=query, count=count, page=page)
 
-    async def search_all(
-        self, query: str, count: int = 20, page: int = 1
-    ) -> dict[str, Any]:
+    async def search_all(self, query: str, count: int = 20, page: int = 1) -> dict[str, Any]:
         """Search messages and files."""
         return await self.get("/search.all", query=query, count=count, page=page)
 

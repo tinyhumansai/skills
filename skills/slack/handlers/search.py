@@ -30,13 +30,15 @@ async def search_messages(args: dict[str, Any]) -> ToolResult:
 
         results = []
         for match in matches[:count]:
-            results.append({
-                "ts": match.get("ts"),
-                "channel": match.get("channel", {}).get("name", ""),
-                "user": match.get("user", ""),
-                "text": match.get("text", ""),
-                "permalink": match.get("permalink", ""),
-            })
+            results.append(
+                {
+                    "ts": match.get("ts"),
+                    "channel": match.get("channel", {}).get("name", ""),
+                    "user": match.get("user", ""),
+                    "text": match.get("text", ""),
+                    "permalink": match.get("permalink", ""),
+                }
+            )
 
         return ToolResult(content=json.dumps({"results": results}, indent=2))
 
@@ -64,28 +66,35 @@ async def search_all(args: dict[str, Any]) -> ToolResult:
 
         message_results = []
         for match in messages[:count]:
-            message_results.append({
-                "ts": match.get("ts"),
-                "channel": match.get("channel", {}).get("name", ""),
-                "user": match.get("user", ""),
-                "text": match.get("text", ""),
-                "permalink": match.get("permalink", ""),
-            })
+            message_results.append(
+                {
+                    "ts": match.get("ts"),
+                    "channel": match.get("channel", {}).get("name", ""),
+                    "user": match.get("user", ""),
+                    "text": match.get("text", ""),
+                    "permalink": match.get("permalink", ""),
+                }
+            )
 
         file_results = []
         for match in files[:count]:
-            file_results.append({
-                "id": match.get("id"),
-                "name": match.get("name", ""),
-                "title": match.get("title", ""),
-                "permalink": match.get("permalink", ""),
-            })
+            file_results.append(
+                {
+                    "id": match.get("id"),
+                    "name": match.get("name", ""),
+                    "title": match.get("title", ""),
+                    "permalink": match.get("permalink", ""),
+                }
+            )
 
         return ToolResult(
-            content=json.dumps({
-                "messages": message_results,
-                "files": file_results,
-            }, indent=2)
+            content=json.dumps(
+                {
+                    "messages": message_results,
+                    "files": file_results,
+                },
+                indent=2,
+            )
         )
 
     except ValidationError as e:

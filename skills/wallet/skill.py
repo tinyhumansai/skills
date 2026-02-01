@@ -101,7 +101,11 @@ async def _on_load(ctx: Any) -> None:
     try:
         _wallet_client = WalletClient(config, seed_phrase)
         set_wallet_client(_wallet_client)
-        log.info("Wallet client initialized: %d wallets, %d networks", len(_wallet_client.wallets), len(_wallet_client.networks))
+        log.info(
+            "Wallet client initialized: %d wallets, %d networks",
+            len(_wallet_client.wallets),
+            len(_wallet_client.networks),
+        )
     except Exception as exc:
         log.error("Failed to initialize wallet client: %s", exc)
         _wallet_client = None

@@ -66,7 +66,7 @@ async def list_messages(
         return []
 
     # Take last `limit + offset` UIDs (most recent)
-    relevant_uids = uids[-(limit + offset):]
+    relevant_uids = uids[-(limit + offset) :]
     if offset:
         relevant_uids = relevant_uids[:limit]
 
@@ -75,7 +75,9 @@ async def list_messages(
         for email_obj in emails:
             await upsert_email(db, _account_id, folder, email_obj)
             if email_obj.from_addr:
-                await upsert_contact(db, email_obj.from_addr.email, email_obj.from_addr.display_name)
+                await upsert_contact(
+                    db, email_obj.from_addr.email, email_obj.from_addr.display_name
+                )
 
     return emails
 
@@ -138,12 +140,12 @@ async def search_messages(
     if subject:
         criteria_parts.append(f'SUBJECT "{subject}"')
     if since:
-        criteria_parts.append(f'SINCE {since}')
+        criteria_parts.append(f"SINCE {since}")
     if before:
-        criteria_parts.append(f'BEFORE {before}')
+        criteria_parts.append(f"BEFORE {before}")
     if has_attachment:
         # IMAP doesn't have a direct attachment search; approximate with size
-        criteria_parts.append('LARGER 10000')
+        criteria_parts.append("LARGER 10000")
 
     criteria = " ".join(criteria_parts) if criteria_parts else "ALL"
 
@@ -233,6 +235,7 @@ async def get_recent_messages(
 
     # IMAP SINCE uses date only (not time), so we search a bit broader
     import datetime
+
     since_date = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=hours)
     since_str = since_date.strftime("%d-%b-%Y")
 

@@ -72,18 +72,27 @@ def parse_raw_email(raw: bytes, uid: int) -> ParsedEmail:
             disposition = str(part.get("Content-Disposition", ""))
 
             if "attachment" in disposition.lower() or (
-                content_type not in ("text/plain", "text/html", "multipart/alternative", "multipart/mixed", "multipart/related")
+                content_type
+                not in (
+                    "text/plain",
+                    "text/html",
+                    "multipart/alternative",
+                    "multipart/mixed",
+                    "multipart/related",
+                )
                 and disposition
             ):
                 # Attachment
                 filename = part.get_filename() or f"attachment_{att_index}"
                 size = len(part.get_payload(decode=True) or b"")
-                attachments.append(EmailAttachment(
-                    index=att_index,
-                    filename=filename,
-                    content_type=content_type,
-                    size=size,
-                ))
+                attachments.append(
+                    EmailAttachment(
+                        index=att_index,
+                        filename=filename,
+                        content_type=content_type,
+                        size=size,
+                    )
+                )
                 att_index += 1
             elif content_type == "text/plain" and not body_text:
                 payload = part.get_payload(decode=True)
@@ -179,11 +188,18 @@ def parse_fetch_response(lines: list[Any], uids: list[int]) -> list[ParsedEmail]
         if uid_match:
             if current_uid is not None:
                 # Save previous message
-                results.append(_build_envelope_email(
-                    current_uid, current_flags, current_size,
-                    current_subject, current_from, current_date_str,
-                    current_message_id, current_in_reply_to,
-                ))
+                results.append(
+                    _build_envelope_email(
+                        current_uid,
+                        current_flags,
+                        current_size,
+                        current_subject,
+                        current_from,
+                        current_date_str,
+                        current_message_id,
+                        current_in_reply_to,
+                    )
+                )
             current_uid = int(uid_match.group(1))
             current_flags = []
             current_size = 0
@@ -205,11 +221,18 @@ def parse_fetch_response(lines: list[Any], uids: list[int]) -> list[ParsedEmail]
 
     # Don't forget the last one
     if current_uid is not None:
-        results.append(_build_envelope_email(
-            current_uid, current_flags, current_size,
-            current_subject, current_from, current_date_str,
-            current_message_id, current_in_reply_to,
-        ))
+        results.append(
+            _build_envelope_email(
+                current_uid,
+                current_flags,
+                current_size,
+                current_subject,
+                current_from,
+                current_date_str,
+                current_message_id,
+                current_in_reply_to,
+            )
+        )
 
     # If we couldn't parse structured response, create stubs for known UIDs
     parsed_uids = {e.uid for e in results}
@@ -250,6 +273,7 @@ def parse_full_message(lines: list[Any], uid: int) -> ParsedEmail | None:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _parse_address(raw: str) -> EmailAddress | None:
     """Parse a single email address."""
     if not raw:
@@ -271,10 +295,12 @@ def _parse_address_list(raw: str) -> list[EmailAddress]:
     result = []
     for name, addr in addrs:
         if addr:
-            result.append(EmailAddress(
-                email=addr,
-                display_name=name if name else None,
-            ))
+            result.append(
+                EmailAddress(
+                    email=addr,
+                    display_name=name if name else None,
+                )
+            )
     return result
 
 

@@ -26,7 +26,10 @@ attachment_tools: list[Tool] = [
             "type": "object",
             "properties": {
                 "message_id": {"type": "number", "description": "UID of the message"},
-                "attachment_index": {"type": "number", "description": "Index of the attachment (0-based)"},
+                "attachment_index": {
+                    "type": "number",
+                    "description": "Index of the attachment (0-based)",
+                },
                 "folder": {"type": "string", "description": "Folder name", "default": "INBOX"},
             },
             "required": ["message_id", "attachment_index"],
@@ -39,7 +42,10 @@ attachment_tools: list[Tool] = [
             "type": "object",
             "properties": {
                 "message_id": {"type": "number", "description": "UID of the message"},
-                "attachment_index": {"type": "number", "description": "Index of the attachment (0-based)"},
+                "attachment_index": {
+                    "type": "number",
+                    "description": "Index of the attachment (0-based)",
+                },
                 "folder": {"type": "string", "description": "Folder name", "default": "INBOX"},
                 "filename": {"type": "string", "description": "Override filename for saving"},
             },

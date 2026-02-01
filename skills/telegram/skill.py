@@ -79,7 +79,11 @@ async def _on_load(ctx: Any) -> None:
         raw = await ctx.read_data("config.json")
         if raw:
             config = json.loads(raw)
-            log.info("Loaded config.json: keys=%s, has_session=%s", list(config.keys()), bool(config.get("session_string")))
+            log.info(
+                "Loaded config.json: keys=%s, has_session=%s",
+                list(config.keys()),
+                bool(config.get("session_string")),
+            )
         else:
             log.info("config.json is empty or not found")
     except Exception as exc:
@@ -103,17 +107,20 @@ async def _on_load(ctx: Any) -> None:
 
 async def _on_unload(ctx: Any) -> None:
     from .server import on_skill_unload
+
     await on_skill_unload()
 
 
 async def _on_tick(ctx: Any) -> None:
     from .server import on_skill_tick
+
     await on_skill_tick()
 
 
 async def _on_status(ctx: Any) -> dict[str, Any]:
     """Return current skill status information."""
     from .state.store import get_state
+
     state = get_state()
     return {
         "connection_status": state.connection_status,
@@ -157,10 +164,20 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "archive-chat", "create-channel", "create-group", "export-chat-invite",
-            "get-chat", "get-chats", "get-invite-link", "import-chat-invite",
-            "join-chat-by-link", "leave-chat", "list-chats", "mute-chat",
-            "subscribe-public-channel", "unarchive-chat",
+            "archive-chat",
+            "create-channel",
+            "create-group",
+            "export-chat-invite",
+            "get-chat",
+            "get-chats",
+            "get-invite-link",
+            "import-chat-invite",
+            "join-chat-by-link",
+            "leave-chat",
+            "list-chats",
+            "mute-chat",
+            "subscribe-public-channel",
+            "unarchive-chat",
         ],
     ),
     SkillOptionDefinition(
@@ -171,13 +188,31 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "clear-draft", "create-poll", "delete-message", "edit-message",
-            "forward-message", "get-drafts", "get-history", "get-message-context",
-            "get-message-reactions", "get-messages", "get-pinned-messages",
-            "list-inline-buttons", "list-messages", "list-topics", "mark-as-read",
-            "pin-message", "press-inline-button", "remove-reaction", "reply-to-message",
-            "save-draft", "send-message", "send-reaction", "unmute-chat",
-            "unpin-message", "get-recent-actions",
+            "clear-draft",
+            "create-poll",
+            "delete-message",
+            "edit-message",
+            "forward-message",
+            "get-drafts",
+            "get-history",
+            "get-message-context",
+            "get-message-reactions",
+            "get-messages",
+            "get-pinned-messages",
+            "list-inline-buttons",
+            "list-messages",
+            "list-topics",
+            "mark-as-read",
+            "pin-message",
+            "press-inline-button",
+            "remove-reaction",
+            "reply-to-message",
+            "save-draft",
+            "send-message",
+            "send-reaction",
+            "unmute-chat",
+            "unpin-message",
+            "get-recent-actions",
         ],
     ),
     SkillOptionDefinition(
@@ -188,10 +223,19 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "add-contact", "block-user", "delete-contact", "export-contacts",
-            "get-blocked-users", "get-contact-chats", "get-contact-ids",
-            "get-direct-chat-by-contact", "get-last-interaction", "import-contacts",
-            "list-contacts", "search-contacts", "unblock-user",
+            "add-contact",
+            "block-user",
+            "delete-contact",
+            "export-contacts",
+            "get-blocked-users",
+            "get-contact-chats",
+            "get-contact-ids",
+            "get-direct-chat-by-contact",
+            "get-last-interaction",
+            "import-contacts",
+            "list-contacts",
+            "search-contacts",
+            "unblock-user",
         ],
     ),
     SkillOptionDefinition(
@@ -202,8 +246,14 @@ TOOL_CATEGORY_OPTIONS = [
         default=False,
         group="tool_categories",
         tool_filter=[
-            "ban-user", "demote-admin", "get-admins", "get-banned-users",
-            "get-participants", "invite-to-group", "promote-admin", "unban-user",
+            "ban-user",
+            "demote-admin",
+            "get-admins",
+            "get-banned-users",
+            "get-participants",
+            "invite-to-group",
+            "promote-admin",
+            "unban-user",
         ],
     ),
     SkillOptionDefinition(
@@ -214,9 +264,16 @@ TOOL_CATEGORY_OPTIONS = [
         default=False,
         group="tool_categories",
         tool_filter=[
-            "delete-chat-photo", "delete-profile-photo", "edit-chat-photo",
-            "edit-chat-title", "get-bot-info", "get-me", "get-media-info",
-            "get-user-photos", "get-user-status", "set-profile-photo",
+            "delete-chat-photo",
+            "delete-profile-photo",
+            "edit-chat-photo",
+            "edit-chat-title",
+            "get-bot-info",
+            "get-me",
+            "get-media-info",
+            "get-user-photos",
+            "get-user-status",
+            "set-profile-photo",
         ],
     ),
     SkillOptionDefinition(
@@ -227,8 +284,11 @@ TOOL_CATEGORY_OPTIONS = [
         default=False,
         group="tool_categories",
         tool_filter=[
-            "get-privacy-settings", "resolve-username", "set-bot-commands",
-            "set-privacy-settings", "update-profile",
+            "get-privacy-settings",
+            "resolve-username",
+            "set-bot-commands",
+            "set-privacy-settings",
+            "update-profile",
         ],
     ),
     SkillOptionDefinition(
@@ -239,7 +299,8 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "search-messages", "search-public-chats",
+            "search-messages",
+            "search-public-chats",
         ],
     ),
 ]

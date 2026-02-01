@@ -34,7 +34,9 @@ async def list_meetings(args: dict[str, Any]) -> ToolResult:
         for s in speeches:
             date_str = ""
             if s.created_at:
-                date_str = datetime.fromtimestamp(s.created_at, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+                date_str = datetime.fromtimestamp(s.created_at, tz=timezone.utc).strftime(
+                    "%Y-%m-%d %H:%M UTC"
+                )
             duration_str = format_duration(s.duration) if s.duration else "unknown"
             processed = "done" if s.is_processed else "processing"
             lines.append(
@@ -62,7 +64,9 @@ async def get_meeting(args: dict[str, Any]) -> ToolResult:
         # Format output
         date_str = ""
         if speech.created_at:
-            date_str = datetime.fromtimestamp(speech.created_at, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+            date_str = datetime.fromtimestamp(speech.created_at, tz=timezone.utc).strftime(
+                "%Y-%m-%d %H:%M UTC"
+            )
         duration_str = format_duration(speech.duration) if speech.duration else "unknown"
 
         header = (
@@ -100,12 +104,16 @@ async def get_meeting_summary(args: dict[str, Any]) -> ToolResult:
             return ToolResult(content=f"Meeting {speech_id} not found.", is_error=True)
 
         if speech.summary:
-            return ToolResult(content=f"Summary for \"{speech.title or 'Untitled'}\":\n\n{speech.summary}")
+            return ToolResult(
+                content=f'Summary for "{speech.title or "Untitled"}":\n\n{speech.summary}'
+            )
 
         # No summary in metadata — try to build one from transcript
         segments = await speech_api.fetch_transcript(speech_id)
         if not segments:
-            return ToolResult(content=f"No summary or transcript available for meeting {speech_id}.")
+            return ToolResult(
+                content=f"No summary or transcript available for meeting {speech_id}."
+            )
 
         # Return first portion of transcript as a fallback
         transcript_lines = []
@@ -116,7 +124,7 @@ async def get_meeting_summary(args: dict[str, Any]) -> ToolResult:
 
         return ToolResult(
             content=(
-                f"No AI summary available for \"{speech.title or 'Untitled'}\".\n\n"
+                f'No AI summary available for "{speech.title or "Untitled"}".\n\n'
                 f"Transcript preview (first {len(transcript_lines)} segments):\n"
                 f"{truncate_transcript(transcript_text)}"
             )

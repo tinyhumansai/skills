@@ -82,9 +82,7 @@ async def on_setup_start(ctx: Any) -> SetupStep:
     return STEP_TOKEN
 
 
-async def on_setup_submit(
-    ctx: Any, step_id: str, values: dict[str, Any]
-) -> SetupResult:
+async def on_setup_submit(ctx: Any, step_id: str, values: dict[str, Any]) -> SetupResult:
     """Handle form submission."""
     if step_id == "token":
         return await _handle_token(ctx, values)
@@ -151,9 +149,7 @@ async def _handle_token(ctx: Any, values: dict[str, Any]) -> SetupResult:
             )
         return SetupResult(
             status="error",
-            errors=[
-                SetupFieldError(field="token", message=f"Notion API error: {e}")
-            ],
+            errors=[SetupFieldError(field="token", message=f"Notion API error: {e}")],
         )
     except Exception as e:
         log.exception("Connection error during setup")
@@ -173,9 +169,7 @@ async def _handle_token(ctx: Any, values: dict[str, Any]) -> SetupResult:
     return await _complete_setup(ctx, me, workspace_name)
 
 
-async def _complete_setup(
-    ctx: Any, bot_user: dict[str, Any], workspace_name: str
-) -> SetupResult:
+async def _complete_setup(ctx: Any, bot_user: dict[str, Any], workspace_name: str) -> SetupResult:
     """Save config and return completion."""
     config = {
         "token": _token,

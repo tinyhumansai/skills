@@ -68,8 +68,14 @@ async def run_initial_sync(
         pinned_chats, pinned_users, pinned_messages = await _load_pinned_dialogs(client)
 
         # 3. Load first batch of dialogs
-        first_chats, first_users, first_messages, first_channel_pts, has_more = (
-            await _load_dialog_batch(client, offset_date=0, offset_id=0, offset_peer=InputPeerEmpty())
+        (
+            first_chats,
+            first_users,
+            first_messages,
+            first_channel_pts,
+            has_more,
+        ) = await _load_dialog_batch(
+            client, offset_date=0, offset_id=0, offset_peer=InputPeerEmpty()
         )
 
         # Merge pinned into first batch (pinned first)
@@ -89,7 +95,9 @@ async def run_initial_sync(
 
         log.info(
             "First batch loaded: %d chats, %d users, %d messages",
-            len(all_chats), len(all_users), len(all_messages),
+            len(all_chats),
+            len(all_users),
+            len(all_messages),
         )
 
         # 5. Persist to SQLite
@@ -100,14 +108,13 @@ async def run_initial_sync(
         if upsert_entity_fn and upsert_relationship_fn:
             try:
                 from ..entities import emit_initial_entities
+
                 await emit_initial_entities(upsert_entity_fn, upsert_relationship_fn)
             except Exception:
                 log.exception("Failed to emit initial entities during sync")
 
         # 7. Background: load remaining dialogs + preload messages
-        await _load_remaining_dialogs(
-            client, has_more, first_chats, first_channel_pts
-        )
+        await _load_remaining_dialogs(client, has_more, first_chats, first_channel_pts)
 
         # 8. Load archived dialogs
         await _load_archived_dialogs(client)
@@ -142,7 +149,10 @@ async def _fetch_and_save_update_state(client: TelegramClient) -> None:
         await save_update_state(state.pts, state.qts, int(date_val), state.seq)
         log.info(
             "Update state: pts=%d qts=%d date=%d seq=%d",
-            state.pts, state.qts, int(date_val), state.seq,
+            state.pts,
+            state.qts,
+            int(date_val),
+            state.seq,
         )
     except Exception:
         log.exception("Failed to fetch update state")
@@ -180,6 +190,7 @@ async def _load_pinned_dialogs(
             if not peer:
                 continue
             from ..client.builders import build_peer_id
+
             peer_id = build_peer_id(peer)
             entity = entity_map.get(peer_id)
 
@@ -203,19 +214,23 @@ async def _load_dialog_batch(
     offset_date: int | float,
     offset_id: int,
     offset_peer: Any,
-) -> tuple[list[TelegramChat], dict[str, TelegramUser], list[TelegramMessage], dict[str, int], bool]:
+) -> tuple[
+    list[TelegramChat], dict[str, TelegramUser], list[TelegramMessage], dict[str, int], bool
+]:
     """Load a single batch of dialogs."""
     chats: list[TelegramChat] = []
     users: dict[str, TelegramUser] = {}
     messages: list[TelegramMessage] = []
 
-    result = await client(GetDialogsRequest(
-        offset_date=int(offset_date),
-        offset_id=offset_id,
-        offset_peer=offset_peer,
-        limit=DIALOG_BATCH_SIZE,
-        hash=0,
-    ))
+    result = await client(
+        GetDialogsRequest(
+            offset_date=int(offset_date),
+            offset_id=offset_id,
+            offset_peer=offset_peer,
+            limit=DIALOG_BATCH_SIZE,
+            hash=0,
+        )
+    )
 
     entity_map = build_entity_map(result)
     channel_pts = extract_channel_pts_from_dialogs(result)
@@ -241,6 +256,7 @@ async def _load_dialog_batch(
         if not peer:
             continue
         from ..client.builders import build_peer_id
+
         peer_id = build_peer_id(peer)
         entity = entity_map.get(peer_id)
 
@@ -283,9 +299,13 @@ async def _load_remaining_dialogs(
             offset_peer = InputPeerEmpty()
 
         try:
-            batch_chats, batch_users, batch_messages, batch_channel_pts, has_more = (
-                await _load_dialog_batch(client, offset_date, offset_id, offset_peer)
-            )
+            (
+                batch_chats,
+                batch_users,
+                batch_messages,
+                batch_channel_pts,
+                has_more,
+            ) = await _load_dialog_batch(client, offset_date, offset_id, offset_peer)
         except Exception:
             log.exception("Failed to load dialog batch %d", batch_num + 1)
             break
@@ -321,14 +341,16 @@ async def _load_archived_dialogs(client: TelegramClient) -> None:
         batch_num = 0
 
         while batch_num < MAX_DIALOG_BATCHES:
-            result = await client(GetDialogsRequest(
-                offset_date=offset_date,
-                offset_id=offset_id,
-                offset_peer=offset_peer,
-                limit=DIALOG_BATCH_SIZE,
-                hash=0,
-                folder_id=1,
-            ))
+            result = await client(
+                GetDialogsRequest(
+                    offset_date=offset_date,
+                    offset_id=offset_id,
+                    offset_peer=offset_peer,
+                    limit=DIALOG_BATCH_SIZE,
+                    hash=0,
+                    folder_id=1,
+                )
+            )
 
             entity_map = build_entity_map(result)
             raw_dialogs = getattr(result, "dialogs", []) or []
@@ -357,6 +379,7 @@ async def _load_archived_dialogs(client: TelegramClient) -> None:
                 if not peer:
                     continue
                 from ..client.builders import build_peer_id
+
                 peer_id = build_peer_id(peer)
                 entity = entity_map.get(peer_id)
 
@@ -403,16 +426,18 @@ async def _preload_top_chat_messages(client: TelegramClient) -> None:
     for chat in ordered:
         try:
             input_peer = await client.get_input_entity(int(chat.id))
-            result = await client(GetHistoryRequest(
-                peer=input_peer,
-                offset_id=0,
-                offset_date=0,
-                add_offset=0,
-                limit=MESSAGE_PRELOAD_LIMIT,
-                max_id=0,
-                min_id=0,
-                hash=0,
-            ))
+            result = await client(
+                GetHistoryRequest(
+                    peer=input_peer,
+                    offset_id=0,
+                    offset_date=0,
+                    add_offset=0,
+                    limit=MESSAGE_PRELOAD_LIMIT,
+                    max_id=0,
+                    min_id=0,
+                    hash=0,
+                )
+            )
 
             entity_map = build_entity_map(result)
             messages: list[TelegramMessage] = []

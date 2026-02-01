@@ -159,9 +159,7 @@ async def query_db_stats(db: Any) -> dict[str, Any]:
     stats["pinned_chat_count"] = row[0]
 
     # Chats with messages
-    cursor = await db.execute(
-        "SELECT count(DISTINCT chat_id) FROM messages"
-    )
+    cursor = await db.execute("SELECT count(DISTINCT chat_id) FROM messages")
     row = await cursor.fetchone()
     stats["chats_with_messages"] = row[0]
 
@@ -322,7 +320,11 @@ async def main_async() -> int:
 
     # Check messages were preloaded
     total_messages = sum(len(msgs) for msgs in state.messages.values())
-    if not check("Messages preloaded", total_messages > 0, f"{total_messages} messages across {len(state.messages)} chats"):
+    if not check(
+        "Messages preloaded",
+        total_messages > 0,
+        f"{total_messages} messages across {len(state.messages)} chats",
+    ):
         errors += 1
 
     # Check for pinned chats
@@ -356,6 +358,7 @@ async def main_async() -> int:
     print(f"  {'─' * 50}")
 
     from telegram.db.connection import get_db
+
     db = await get_db()
     db_stats = await query_db_stats(db)
 
@@ -367,21 +370,37 @@ async def main_async() -> int:
         errors += 1
 
     us = db_stats["update_state"]
-    if not check("DB update_state", us is not None, f"pts={us['pts']} seq={us['seq']}" if us else "not saved"):
+    if not check(
+        "DB update_state", us is not None, f"pts={us['pts']} seq={us['seq']}" if us else "not saved"
+    ):
         errors += 1
 
-    if not check("DB channel_pts", db_stats["channel_pts_count"] > 0, f"{db_stats['channel_pts_count']} channels"):
+    if not check(
+        "DB channel_pts",
+        db_stats["channel_pts_count"] > 0,
+        f"{db_stats['channel_pts_count']} channels",
+    ):
         errors += 1
 
-    check("DB pinned chats", db_stats["pinned_chat_count"] > 0, f"{db_stats['pinned_chat_count']} pinned")
-    check("DB chats with messages", db_stats["chats_with_messages"] > 0, f"{db_stats['chats_with_messages']} chats")
+    check(
+        "DB pinned chats",
+        db_stats["pinned_chat_count"] > 0,
+        f"{db_stats['pinned_chat_count']} pinned",
+    )
+    check(
+        "DB chats with messages",
+        db_stats["chats_with_messages"] > 0,
+        f"{db_stats['chats_with_messages']} chats",
+    )
 
     if verbose:
         print()
         print(f"  {bold('Sample chats (DB):')}")
         for sc in db_stats["sample_chats"]:
             pin = " 📌" if sc["pinned"] else ""
-            print(f"    [{dim(sc['type'][:4])}] {sc['title'] or sc['id']}{pin} (unread: {sc['unread']})")
+            print(
+                f"    [{dim(sc['type'][:4])}] {sc['title'] or sc['id']}{pin} (unread: {sc['unread']})"
+            )
 
         print()
         print(f"  {bold('Top message-heavy chats (DB):')}")

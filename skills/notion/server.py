@@ -69,11 +69,13 @@ async def on_skill_load(
         log.info("Connected to Notion as '%s'", bot_name)
 
         if set_state_fn:
-            set_state_fn({
-                "connected": True,
-                "bot_name": bot_name,
-                "bot_id": me.get("id", ""),
-            })
+            set_state_fn(
+                {
+                    "connected": True,
+                    "bot_name": bot_name,
+                    "bot_id": me.get("id", ""),
+                }
+            )
     except Exception:
         log.exception("Failed to validate Notion token")
         if set_state_fn:

@@ -53,9 +53,7 @@ async def notion_list_comments(args: dict[str, Any]) -> ToolResult:
     await enforce_rate_limit("read")
 
     try:
-        response = await client.comments.list(
-            block_id=block_id, page_size=page_size
-        )
+        response = await client.comments.list(block_id=block_id, page_size=page_size)
         results = response.get("results", [])
 
         if not results:

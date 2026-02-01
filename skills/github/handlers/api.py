@@ -40,18 +40,15 @@ async def gh_api(args: dict[str, Any]) -> ToolResult:
             )
         elif method == "POST":
             response_headers, data = await run_sync(
-                requester.requestJsonAndCheck, "POST", endpoint,
-                headers=headers, input=input_data
+                requester.requestJsonAndCheck, "POST", endpoint, headers=headers, input=input_data
             )
         elif method == "PUT":
             response_headers, data = await run_sync(
-                requester.requestJsonAndCheck, "PUT", endpoint,
-                headers=headers, input=input_data
+                requester.requestJsonAndCheck, "PUT", endpoint, headers=headers, input=input_data
             )
         elif method == "PATCH":
             response_headers, data = await run_sync(
-                requester.requestJsonAndCheck, "PATCH", endpoint,
-                headers=headers, input=input_data
+                requester.requestJsonAndCheck, "PATCH", endpoint, headers=headers, input=input_data
             )
         elif method == "DELETE":
             response_headers, data = await run_sync(

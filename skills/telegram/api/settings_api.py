@@ -77,12 +77,16 @@ async def mute_chat(chat_id: str, mute_for: int | None = None) -> ApiResult[bool
         client = mtproto.get_client()
         entity = await client.get_input_entity(chat_id)
 
-        mute_until = (int(math.floor(___import_time() / 1000)) + mute_for) if mute_for else 2147483647
+        mute_until = (
+            (int(math.floor(___import_time() / 1000)) + mute_for) if mute_for else 2147483647
+        )
 
-        await mtproto.invoke(UpdateNotifySettingsRequest(
-            peer=InputNotifyPeer(peer=entity),
-            settings=InputPeerNotifySettings(mute_until=mute_until),
-        ))
+        await mtproto.invoke(
+            UpdateNotifySettingsRequest(
+                peer=InputNotifyPeer(peer=entity),
+                settings=InputPeerNotifySettings(mute_until=mute_until),
+            )
+        )
 
         return ApiResult(data=True, from_cache=False)
     except Exception:
@@ -92,6 +96,7 @@ async def mute_chat(chat_id: str, mute_for: int | None = None) -> ApiResult[bool
 
 def ___import_time() -> float:
     import time
+
     return time.time() * 1000
 
 
@@ -104,10 +109,12 @@ async def unmute_chat(chat_id: str) -> ApiResult[bool]:
         client = mtproto.get_client()
         entity = await client.get_input_entity(chat_id)
 
-        await mtproto.invoke(UpdateNotifySettingsRequest(
-            peer=InputNotifyPeer(peer=entity),
-            settings=InputPeerNotifySettings(mute_until=0),
-        ))
+        await mtproto.invoke(
+            UpdateNotifySettingsRequest(
+                peer=InputNotifyPeer(peer=entity),
+                settings=InputPeerNotifySettings(mute_until=0),
+            )
+        )
 
         return ApiResult(data=True, from_cache=False)
     except Exception:
@@ -124,9 +131,11 @@ async def archive_chat(chat_id: str) -> ApiResult[bool]:
         client = mtproto.get_client()
         entity = await client.get_input_entity(chat_id)
 
-        await mtproto.invoke(EditPeerFoldersRequest(
-            folder_peers=[InputFolderPeer(peer=entity, folder_id=1)],
-        ))
+        await mtproto.invoke(
+            EditPeerFoldersRequest(
+                folder_peers=[InputFolderPeer(peer=entity, folder_id=1)],
+            )
+        )
 
         return ApiResult(data=True, from_cache=False)
     except Exception:
@@ -143,9 +152,11 @@ async def unarchive_chat(chat_id: str) -> ApiResult[bool]:
         client = mtproto.get_client()
         entity = await client.get_input_entity(chat_id)
 
-        await mtproto.invoke(EditPeerFoldersRequest(
-            folder_peers=[InputFolderPeer(peer=entity, folder_id=0)],
-        ))
+        await mtproto.invoke(
+            EditPeerFoldersRequest(
+                folder_peers=[InputFolderPeer(peer=entity, folder_id=0)],
+            )
+        )
 
         return ApiResult(data=True, from_cache=False)
     except Exception:
@@ -281,12 +292,14 @@ async def get_user_photos(user_id: str, limit: int = 20) -> ApiResult[list[Any]]
             access_hash=getattr(entity, "access_hash", 0) or 0,
         )
 
-        result = await mtproto.invoke(GetUserPhotosRequest(
-            user_id=input_user,
-            offset=0,
-            max_id=0,
-            limit=limit,
-        ))
+        result = await mtproto.invoke(
+            GetUserPhotosRequest(
+                user_id=input_user,
+                offset=0,
+                max_id=0,
+                limit=limit,
+            )
+        )
 
         photo_list = []
         if isinstance(result, (photos.Photos, photos.PhotosSlice)):
@@ -367,12 +380,15 @@ async def get_bot_info(chat_id: str) -> ApiResult[Any]:
         entity = await client.get_entity(chat_id)
 
         if getattr(entity, "bot", False):
-            return ApiResult(data={
-                "id": str(entity.id),
-                "username": getattr(entity, "username", None),
-                "firstName": getattr(entity, "first_name", None),
-                "botInfoVersion": getattr(entity, "bot_info_version", None),
-            }, from_cache=False)
+            return ApiResult(
+                data={
+                    "id": str(entity.id),
+                    "username": getattr(entity, "username", None),
+                    "firstName": getattr(entity, "first_name", None),
+                    "botInfoVersion": getattr(entity, "bot_info_version", None),
+                },
+                from_cache=False,
+            )
 
         return ApiResult(data=None, from_cache=False)
     except Exception:
@@ -398,19 +414,18 @@ async def set_bot_commands(
             scope = BotCommandScopeDefault()
 
         bot_commands = [
-            BotCommand(command=cmd["command"], description=cmd["description"])
-            for cmd in commands
+            BotCommand(command=cmd["command"], description=cmd["description"]) for cmd in commands
         ]
 
-        await mtproto.invoke(SetBotCommandsRequest(
-            scope=scope,
-            lang_code="",
-            commands=bot_commands,
-        ))
+        await mtproto.invoke(
+            SetBotCommandsRequest(
+                scope=scope,
+                lang_code="",
+                commands=bot_commands,
+            )
+        )
 
         return ApiResult(data=True, from_cache=False)
     except Exception:
         log.exception("Error setting bot commands")
         return ApiResult(data=False, from_cache=False)
-
-

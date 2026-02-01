@@ -60,9 +60,7 @@ async def on_setup_start(ctx: Any) -> SetupStep:
     return STEP_API_KEY
 
 
-async def on_setup_submit(
-    ctx: Any, step_id: str, values: dict[str, Any]
-) -> SetupResult:
+async def on_setup_submit(ctx: Any, step_id: str, values: dict[str, Any]) -> SetupResult:
     """Validate API key and persist config."""
     if step_id != "api_key":
         return SetupResult(

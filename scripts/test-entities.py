@@ -145,13 +145,15 @@ class EntityCollector:
         source: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        self.relationships.append({
-            "source_id": source_id,
-            "target_id": target_id,
-            "type": type,
-            "source": source,
-            "metadata": metadata or {},
-        })
+        self.relationships.append(
+            {
+                "source_id": source_id,
+                "target_id": target_id,
+                "type": type,
+                "source": source,
+                "metadata": metadata or {},
+            }
+        )
         self.relationship_count += 1
 
     def print_summary(self, verbose: bool = False) -> None:
@@ -368,8 +370,12 @@ async def main_async() -> int:
 
     # Check entity types match schema
     expected_types = {
-        "telegram.contact", "telegram.group", "telegram.channel",
-        "telegram.dm", "telegram.summary", "telegram.thread",
+        "telegram.contact",
+        "telegram.group",
+        "telegram.channel",
+        "telegram.dm",
+        "telegram.summary",
+        "telegram.thread",
     }
     actual_types = {e["type"] for e in collector.entities.values()}
     base_types = actual_types - {"telegram.summary", "telegram.thread"}
@@ -394,7 +400,8 @@ async def main_async() -> int:
 
     # Check chats
     chat_entities = [
-        e for e in collector.entities.values()
+        e
+        for e in collector.entities.values()
         if e["type"] in ("telegram.group", "telegram.channel", "telegram.dm")
     ]
     if chat_entities:
@@ -417,7 +424,9 @@ async def main_async() -> int:
         summaries = [e for e in collector.entities.values() if e["type"] == "telegram.summary"]
         if summaries:
             print(f"  {green('PASS')} Summary entities emitted: {len(summaries)}")
-            summary_rels = [r for r in collector.relationships if r["type"] in ("summarizes", "summarizes_dm")]
+            summary_rels = [
+                r for r in collector.relationships if r["type"] in ("summarizes", "summarizes_dm")
+            ]
             if summary_rels:
                 print(f"  {green('PASS')} Summary relationships: {len(summary_rels)}")
         else:

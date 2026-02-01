@@ -12,9 +12,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-EmailConnectionStatus = Literal[
-    "disconnected", "connecting", "connected", "error"
-]
+EmailConnectionStatus = Literal["disconnected", "connecting", "connected", "error"]
 
 
 class EmailAccount(BaseModel):
@@ -92,6 +90,7 @@ class SyncState(BaseModel):
 
 class EmailState(BaseModel):
     """Full in-process state."""
+
     # Connection
     connection_status: EmailConnectionStatus = "disconnected"
     connection_error: str | None = None
@@ -110,6 +109,7 @@ class EmailState(BaseModel):
 
 class EmailHostState(BaseModel):
     """Subset pushed to host for React UI consumption."""
+
     connection_status: EmailConnectionStatus = "disconnected"
     is_initialized: bool = False
     account: EmailAccount | None = None

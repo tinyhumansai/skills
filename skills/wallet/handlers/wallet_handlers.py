@@ -60,12 +60,14 @@ async def handle_list_wallets() -> ToolResult:
     """List all configured wallets."""
     wallets_data = []
     for wallet in _wallet_client.wallets:
-        wallets_data.append({
-            "index": wallet.index,
-            "chain_type": wallet.chain_type,
-            "address": wallet.address,
-            "label": wallet.label,
-        })
+        wallets_data.append(
+            {
+                "index": wallet.index,
+                "chain_type": wallet.chain_type,
+                "address": wallet.address,
+                "label": wallet.label,
+            }
+        )
     return ToolResult(content=json.dumps({"wallets": wallets_data}, indent=2))
 
 
@@ -73,13 +75,15 @@ async def handle_list_networks() -> ToolResult:
     """List all configured networks."""
     networks_data = []
     for network in _wallet_client.networks:
-        networks_data.append({
-            "chain_id": network.chain_id,
-            "name": network.name,
-            "rpc_url": network.rpc_url,
-            "chain_type": network.chain_type,
-            "connected": network.is_connected(),
-        })
+        networks_data.append(
+            {
+                "chain_id": network.chain_id,
+                "name": network.name,
+                "rpc_url": network.rpc_url,
+                "chain_type": network.chain_type,
+                "connected": network.is_connected(),
+            }
+        )
     return ToolResult(content=json.dumps({"networks": networks_data}, indent=2))
 
 
@@ -148,14 +152,18 @@ async def handle_sign_message(args: dict[str, Any]) -> ToolResult:
             account = wallet.get_account()
             # Sign message using eth_account's sign_message
             from eth_account.messages import encode_defunct
+
             message_hash = encode_defunct(text=message)
             signed = account.sign_message(message_hash)
             return ToolResult(
-                content=json.dumps({
-                    "address": address,
-                    "message": message,
-                    "signature": signed.signature.hex(),
-                }, indent=2)
+                content=json.dumps(
+                    {
+                        "address": address,
+                        "message": message,
+                        "signature": signed.signature.hex(),
+                    },
+                    indent=2,
+                )
             )
         elif chain_type == "sol":
             # Solana message signing would go here

@@ -15,6 +15,7 @@ logging.basicConfig(
 def main() -> None:
     from dev.runtime.server import SkillServer
     from .skill import skill
+
     server = SkillServer(skill)
     server.start()
 

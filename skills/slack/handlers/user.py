@@ -29,14 +29,16 @@ async def list_users(args: dict[str, Any]) -> ToolResult:
         for user in users[:limit]:
             if user.get("deleted") or user.get("is_restricted"):
                 continue
-            user_list.append({
-                "id": user.get("id"),
-                "name": user.get("name"),
-                "real_name": user.get("real_name", ""),
-                "email": user.get("profile", {}).get("email", ""),
-                "is_bot": user.get("is_bot", False),
-                "is_admin": user.get("is_admin", False),
-            })
+            user_list.append(
+                {
+                    "id": user.get("id"),
+                    "name": user.get("name"),
+                    "real_name": user.get("real_name", ""),
+                    "email": user.get("profile", {}).get("email", ""),
+                    "is_bot": user.get("is_bot", False),
+                    "is_admin": user.get("is_admin", False),
+                }
+            )
 
         return ToolResult(content=json.dumps({"users": user_list}, indent=2))
 
@@ -120,10 +122,13 @@ async def open_dm(args: dict[str, Any]) -> ToolResult:
         channel = result.get("channel", {})
 
         return ToolResult(
-            content=json.dumps({
-                "channel_id": channel.get("id"),
-                "user_id": user_id,
-            }, indent=2)
+            content=json.dumps(
+                {
+                    "channel_id": channel.get("id"),
+                    "user_id": user_id,
+                },
+                indent=2,
+            )
         )
 
     except ValidationError as e:
@@ -144,11 +149,13 @@ async def list_dms(args: dict[str, Any]) -> ToolResult:
 
         dm_list = []
         for dm in dms:
-            dm_list.append({
-                "id": dm.get("id"),
-                "user": dm.get("user"),
-                "is_open": dm.get("is_open", False),
-            })
+            dm_list.append(
+                {
+                    "id": dm.get("id"),
+                    "user": dm.get("user"),
+                    "is_open": dm.get("is_open", False),
+                }
+            )
 
         return ToolResult(content=json.dumps({"dms": dm_list}, indent=2))
 

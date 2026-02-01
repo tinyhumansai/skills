@@ -34,18 +34,14 @@ class SkillOptionDefinition(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     name: str = Field(description="Option key (snake_case, unique per skill)")
-    type: Literal["boolean", "text", "number", "select"] = Field(
-        description="Value type"
-    )
+    type: Literal["boolean", "text", "number", "select"] = Field(description="Value type")
     label: str = Field(description="Human-readable label for UI")
     description: str | None = None
     default: str | float | bool | None = None
     options: list[SetupFieldOption] | None = Field(
         default=None, description="Choices for select type"
     )
-    group: str | None = Field(
-        default=None, description="UI grouping key"
-    )
+    group: str | None = Field(default=None, description="UI grouping key")
     tool_filter: list[str] | None = Field(
         default=None,
         description="Tool names controlled by this boolean option (True=included, False=excluded)",
@@ -146,9 +142,9 @@ class RelationshipTypeDeclaration(BaseModel):
     source_type: str = Field(description='Source entity type, e.g. "telegram.contact"')
     target_type: str = Field(description='Target entity type, e.g. "telegram.group"')
     description: str
-    cardinality: Literal[
-        "one_to_one", "one_to_many", "many_to_one", "many_to_many"
-    ] = "many_to_many"
+    cardinality: Literal["one_to_one", "one_to_many", "many_to_one", "many_to_many"] = (
+        "many_to_many"
+    )
 
 
 class EntitySchema(BaseModel):

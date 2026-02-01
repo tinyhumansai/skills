@@ -163,11 +163,7 @@ def create_mock_context(
     # --- Entity Manager ---
     class _Entities:
         async def get_by_tag(self, tag: str, type: str | None = None) -> list[Entity]:
-            return [
-                e
-                for e in entity_store
-                if tag in e.tags and (type is None or e.type == type)
-            ]
+            return [e for e in entity_store if tag in e.tags and (type is None or e.type == type)]
 
         async def get_by_id(self, id: str) -> Entity | None:
             for e in entity_store:
@@ -177,11 +173,7 @@ def create_mock_context(
 
         async def search(self, query: str) -> list[Entity]:
             q = query.lower()
-            return [
-                e
-                for e in entity_store
-                if q in e.name.lower() or q in str(e.metadata).lower()
-            ]
+            return [e for e in entity_store if q in e.name.lower() or q in str(e.metadata).lower()]
 
         async def get_relationships(
             self, entity_id: str, type: str | None = None, direction: str = "outgoing"

@@ -115,11 +115,13 @@ async def notion_create_page(args: dict[str, Any]) -> ToolResult:
         # Build children blocks
         children: list[dict[str, Any]] = []
         if content:
-            children.append({
-                "object": "block",
-                "type": "paragraph",
-                "paragraph": {"rich_text": make_rich_text(content)},
-            })
+            children.append(
+                {
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {"rich_text": make_rich_text(content)},
+                }
+            )
 
         kwargs: dict[str, Any] = {
             "parent": parent,
@@ -130,9 +132,7 @@ async def notion_create_page(args: dict[str, Any]) -> ToolResult:
 
         page = await client.pages.create(**kwargs)
 
-        return ToolResult(
-            content=f"Page created successfully.\n\n{format_page_summary(page)}"
-        )
+        return ToolResult(content=f"Page created successfully.\n\n{format_page_summary(page)}")
     except Exception as e:
         return format_api_error("notion_create_page", e)
 
@@ -166,9 +166,7 @@ async def notion_update_page(args: dict[str, Any]) -> ToolResult:
 
         page = await client.pages.update(**kwargs)
 
-        return ToolResult(
-            content=f"Page updated successfully.\n\n{format_page_summary(page)}"
-        )
+        return ToolResult(content=f"Page updated successfully.\n\n{format_page_summary(page)}")
     except Exception as e:
         return format_api_error("notion_update_page", e)
 

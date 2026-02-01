@@ -24,17 +24,20 @@ _listeners: list[Callable[[], None]] = []
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def get_state() -> EmailState:
     return _state
 
 
 def subscribe(listener: Callable[[], None]) -> Callable[[], None]:
     _listeners.append(listener)
+
     def unsubscribe() -> None:
         try:
             _listeners.remove(listener)
         except ValueError:
             pass
+
     return unsubscribe
 
 
@@ -46,6 +49,7 @@ def _notify() -> None:
 # ---------------------------------------------------------------------------
 # Connection
 # ---------------------------------------------------------------------------
+
 
 def set_connection_status(status: EmailConnectionStatus) -> None:
     global _state
@@ -80,6 +84,7 @@ def set_account(account: EmailAccount | None) -> None:
 # Folders
 # ---------------------------------------------------------------------------
 
+
 def set_folders(folders: dict[str, EmailFolder]) -> None:
     global _state
     total_unread = sum(f.unseen_messages for f in folders.values())
@@ -103,6 +108,7 @@ def get_folder(name: str) -> EmailFolder | None:
 # Sync
 # ---------------------------------------------------------------------------
 
+
 def set_sync_status(is_syncing: bool) -> None:
     global _state
     _state = _state.model_copy(update={"is_syncing": is_syncing})
@@ -118,6 +124,7 @@ def set_last_sync(timestamp: float) -> None:
 # ---------------------------------------------------------------------------
 # Reset
 # ---------------------------------------------------------------------------
+
 
 def reset_state() -> None:
     global _state

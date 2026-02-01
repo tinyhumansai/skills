@@ -97,17 +97,20 @@ async def _on_load(ctx: Any) -> None:
 
 async def _on_unload(ctx: Any) -> None:
     from .server import on_skill_unload
+
     await on_skill_unload()
 
 
 async def _on_tick(ctx: Any) -> None:
     from .server import on_skill_tick
+
     await on_skill_tick()
 
 
 async def _on_status(ctx: Any) -> dict[str, Any]:
     """Return current skill status information."""
     from .client.gh_client import get_client
+
     try:
         client = get_client()
         return {
@@ -151,9 +154,18 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "add_collaborator", "clone_repo", "create_repo", "delete_repo",
-            "fork_repo", "get_readme", "get_repo", "list_collaborators",
-            "list_languages", "list_repos", "list_topics", "remove_collaborator",
+            "add_collaborator",
+            "clone_repo",
+            "create_repo",
+            "delete_repo",
+            "fork_repo",
+            "get_readme",
+            "get_repo",
+            "list_collaborators",
+            "list_languages",
+            "list_repos",
+            "list_topics",
+            "remove_collaborator",
         ],
     ),
     SkillOptionDefinition(
@@ -164,10 +176,18 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "add_issue_assignees", "add_issue_labels", "close_issue",
-            "comment_on_issue", "create_issue", "edit_issue", "get_issue",
-            "list_issue_comments", "list_issues", "remove_issue_assignees",
-            "remove_issue_labels", "reopen_issue",
+            "add_issue_assignees",
+            "add_issue_labels",
+            "close_issue",
+            "comment_on_issue",
+            "create_issue",
+            "edit_issue",
+            "get_issue",
+            "list_issue_comments",
+            "list_issues",
+            "remove_issue_assignees",
+            "remove_issue_labels",
+            "reopen_issue",
         ],
     ),
     SkillOptionDefinition(
@@ -178,10 +198,21 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "close_pr", "comment_on_pr", "create_pr", "create_pr_review",
-            "edit_pr", "get_pr", "get_pr_checks", "get_pr_diff",
-            "list_pr_comments", "list_pr_files", "list_pr_reviews",
-            "list_prs", "mark_pr_ready", "merge_pr", "reopen_pr",
+            "close_pr",
+            "comment_on_pr",
+            "create_pr",
+            "create_pr_review",
+            "edit_pr",
+            "get_pr",
+            "get_pr_checks",
+            "get_pr_diff",
+            "list_pr_comments",
+            "list_pr_files",
+            "list_pr_reviews",
+            "list_prs",
+            "mark_pr_ready",
+            "merge_pr",
+            "reopen_pr",
             "request_pr_reviewers",
         ],
     ),
@@ -193,7 +224,10 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "search_code", "search_commits", "search_issues", "search_repos",
+            "search_code",
+            "search_commits",
+            "search_issues",
+            "search_repos",
         ],
     ),
     SkillOptionDefinition(
@@ -204,7 +238,9 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "list_directory", "set_topics", "view_file",
+            "list_directory",
+            "set_topics",
+            "view_file",
         ],
     ),
     SkillOptionDefinition(
@@ -215,8 +251,12 @@ TOOL_CATEGORY_OPTIONS = [
         default=False,
         group="tool_categories",
         tool_filter=[
-            "create_release", "delete_release", "get_latest_release",
-            "get_release", "list_release_assets", "list_releases",
+            "create_release",
+            "delete_release",
+            "get_latest_release",
+            "get_release",
+            "list_release_assets",
+            "list_releases",
         ],
     ),
     SkillOptionDefinition(
@@ -227,8 +267,12 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "clone_gist", "create_gist", "delete_gist", "edit_gist",
-            "get_gist", "list_gists",
+            "clone_gist",
+            "create_gist",
+            "delete_gist",
+            "edit_gist",
+            "get_gist",
+            "list_gists",
         ],
     ),
     SkillOptionDefinition(
@@ -239,9 +283,15 @@ TOOL_CATEGORY_OPTIONS = [
         default=False,
         group="tool_categories",
         tool_filter=[
-            "cancel_workflow_run", "get_run_logs", "get_workflow_run",
-            "list_run_jobs", "list_workflow_runs", "list_workflows",
-            "rerun_workflow", "trigger_workflow", "view_workflow_yaml",
+            "cancel_workflow_run",
+            "get_run_logs",
+            "get_workflow_run",
+            "list_run_jobs",
+            "list_workflow_runs",
+            "list_workflows",
+            "rerun_workflow",
+            "trigger_workflow",
+            "view_workflow_yaml",
         ],
     ),
     SkillOptionDefinition(
@@ -252,7 +302,9 @@ TOOL_CATEGORY_OPTIONS = [
         default=False,
         group="tool_categories",
         tool_filter=[
-            "gh_api", "list_notifications", "mark_all_notifications_read",
+            "gh_api",
+            "list_notifications",
+            "mark_all_notifications_read",
             "mark_notification_read",
         ],
     ),

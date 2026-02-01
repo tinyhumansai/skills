@@ -12,9 +12,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-OtterConnectionStatus = Literal[
-    "disconnected", "connecting", "connected", "error"
-]
+OtterConnectionStatus = Literal["disconnected", "connecting", "connected", "error"]
 
 
 class OtterUser(BaseModel):
@@ -51,6 +49,7 @@ class OtterTranscriptSegment(BaseModel):
 
 class OtterState(BaseModel):
     """Full in-process state."""
+
     connection_status: OtterConnectionStatus = "disconnected"
     connection_error: str | None = None
     is_initialized: bool = False
@@ -65,6 +64,7 @@ class OtterState(BaseModel):
 
 class OtterHostState(BaseModel):
     """Subset pushed to host for React UI consumption."""
+
     connection_status: OtterConnectionStatus = "disconnected"
     is_initialized: bool = False
     current_user: OtterUser | None = None

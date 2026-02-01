@@ -20,6 +20,7 @@ log = logging.getLogger("skill.email.db.queries")
 # Emails
 # ---------------------------------------------------------------------------
 
+
 async def upsert_email(
     db: aiosqlite.Connection,
     account_id: str,
@@ -65,20 +66,32 @@ async def upsert_email(
             updated_at = excluded.updated_at
         """,
         (
-            account_id, folder, email.uid, email.message_id, email.in_reply_to,
-            json.dumps(email.references), email.thread_id,
+            account_id,
+            folder,
+            email.uid,
+            email.message_id,
+            email.in_reply_to,
+            json.dumps(email.references),
+            email.thread_id,
             email.from_addr.email if email.from_addr else None,
             email.from_addr.display_name if email.from_addr else None,
             json.dumps([a.model_dump() for a in email.to_addrs]),
             json.dumps([a.model_dump() for a in email.cc_addrs]),
-            email.subject, email.date,
-            email.body_text, email.body_html, email.body_preview,
+            email.subject,
+            email.date,
+            email.body_text,
+            email.body_html,
+            email.body_preview,
             1 if email.body_text or email.body_html else 0,
-            int(email.is_read), int(email.is_flagged),
-            int(email.is_answered), int(email.is_draft),
-            int(email.has_attachments), email.attachment_count,
+            int(email.is_read),
+            int(email.is_flagged),
+            int(email.is_answered),
+            int(email.is_draft),
+            int(email.has_attachments),
+            email.attachment_count,
             json.dumps([a.model_dump() for a in email.attachments]),
-            email.raw_size, now,
+            email.raw_size,
+            now,
         ),
     )
     await db.commit()
@@ -282,6 +295,7 @@ async def move_cached_email(
 # Contacts
 # ---------------------------------------------------------------------------
 
+
 async def upsert_contact(
     db: aiosqlite.Connection,
     email_addr: str,
@@ -331,6 +345,7 @@ async def search_contacts(
 # ---------------------------------------------------------------------------
 # Sync state
 # ---------------------------------------------------------------------------
+
 
 async def get_sync_state(
     db: aiosqlite.Connection,
@@ -392,6 +407,7 @@ async def clear_folder_cache(
 # Folders
 # ---------------------------------------------------------------------------
 
+
 async def upsert_folder(
     db: aiosqlite.Connection,
     account_id: str,
@@ -420,8 +436,18 @@ async def upsert_folder(
             last_synced = excluded.last_synced,
             updated_at = excluded.updated_at
         """,
-        (account_id, name, delimiter, json.dumps(flags or []),
-         total_messages, unseen_messages, uidvalidity, uidnext, now, now),
+        (
+            account_id,
+            name,
+            delimiter,
+            json.dumps(flags or []),
+            total_messages,
+            unseen_messages,
+            uidvalidity,
+            uidnext,
+            now,
+            now,
+        ),
     )
     await db.commit()
 
@@ -443,6 +469,7 @@ async def list_folders(
 # Summaries
 # ---------------------------------------------------------------------------
 
+
 async def insert_summary(
     db: aiosqlite.Connection,
     summary_type: str,
@@ -462,6 +489,7 @@ async def insert_summary(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _row_to_parsed_email(row: aiosqlite.Row) -> ParsedEmail:
     """Convert a database row to a ParsedEmail."""

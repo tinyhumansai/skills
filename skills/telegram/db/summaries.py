@@ -94,20 +94,20 @@ async def _build_activity_summary(
         total_messages += msg_count
 
         # Get chat title from chats table
-        title_cursor = await db.execute(
-            "SELECT title, type FROM chats WHERE id = ?", (chat_id,)
-        )
+        title_cursor = await db.execute("SELECT title, type FROM chats WHERE id = ?", (chat_id,))
         title_row = await title_cursor.fetchone()
         title = title_row[0] if title_row else f"Chat {chat_id}"
         chat_type = title_row[1] if title_row else "unknown"
 
-        active_chats.append({
-            "chat_id": chat_id,
-            "title": title,
-            "type": chat_type,
-            "message_count": msg_count,
-            "unique_senders": unique_senders,
-        })
+        active_chats.append(
+            {
+                "chat_id": chat_id,
+                "title": title,
+                "type": chat_type,
+                "message_count": msg_count,
+                "unique_senders": unique_senders,
+            }
+        )
 
     # Get distinct senders
     sender_cursor = await db.execute(
@@ -137,12 +137,14 @@ def _build_unread_summary(store: Any) -> dict[str, Any]:
         chat = state.chats.get(chat_id)
         if chat and chat.unread_count > 0:
             total_unread += chat.unread_count
-            unread_chats.append({
-                "chat_id": chat.id,
-                "title": chat.title or f"Chat {chat.id}",
-                "type": chat.type,
-                "unread_count": chat.unread_count,
-            })
+            unread_chats.append(
+                {
+                    "chat_id": chat.id,
+                    "title": chat.title or f"Chat {chat.id}",
+                    "type": chat.type,
+                    "unread_count": chat.unread_count,
+                }
+            )
 
     # Sort by unread count descending
     unread_chats.sort(key=lambda x: x["unread_count"], reverse=True)
@@ -176,19 +178,19 @@ async def _build_top_chats_summary(
         chat_id = row[0]
         msg_count = row[1]
 
-        title_cursor = await db.execute(
-            "SELECT title, type FROM chats WHERE id = ?", (chat_id,)
-        )
+        title_cursor = await db.execute("SELECT title, type FROM chats WHERE id = ?", (chat_id,))
         title_row = await title_cursor.fetchone()
         title = title_row[0] if title_row else f"Chat {chat_id}"
         chat_type = title_row[1] if title_row else "unknown"
 
-        top_chats.append({
-            "chat_id": chat_id,
-            "title": title,
-            "type": chat_type,
-            "message_count": msg_count,
-        })
+        top_chats.append(
+            {
+                "chat_id": chat_id,
+                "title": title,
+                "type": chat_type,
+                "message_count": msg_count,
+            }
+        )
 
     return {
         "top_chats": top_chats,
@@ -252,21 +254,21 @@ async def _build_mentions_summary(
     for row in rows:
         msg_id, chat_id, date, message, from_id, from_name = row
         # Get chat title
-        title_cursor = await db.execute(
-            "SELECT title FROM chats WHERE id = ?", (chat_id,)
-        )
+        title_cursor = await db.execute("SELECT title FROM chats WHERE id = ?", (chat_id,))
         title_row = await title_cursor.fetchone()
         chat_title = title_row[0] if title_row else f"Chat {chat_id}"
 
-        mentions.append({
-            "message_id": msg_id,
-            "chat_id": chat_id,
-            "chat_title": chat_title,
-            "date": date,
-            "text": (message or "")[:200],
-            "from_id": from_id,
-            "from_name": from_name,
-        })
+        mentions.append(
+            {
+                "message_id": msg_id,
+                "chat_id": chat_id,
+                "chat_title": chat_title,
+                "date": date,
+                "text": (message or "")[:200],
+                "from_id": from_id,
+                "from_name": from_name,
+            }
+        )
 
     return {
         "mention_count": len(mentions),

@@ -42,9 +42,7 @@ def validate_id(value: Any, param_name: str) -> int | str:
             f"Invalid {param_name}: '{value}'. Must be a valid integer ID or a username string."
         )
 
-    raise ValidationError(
-        f"Invalid {param_name}: {value}. Type must be an integer or a string."
-    )
+    raise ValidationError(f"Invalid {param_name}: {value}. Type must be an integer or a string.")
 
 
 def validate_positive_int(value: Any, param_name: str) -> int:
@@ -52,27 +50,19 @@ def validate_positive_int(value: Any, param_name: str) -> int:
     if isinstance(value, (int, float)):
         iv = int(value)
         if iv <= 0:
-            raise ValidationError(
-                f"Invalid {param_name}: {value}. Must be a positive integer."
-            )
+            raise ValidationError(f"Invalid {param_name}: {value}. Must be a positive integer.")
         return iv
 
     if isinstance(value, str):
         try:
             iv = int(value)
         except ValueError:
-            raise ValidationError(
-                f"Invalid {param_name}: '{value}'. Must be a positive integer."
-            )
+            raise ValidationError(f"Invalid {param_name}: '{value}'. Must be a positive integer.")
         if iv <= 0:
-            raise ValidationError(
-                f"Invalid {param_name}: '{value}'. Must be a positive integer."
-            )
+            raise ValidationError(f"Invalid {param_name}: '{value}'. Must be a positive integer.")
         return iv
 
-    raise ValidationError(
-        f"Invalid {param_name}: {value}. Must be a positive integer."
-    )
+    raise ValidationError(f"Invalid {param_name}: {value}. Must be a positive integer.")
 
 
 def validate_optional_id(value: Any, param_name: str) -> int | str | None:

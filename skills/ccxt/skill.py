@@ -98,11 +98,13 @@ async def _on_load(ctx: Any) -> None:
 
 async def _on_unload(ctx: Any) -> None:
     from .server import on_skill_unload
+
     await on_skill_unload()
 
 
 async def _on_tick(ctx: Any) -> None:
     from .server import on_skill_tick
+
     await on_skill_tick()
 
 

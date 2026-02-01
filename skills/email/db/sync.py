@@ -57,7 +57,9 @@ async def sync_folder(
 
         # Update folder status in DB
         await upsert_folder(
-            db, account_id, folder,
+            db,
+            account_id,
+            folder,
             total_messages=total,
             unseen_messages=unseen,
             uidvalidity=uidvalidity,
@@ -97,7 +99,9 @@ async def sync_folder(
                 # Extract contacts
                 for email in emails:
                     if email.from_addr:
-                        await upsert_contact(db, email.from_addr.email, email.from_addr.display_name)
+                        await upsert_contact(
+                            db, email.from_addr.email, email.from_addr.display_name
+                        )
                     for addr in email.to_addrs:
                         await upsert_contact(db, addr.email, addr.display_name)
                     for addr in email.cc_addrs:
@@ -112,13 +116,17 @@ async def sync_folder(
 
         # Update folder in store
         from ..state.types import EmailFolder
-        store.update_folder(folder, EmailFolder(
-            name=folder,
-            total_messages=total,
-            unseen_messages=unseen,
-            uidvalidity=uidvalidity,
-            uidnext=uidnext,
-        ))
+
+        store.update_folder(
+            folder,
+            EmailFolder(
+                name=folder,
+                total_messages=total,
+                unseen_messages=unseen,
+                uidvalidity=uidvalidity,
+                uidnext=uidnext,
+            ),
+        )
 
         return total_fetched
 
@@ -156,6 +164,7 @@ async def refresh_folder_list(
     try:
         folders = await client.list_folders()
         from ..state.types import EmailFolder
+
         folder_dict: dict[str, EmailFolder] = {}
 
         for f in folders:

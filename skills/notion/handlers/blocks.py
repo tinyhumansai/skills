@@ -56,9 +56,7 @@ async def notion_get_block_children(args: dict[str, Any]) -> ToolResult:
     await enforce_rate_limit("read")
 
     try:
-        response = await client.blocks.children.list(
-            block_id=block_id, page_size=page_size
-        )
+        response = await client.blocks.children.list(block_id=block_id, page_size=page_size)
         results = response.get("results", [])
 
         if not results:
@@ -92,13 +90,9 @@ async def notion_append_blocks(args: dict[str, Any]) -> ToolResult:
     await enforce_rate_limit("write")
 
     try:
-        response = await client.blocks.children.append(
-            block_id=block_id, children=children
-        )
+        response = await client.blocks.children.append(block_id=block_id, children=children)
         results = response.get("results", [])
-        return ToolResult(
-            content=f"Appended {len(results)} block(s) successfully."
-        )
+        return ToolResult(content=f"Appended {len(results)} block(s) successfully.")
     except Exception as e:
         return format_api_error("notion_append_blocks", e)
 
@@ -182,9 +176,7 @@ async def _fetch_blocks_recursive(
     await enforce_rate_limit("read")
 
     try:
-        response = await client.blocks.children.list(
-            block_id=block_id, page_size=100
-        )
+        response = await client.blocks.children.list(block_id=block_id, page_size=100)
     except Exception:
         log.debug("Failed to fetch children for %s at depth %d", block_id, depth)
         return
@@ -196,9 +188,7 @@ async def _fetch_blocks_recursive(
 
         # Recurse into children
         if block.get("has_children"):
-            await _fetch_blocks_recursive(
-                client, block["id"], lines, depth + 1, max_depth
-            )
+            await _fetch_blocks_recursive(client, block["id"], lines, depth + 1, max_depth)
 
 
 async def notion_append_text(args: dict[str, Any]) -> ToolResult:
@@ -226,9 +216,7 @@ async def notion_append_text(args: dict[str, Any]) -> ToolResult:
         if block_type == "to_do":
             block[block_type]["checked"] = False
 
-        response = await client.blocks.children.append(
-            block_id=page_id, children=[block]
-        )
+        response = await client.blocks.children.append(block_id=page_id, children=[block])
 
         return ToolResult(content=f"Text appended as {block_type} block.")
     except Exception as e:

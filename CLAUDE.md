@@ -135,6 +135,49 @@ skill-new my-skill
 skill-catalog
 ```
 
+## Code Quality Tools
+
+The repository uses automated code quality checks that run on pre-push:
+
+- **Ruff** — Fast Python linter and formatter
+- **MyPy** — Static type checker
+
+### Setup
+
+Install development dependencies:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+### Manual Usage
+
+```bash
+# Run linter
+ruff check .
+
+# Format code
+ruff format .
+
+# Type checking
+mypy .
+```
+
+### Pre-Push Hook
+
+A pre-push git hook automatically runs all checks before pushing. The hook runs:
+- `ruff check .` — Linting
+- `ruff format --check .` — Format verification
+- `mypy .` — Type checking
+
+If any check fails, the push is blocked. Fix the issues and try again.
+
+To bypass the hook (not recommended):
+
+```bash
+git push --no-verify
+```
+
 ## Creating a New Skill
 
 1. Use the scaffolder: `python -m dev.scaffold.new_skill my-skill`

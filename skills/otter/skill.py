@@ -74,12 +74,26 @@ ENTITY_SCHEMA = EntitySchema(
             description="An Otter.ai meeting transcript/recording.",
             properties=[
                 EntityPropertySchema(name="title", type="string", description="Meeting title"),
-                EntityPropertySchema(name="duration", type="number", description="Duration in seconds"),
-                EntityPropertySchema(name="created_at", type="number", description="Creation time as Unix timestamp"),
-                EntityPropertySchema(name="speaker_count", type="number", description="Number of speakers detected"),
-                EntityPropertySchema(name="word_count", type="number", description="Total word count of transcript"),
-                EntityPropertySchema(name="is_processed", type="boolean", description="Whether transcription is complete"),
-                EntityPropertySchema(name="summary", type="string", description="AI-generated summary", optional=True),
+                EntityPropertySchema(
+                    name="duration", type="number", description="Duration in seconds"
+                ),
+                EntityPropertySchema(
+                    name="created_at", type="number", description="Creation time as Unix timestamp"
+                ),
+                EntityPropertySchema(
+                    name="speaker_count", type="number", description="Number of speakers detected"
+                ),
+                EntityPropertySchema(
+                    name="word_count", type="number", description="Total word count of transcript"
+                ),
+                EntityPropertySchema(
+                    name="is_processed",
+                    type="boolean",
+                    description="Whether transcription is complete",
+                ),
+                EntityPropertySchema(
+                    name="summary", type="string", description="AI-generated summary", optional=True
+                ),
             ],
         ),
         EntityTypeDeclaration(
@@ -87,7 +101,9 @@ ENTITY_SCHEMA = EntitySchema(
             label="Otter Speaker",
             description="A recognized speaker in Otter.ai meetings.",
             properties=[
-                EntityPropertySchema(name="name", type="string", description="Speaker display name"),
+                EntityPropertySchema(
+                    name="name", type="string", description="Speaker display name"
+                ),
             ],
         ),
         EntityTypeDeclaration(
@@ -95,9 +111,15 @@ ENTITY_SCHEMA = EntitySchema(
             label="Otter Summary",
             description="A periodic digest summarizing recent meeting activity.",
             properties=[
-                EntityPropertySchema(name="summary_type", type="string", description="Type of summary"),
-                EntityPropertySchema(name="start_date", type="number", description="Period start as Unix timestamp"),
-                EntityPropertySchema(name="end_date", type="number", description="Period end as Unix timestamp"),
+                EntityPropertySchema(
+                    name="summary_type", type="string", description="Type of summary"
+                ),
+                EntityPropertySchema(
+                    name="start_date", type="number", description="Period start as Unix timestamp"
+                ),
+                EntityPropertySchema(
+                    name="end_date", type="number", description="Period end as Unix timestamp"
+                ),
             ],
         ),
     ],
@@ -202,6 +224,7 @@ async def _on_load(ctx: Any) -> None:
     # Emit entities (if the runtime exposes entity upsert methods)
     try:
         from .entities import emit_initial_entities
+
         upsert_fn = getattr(ctx.entities, "upsert", None) or getattr(ctx, "_server", {}) and None
         rel_fn = getattr(ctx.entities, "upsert_relationship", None)
         if upsert_fn and rel_fn:
@@ -264,11 +287,13 @@ async def _on_tick(ctx: Any) -> None:
                     transcript_text = "\n".join(s.text for s in segments[:50])
                     await ctx.memory.write(
                         f"otter/meeting/{speech_id}",
-                        json.dumps({
-                            "title": title,
-                            "speech_id": speech_id,
-                            "transcript_preview": transcript_text[:2000],
-                        }),
+                        json.dumps(
+                            {
+                                "title": title,
+                                "speech_id": speech_id,
+                                "transcript_preview": transcript_text[:2000],
+                            }
+                        ),
                     )
             except Exception:
                 log.debug("Failed to fetch transcript for new meeting %s", speech_id, exc_info=True)
@@ -288,6 +313,7 @@ async def _on_tick(ctx: Any) -> None:
     # Emit updated entities (if the runtime exposes entity upsert methods)
     try:
         from .entities import emit_initial_entities
+
         upsert_fn = getattr(ctx.entities, "upsert", None)
         rel_fn = getattr(ctx.entities, "upsert_relationship", None)
         if upsert_fn and rel_fn:
@@ -299,6 +325,7 @@ async def _on_tick(ctx: Any) -> None:
 async def _on_status(ctx: Any) -> dict[str, Any]:
     """Return current skill status information."""
     from .state.store import get_state
+
     state = get_state()
     return {
         "connection_status": state.connection_status,
@@ -354,9 +381,14 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "list_meetings", "get_meeting", "get_meeting_summary",
-            "search_meetings", "search_in_meeting", "download_meeting_transcript",
-            "get_otter_user", "list_speakers",
+            "list_meetings",
+            "get_meeting",
+            "get_meeting_summary",
+            "search_meetings",
+            "search_in_meeting",
+            "download_meeting_transcript",
+            "get_otter_user",
+            "list_speakers",
         ],
     ),
 ]

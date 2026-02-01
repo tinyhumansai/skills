@@ -22,6 +22,7 @@ log = logging.getLogger("skill.email.helpers")
 # Tool result
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ToolResult:
     content: str
@@ -31,6 +32,7 @@ class ToolResult:
 # ---------------------------------------------------------------------------
 # Formatting
 # ---------------------------------------------------------------------------
+
 
 def format_email_summary(email: ParsedEmail) -> str:
     """Format a single email as a summary line."""
@@ -123,6 +125,7 @@ def _format_size(size: int) -> str:
 # Error handling
 # ---------------------------------------------------------------------------
 
+
 class ErrorCategory(str, Enum):
     FOLDER = "FOLDER"
     MSG = "MSG"
@@ -149,6 +152,7 @@ def log_and_format_error(
     log.error("[MCP] Error in %s - Code: %s - %s", function_name, error_code, error)
 
     from .validation import ValidationError
+
     if isinstance(error, ValidationError):
         user_message = str(error)
     else:

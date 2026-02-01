@@ -88,17 +88,20 @@ async def _on_load(ctx: Any) -> None:
 
 async def _on_unload(ctx: Any) -> None:
     from .server import on_skill_unload
+
     await on_skill_unload()
 
 
 async def _on_tick(ctx: Any) -> None:
     from .server import on_skill_tick
+
     await on_skill_tick()
 
 
 async def _on_status(ctx: Any) -> dict[str, Any]:
     """Return current skill status information."""
     from .client import get_client
+
     try:
         client = get_client()
         if client:
@@ -152,9 +155,14 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "notion_create_page", "notion_delete_page", "notion_get_page",
-            "notion_get_page_content", "notion_list_all_pages", "notion_search",
-            "notion_update_page", "notion_append_text",
+            "notion_create_page",
+            "notion_delete_page",
+            "notion_get_page",
+            "notion_get_page_content",
+            "notion_list_all_pages",
+            "notion_search",
+            "notion_update_page",
+            "notion_append_text",
         ],
     ),
     SkillOptionDefinition(
@@ -165,8 +173,10 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "notion_create_database", "notion_get_database",
-            "notion_list_all_databases", "notion_query_database",
+            "notion_create_database",
+            "notion_get_database",
+            "notion_list_all_databases",
+            "notion_query_database",
             "notion_update_database",
         ],
     ),
@@ -178,8 +188,11 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "notion_append_blocks", "notion_delete_block", "notion_get_block",
-            "notion_get_block_children", "notion_update_block",
+            "notion_append_blocks",
+            "notion_delete_block",
+            "notion_get_block",
+            "notion_get_block_children",
+            "notion_update_block",
         ],
     ),
     SkillOptionDefinition(
@@ -190,7 +203,9 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "notion_create_comment", "notion_get_user", "notion_list_comments",
+            "notion_create_comment",
+            "notion_get_user",
+            "notion_list_comments",
             "notion_list_users",
         ],
     ),

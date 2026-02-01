@@ -24,6 +24,7 @@ log = logging.getLogger("skill.telegram.helpers")
 # Tool result
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ToolResult:
     content: str
@@ -33,6 +34,7 @@ class ToolResult:
 # ---------------------------------------------------------------------------
 # Formatting
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class FormattedEntity:
@@ -81,7 +83,9 @@ def format_entity(entity: Union[TelegramChat, TelegramUser]) -> FormattedEntity:
 def format_message(message: TelegramMessage) -> FormattedMessage:
     result = FormattedMessage(
         id=message.id,
-        date=datetime.fromtimestamp(message.date, tz=timezone.utc).isoformat() if message.date else "",
+        date=datetime.fromtimestamp(message.date, tz=timezone.utc).isoformat()
+        if message.date
+        else "",
         text=message.message or "",
     )
     if message.from_id:
@@ -95,6 +99,7 @@ def format_message(message: TelegramMessage) -> FormattedMessage:
 # ---------------------------------------------------------------------------
 # Error handling
 # ---------------------------------------------------------------------------
+
 
 class ErrorCategory(str, Enum):
     CHAT = "CHAT"
@@ -122,6 +127,7 @@ def log_and_format_error(
     log.error("[MCP] Error in %s - Code: %s - %s", function_name, error_code, error)
 
     from .validation import ValidationError
+
     if isinstance(error, ValidationError):
         user_message = str(error)
     else:

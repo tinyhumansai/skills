@@ -59,10 +59,14 @@ async def search_messages(args: dict[str, Any]) -> ToolResult:
         subject = opt_string(args, "subject")
         since = opt_string(args, "since")
         before = opt_string(args, "before")
-        has_attachment = args.get("has_attachment") if isinstance(args.get("has_attachment"), bool) else None
+        has_attachment = (
+            args.get("has_attachment") if isinstance(args.get("has_attachment"), bool) else None
+        )
 
         messages = await message_api.search_messages(
-            query, folder, limit,
+            query,
+            folder,
+            limit,
             from_addr=from_addr,
             to_addr=to_addr,
             subject=subject,

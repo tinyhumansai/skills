@@ -149,9 +149,7 @@ class WalletClient:
                 return network
         return None
 
-    async def get_balance(
-        self, address: str, chain_id: str, chain_type: str
-    ) -> dict[str, Any]:
+    async def get_balance(self, address: str, chain_id: str, chain_type: str) -> dict[str, Any]:
         """Get balance for an address on a network."""
         wallet = self.get_wallet(address)
         if not wallet:

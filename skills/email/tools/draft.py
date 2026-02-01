@@ -22,8 +22,16 @@ draft_tools: list[Tool] = [
                 },
                 "subject": {"type": "string", "description": "Email subject"},
                 "body": {"type": "string", "description": "Plain text body"},
-                "cc": {"type": "array", "items": {"type": "string"}, "description": "CC recipients"},
-                "bcc": {"type": "array", "items": {"type": "string"}, "description": "BCC recipients"},
+                "cc": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "CC recipients",
+                },
+                "bcc": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "BCC recipients",
+                },
                 "html_body": {"type": "string", "description": "HTML body"},
             },
             "required": ["to", "subject", "body"],
@@ -35,7 +43,11 @@ draft_tools: list[Tool] = [
         inputSchema={
             "type": "object",
             "properties": {
-                "limit": {"type": "number", "description": "Maximum drafts to return", "default": 20},
+                "limit": {
+                    "type": "number",
+                    "description": "Maximum drafts to return",
+                    "default": 20,
+                },
             },
         },
     ),

@@ -20,6 +20,7 @@ log = logging.getLogger("skill.otter.db.queries")
 # Speeches
 # ---------------------------------------------------------------------------
 
+
 async def upsert_speech(db: aiosqlite.Connection, speech: OtterSpeech) -> None:
     await db.execute(
         """INSERT OR REPLACE INTO speeches
@@ -49,17 +50,13 @@ async def upsert_speeches_batch(db: aiosqlite.Connection, speeches: list[OtterSp
 
 
 async def get_all_speeches(db: aiosqlite.Connection, limit: int = 100) -> list[dict[str, Any]]:
-    cursor = await db.execute(
-        "SELECT * FROM speeches ORDER BY created_at DESC LIMIT ?", (limit,)
-    )
+    cursor = await db.execute("SELECT * FROM speeches ORDER BY created_at DESC LIMIT ?", (limit,))
     rows = await cursor.fetchall()
     return [dict(row) for row in rows]
 
 
 async def get_speech_by_id(db: aiosqlite.Connection, speech_id: str) -> dict[str, Any] | None:
-    cursor = await db.execute(
-        "SELECT * FROM speeches WHERE speech_id = ?", (speech_id,)
-    )
+    cursor = await db.execute("SELECT * FROM speeches WHERE speech_id = ?", (speech_id,))
     row = await cursor.fetchone()
     return dict(row) if row else None
 
@@ -74,15 +71,14 @@ async def get_speech_ids(db: aiosqlite.Connection) -> set[str]:
 # Transcript segments
 # ---------------------------------------------------------------------------
 
+
 async def upsert_transcript_segments(
     db: aiosqlite.Connection,
     speech_id: str,
     segments: list[OtterTranscriptSegment],
 ) -> None:
     # Clear existing segments for this speech
-    await db.execute(
-        "DELETE FROM transcript_segments WHERE speech_id = ?", (speech_id,)
-    )
+    await db.execute("DELETE FROM transcript_segments WHERE speech_id = ?", (speech_id,))
     for i, seg in enumerate(segments):
         await db.execute(
             """INSERT INTO transcript_segments
@@ -101,9 +97,7 @@ async def upsert_transcript_segments(
     await db.commit()
 
 
-async def get_transcript_segments(
-    db: aiosqlite.Connection, speech_id: str
-) -> list[dict[str, Any]]:
+async def get_transcript_segments(db: aiosqlite.Connection, speech_id: str) -> list[dict[str, Any]]:
     cursor = await db.execute(
         "SELECT * FROM transcript_segments WHERE speech_id = ? ORDER BY segment_order",
         (speech_id,),
@@ -145,6 +139,7 @@ async def search_all_transcripts(
 # Speakers
 # ---------------------------------------------------------------------------
 
+
 async def upsert_speaker(db: aiosqlite.Connection, speaker: OtterSpeaker) -> None:
     await db.execute(
         """INSERT OR REPLACE INTO speakers
@@ -169,6 +164,7 @@ async def get_all_speakers(db: aiosqlite.Connection) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # Summaries
 # ---------------------------------------------------------------------------
+
 
 async def insert_summary(
     db: aiosqlite.Connection,

@@ -26,6 +26,7 @@ from dev.types.skill_types import (
     ToolResult,
 )
 
+
 def _import_templates():
     """Import templates module, handling both package and dynamic-import contexts."""
     try:
@@ -37,6 +38,7 @@ def _import_templates():
         )
     except ImportError:
         import importlib.util
+
         _tpl_path = Path(__file__).resolve().parent / "templates.py"
         _spec = importlib.util.spec_from_file_location("_skill_gen_templates", _tpl_path)
         _mod = importlib.util.module_from_spec(_spec)  # type: ignore[arg-type]
@@ -123,15 +125,21 @@ def _scan_skill_info(skill_dir: Path) -> dict[str, Any] | None:
     tool_names = re.findall(r'name\s*=\s*["\']([a-z_][a-z0-9_]*)["\']', content)
     # Filter to likely tool names (exclude the skill name itself and common fields)
     info["tool_names"] = [
-        n for n in tool_names
+        n
+        for n in tool_names
         if n != info.get("name") and n not in ("on_load", "on_unload", "on_tick")
     ]
 
     # Find defined hooks
     hooks_found = []
     for hook in (
-        "on_load", "on_unload", "on_session_start", "on_session_end",
-        "on_before_message", "on_after_response", "on_tick",
+        "on_load",
+        "on_unload",
+        "on_session_start",
+        "on_session_end",
+        "on_before_message",
+        "on_after_response",
+        "on_tick",
     ):
         if re.search(rf"{hook}\s*=\s*\w", content):
             hooks_found.append(hook)
@@ -238,13 +246,16 @@ async def _generate_skill(args: dict[str, Any]) -> ToolResult:
         tool_count = len(tool_specs)
 
         return ToolResult(
-            content=json.dumps({
-                "status": "created",
-                "skill_name": name,
-                "directory": f"skills/{name}",
-                "files": files_created,
-                "tool_count": tool_count,
-            }, indent=2)
+            content=json.dumps(
+                {
+                    "status": "created",
+                    "skill_name": name,
+                    "directory": f"skills/{name}",
+                    "files": files_created,
+                    "tool_count": tool_count,
+                },
+                indent=2,
+            )
         )
     except Exception as e:
         return ToolResult(content=f"Error generating skill: {e}", is_error=True)
@@ -338,13 +349,15 @@ async def _validate_skill(args: dict[str, Any]) -> ToolResult:
             rel = f"skills/{skill_name}/{pf.name}"
             findings = scan_content(content, rel)
             for f in findings:
-                findings_list.append({
-                    "file": f.file,
-                    "line": f.line,
-                    "severity": f.severity,
-                    "pattern": f.pattern,
-                    "description": f.description,
-                })
+                findings_list.append(
+                    {
+                        "file": f.file,
+                        "line": f.line,
+                        "severity": f.severity,
+                        "pattern": f.pattern,
+                        "description": f.description,
+                    }
+                )
 
         report["security_findings"] = findings_list
         sec_errors = [f for f in findings_list if f["severity"] == "error"]
@@ -428,13 +441,15 @@ async def _security_scan_skill(args: dict[str, Any]) -> ToolResult:
             rel = f"skills/{skill_name}/{pf.name}"
             findings = scan_content(content, rel)
             for f in findings:
-                all_findings.append({
-                    "file": f.file,
-                    "line": f.line,
-                    "severity": f.severity,
-                    "pattern": f.pattern,
-                    "description": f.description,
-                })
+                all_findings.append(
+                    {
+                        "file": f.file,
+                        "line": f.line,
+                        "severity": f.severity,
+                        "pattern": f.pattern,
+                        "description": f.description,
+                    }
+                )
 
         errors = [f for f in all_findings if f["severity"] == "error"]
         warnings = [f for f in all_findings if f["severity"] == "warning"]
@@ -530,10 +545,9 @@ async def _on_status(ctx: SkillContext) -> dict[str, Any]:
     skills_dir = _get_skills_dir()
     skills_count = 0
     if skills_dir.is_dir():
-        skills_count = len([
-            e for e in skills_dir.iterdir()
-            if e.is_dir() and not e.name.startswith(".")
-        ])
+        skills_count = len(
+            [e for e in skills_dir.iterdir() if e.is_dir() and not e.name.startswith(".")]
+        )
     return {
         "ready": True,
         "skills_count": skills_count,
@@ -583,8 +597,14 @@ _TOOLS = [
                         "items": {
                             "type": "object",
                             "properties": {
-                                "name": {"type": "string", "description": "Tool function name (snake_case)."},
-                                "description": {"type": "string", "description": "Tool description."},
+                                "name": {
+                                    "type": "string",
+                                    "description": "Tool function name (snake_case).",
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "description": "Tool description.",
+                                },
                                 "parameters": {
                                     "type": "array",
                                     "description": "Parameter specs.",
@@ -719,8 +739,12 @@ TOOL_CATEGORY_OPTIONS = [
         default=True,
         group="tool_categories",
         tool_filter=[
-            "list_available_skills", "generate_skill", "write_skill_file",
-            "validate_skill", "test_skill", "security_scan_skill",
+            "list_available_skills",
+            "generate_skill",
+            "write_skill_file",
+            "validate_skill",
+            "test_skill",
+            "security_scan_skill",
         ],
     ),
 ]

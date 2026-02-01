@@ -26,7 +26,9 @@ async def get_chats(args: dict[str, Any]) -> ToolResult:
         if not paginated:
             return ToolResult(content="Page out of range.")
 
-        lines = [f"Chat ID: {format_entity(c).id}, Title: {format_entity(c).name}" for c in paginated]
+        lines = [
+            f"Chat ID: {format_entity(c).id}, Title: {format_entity(c).name}" for c in paginated
+        ]
         return ToolResult(content="\n".join(lines))
     except Exception as e:
         return log_and_format_error("get_chats", e, ErrorCategory.CHAT)
@@ -79,12 +81,20 @@ async def create_group(args: dict[str, Any]) -> ToolResult:
         title = args.get("title", "")
         if not isinstance(title, str) or not title:
             return ToolResult(content="Title is required", is_error=True)
-        user_ids = [str(u) for u in args.get("user_ids", [])] if isinstance(args.get("user_ids"), list) else []
+        user_ids = (
+            [str(u) for u in args.get("user_ids", [])]
+            if isinstance(args.get("user_ids"), list)
+            else []
+        )
         if not user_ids:
             return ToolResult(content="At least one user ID is required", is_error=True)
 
         result = await chat_api.create_group(title, user_ids)
-        return ToolResult(content=f'Group "{title}" created successfully.' if result.data else f'Failed to create group "{title}".')
+        return ToolResult(
+            content=f'Group "{title}" created successfully.'
+            if result.data
+            else f'Failed to create group "{title}".'
+        )
     except Exception as e:
         return log_and_format_error("create_group", e, ErrorCategory.GROUP)
 
@@ -92,7 +102,11 @@ async def create_group(args: dict[str, Any]) -> ToolResult:
 async def invite_to_group(args: dict[str, Any]) -> ToolResult:
     try:
         chat_id = validate_id(args.get("chat_id"), "chat_id")
-        user_ids = [str(u) for u in args.get("user_ids", [])] if isinstance(args.get("user_ids"), list) else []
+        user_ids = (
+            [str(u) for u in args.get("user_ids", [])]
+            if isinstance(args.get("user_ids"), list)
+            else []
+        )
         if not user_ids:
             return ToolResult(content="At least one user ID is required", is_error=True)
 
@@ -111,7 +125,11 @@ async def create_channel(args: dict[str, Any]) -> ToolResult:
         megagroup = args.get("megagroup") if isinstance(args.get("megagroup"), bool) else False
 
         result = await chat_api.create_channel(title, description, megagroup)
-        return ToolResult(content=f'Channel "{title}" created successfully.' if result.data else f'Failed to create channel "{title}".')
+        return ToolResult(
+            content=f'Channel "{title}" created successfully.'
+            if result.data
+            else f'Failed to create channel "{title}".'
+        )
     except Exception as e:
         return log_and_format_error("create_channel", e, ErrorCategory.CHAT)
 
@@ -151,7 +169,9 @@ async def get_invite_link(args: dict[str, Any]) -> ToolResult:
     try:
         chat_id = validate_id(args.get("chat_id"), "chat_id")
         result = await chat_api.get_invite_link(str(chat_id))
-        return ToolResult(content=f"Invite link: {result.data}" if result.data else "Failed to get invite link.")
+        return ToolResult(
+            content=f"Invite link: {result.data}" if result.data else "Failed to get invite link."
+        )
     except Exception as e:
         return log_and_format_error("get_invite_link", e, ErrorCategory.CHAT)
 
@@ -159,15 +179,23 @@ async def get_invite_link(args: dict[str, Any]) -> ToolResult:
 async def export_chat_invite(args: dict[str, Any]) -> ToolResult:
     try:
         chat_id = validate_id(args.get("chat_id"), "chat_id")
-        expire_date = args.get("expire_date") if isinstance(args.get("expire_date"), (int, float)) else None
-        usage_limit = args.get("usage_limit") if isinstance(args.get("usage_limit"), (int, float)) else None
+        expire_date = (
+            args.get("expire_date") if isinstance(args.get("expire_date"), (int, float)) else None
+        )
+        usage_limit = (
+            args.get("usage_limit") if isinstance(args.get("usage_limit"), (int, float)) else None
+        )
 
         result = await chat_api.export_chat_invite(
             str(chat_id),
             int(expire_date) if expire_date else None,
             int(usage_limit) if usage_limit else None,
         )
-        return ToolResult(content=f"Invite link: {result.data}" if result.data else "Failed to export invite link.")
+        return ToolResult(
+            content=f"Invite link: {result.data}"
+            if result.data
+            else "Failed to export invite link."
+        )
     except Exception as e:
         return log_and_format_error("export_chat_invite", e, ErrorCategory.CHAT)
 

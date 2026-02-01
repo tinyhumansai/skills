@@ -37,7 +37,7 @@ async def list_issues(args: dict[str, Any]) -> ToolResult:
         issues = await run_sync(repo.get_issues, **kwargs)
         # Filter out PRs (GitHub API returns PRs as issues too)
         items = []
-        for issue in await run_sync(lambda: list(issues[:limit * 2])):
+        for issue in await run_sync(lambda: list(issues[: limit * 2])):
             if issue.pull_request is None:
                 items.append(issue)
             if len(items) >= limit:
@@ -160,7 +160,9 @@ async def edit_issue(args: dict[str, Any]) -> ToolResult:
         body = opt_string(args, "body")
 
         if not title and not body:
-            return ToolResult(content="Provide at least one field to edit (title or body).", is_error=True)
+            return ToolResult(
+                content="Provide at least one field to edit (title or body).", is_error=True
+            )
 
         gh = get_client().gh
         repo = await run_sync(gh.get_repo, spec)

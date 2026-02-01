@@ -27,10 +27,21 @@ actions_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
-                "limit": {"type": "number", "description": "Maximum number of runs to return", "default": 20},
-                "workflow_id": {"type": "string", "description": "Filter by workflow ID or filename (e.g. 'ci.yml')"},
+                "limit": {
+                    "type": "number",
+                    "description": "Maximum number of runs to return",
+                    "default": 20,
+                },
+                "workflow_id": {
+                    "type": "string",
+                    "description": "Filter by workflow ID or filename (e.g. 'ci.yml')",
+                },
                 "branch": {"type": "string", "description": "Filter by branch name"},
-                "status": {"type": "string", "description": "Filter by status", "enum": ["queued", "in_progress", "completed", "waiting", "requested"]},
+                "status": {
+                    "type": "string",
+                    "description": "Filter by status",
+                    "enum": ["queued", "in_progress", "completed", "waiting", "requested"],
+                },
             },
             "required": ["owner", "repo"],
         },
@@ -108,9 +119,20 @@ actions_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
-                "workflow_id": {"type": "string", "description": "Workflow ID or filename (e.g. 'deploy.yml')"},
-                "ref": {"type": "string", "description": "Git ref (branch or tag) to run the workflow on", "default": "main"},
-                "inputs": {"type": "object", "description": "Input key-value pairs for the workflow_dispatch event", "additionalProperties": {"type": "string"}},
+                "workflow_id": {
+                    "type": "string",
+                    "description": "Workflow ID or filename (e.g. 'deploy.yml')",
+                },
+                "ref": {
+                    "type": "string",
+                    "description": "Git ref (branch or tag) to run the workflow on",
+                    "default": "main",
+                },
+                "inputs": {
+                    "type": "object",
+                    "description": "Input key-value pairs for the workflow_dispatch event",
+                    "additionalProperties": {"type": "string"},
+                },
             },
             "required": ["owner", "repo", "workflow_id"],
         },
@@ -123,7 +145,10 @@ actions_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
-                "workflow_id": {"type": "string", "description": "Workflow ID or filename (e.g. 'ci.yml')"},
+                "workflow_id": {
+                    "type": "string",
+                    "description": "Workflow ID or filename (e.g. 'ci.yml')",
+                },
             },
             "required": ["owner", "repo", "workflow_id"],
         },

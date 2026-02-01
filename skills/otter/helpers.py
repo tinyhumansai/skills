@@ -19,6 +19,7 @@ log = logging.getLogger("skill.otter.helpers")
 # Tool result
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ToolResult:
     content: str
@@ -28,6 +29,7 @@ class ToolResult:
 # ---------------------------------------------------------------------------
 # Error handling
 # ---------------------------------------------------------------------------
+
 
 class ErrorCategory(str, Enum):
     SPEECH = "SPEECH"
@@ -50,6 +52,7 @@ def log_and_format_error(
     log.error("[Otter] Error in %s - Code: %s - %s", function_name, error_code, error)
 
     from .validation import ValidationError
+
     if isinstance(error, ValidationError):
         user_message = str(error)
     else:

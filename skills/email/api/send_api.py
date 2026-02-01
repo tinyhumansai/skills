@@ -63,7 +63,8 @@ async def reply_to_email(
             if addr.email.lower() != account_id.lower() and addr.email not in to_addrs:
                 to_addrs.append(addr.email)
         cc_list = [
-            addr.email for addr in original.cc_addrs
+            addr.email
+            for addr in original.cc_addrs
             if addr.email.lower() != account_id.lower() and addr.email not in to_addrs
         ]
         if cc_list:

@@ -20,10 +20,9 @@ log = logging.getLogger("skill.telegram.db.queries")
 # Skill state (key-value)
 # ---------------------------------------------------------------------------
 
+
 async def get_skill_state(db: aiosqlite.Connection, key: str) -> str | None:
-    cursor = await db.execute(
-        "SELECT value FROM skill_state WHERE key = ?", (key,)
-    )
+    cursor = await db.execute("SELECT value FROM skill_state WHERE key = ?", (key,))
     row = await cursor.fetchone()
     return row[0] if row else None
 
@@ -39,6 +38,7 @@ async def set_skill_state(db: aiosqlite.Connection, key: str, value: str) -> Non
 # ---------------------------------------------------------------------------
 # Users
 # ---------------------------------------------------------------------------
+
 
 async def upsert_user(db: aiosqlite.Connection, user: TelegramUser) -> None:
     await db.execute(
@@ -70,6 +70,7 @@ async def upsert_users_batch(db: aiosqlite.Connection, users: list[TelegramUser]
 # Chats
 # ---------------------------------------------------------------------------
 
+
 async def upsert_chat(db: aiosqlite.Connection, chat: TelegramChat, sort_order: int = 0) -> None:
     await db.execute(
         """INSERT OR REPLACE INTO chats
@@ -93,18 +94,14 @@ async def upsert_chat(db: aiosqlite.Connection, chat: TelegramChat, sort_order: 
     )
 
 
-async def upsert_chats_batch(
-    db: aiosqlite.Connection, chats: list[TelegramChat]
-) -> None:
+async def upsert_chats_batch(db: aiosqlite.Connection, chats: list[TelegramChat]) -> None:
     for i, chat in enumerate(chats):
         await upsert_chat(db, chat, sort_order=i)
     await db.commit()
 
 
 async def get_chats(db: aiosqlite.Connection, limit: int = 100) -> list[dict[str, Any]]:
-    cursor = await db.execute(
-        "SELECT * FROM chats ORDER BY sort_order ASC LIMIT ?", (limit,)
-    )
+    cursor = await db.execute("SELECT * FROM chats ORDER BY sort_order ASC LIMIT ?", (limit,))
     rows = await cursor.fetchall()
     return [dict(row) for row in rows]
 
@@ -117,6 +114,7 @@ async def delete_chat(db: aiosqlite.Connection, chat_id: str) -> None:
 # ---------------------------------------------------------------------------
 # Messages
 # ---------------------------------------------------------------------------
+
 
 async def upsert_message(db: aiosqlite.Connection, msg: TelegramMessage) -> None:
     await db.execute(
@@ -143,18 +141,14 @@ async def upsert_message(db: aiosqlite.Connection, msg: TelegramMessage) -> None
     )
 
 
-async def upsert_messages_batch(
-    db: aiosqlite.Connection, messages: list[TelegramMessage]
-) -> None:
+async def upsert_messages_batch(db: aiosqlite.Connection, messages: list[TelegramMessage]) -> None:
     for msg in messages:
         await upsert_message(db, msg)
     await db.commit()
 
 
 async def delete_message(db: aiosqlite.Connection, chat_id: str, message_id: str) -> None:
-    await db.execute(
-        "DELETE FROM messages WHERE chat_id = ? AND id = ?", (chat_id, message_id)
-    )
+    await db.execute("DELETE FROM messages WHERE chat_id = ? AND id = ?", (chat_id, message_id))
     await db.commit()
 
 
@@ -184,6 +178,7 @@ async def get_messages_since(
 # Events
 # ---------------------------------------------------------------------------
 
+
 async def insert_event(
     db: aiosqlite.Connection,
     event_type: str,
@@ -200,6 +195,7 @@ async def insert_event(
 # ---------------------------------------------------------------------------
 # Summaries
 # ---------------------------------------------------------------------------
+
 
 async def insert_summary(
     db: aiosqlite.Connection,
@@ -227,10 +223,9 @@ async def prune_old_data(db: aiosqlite.Connection) -> None:
 # Update state (for resumable sync)
 # ---------------------------------------------------------------------------
 
+
 async def get_update_state(db: aiosqlite.Connection) -> dict[str, int] | None:
-    cursor = await db.execute(
-        "SELECT pts, qts, date, seq FROM update_state WHERE key = 'global'"
-    )
+    cursor = await db.execute("SELECT pts, qts, date, seq FROM update_state WHERE key = 'global'")
     row = await cursor.fetchone()
     if not row:
         return None
@@ -252,10 +247,9 @@ async def set_update_state(
 # Channel pts tracking
 # ---------------------------------------------------------------------------
 
+
 async def get_channel_pts(db: aiosqlite.Connection, channel_id: str) -> int | None:
-    cursor = await db.execute(
-        "SELECT pts FROM channel_pts WHERE channel_id = ?", (channel_id,)
-    )
+    cursor = await db.execute("SELECT pts FROM channel_pts WHERE channel_id = ?", (channel_id,))
     row = await cursor.fetchone()
     return row[0] if row else None
 

@@ -122,7 +122,7 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
         elif not NAME_PATTERN.match(skill.name):
             result.errors.append(
                 f'Invalid name "{skill.name}" — must be lowercase-hyphens (e.g., "my-skill"). '
-                f'Underscores are not allowed as they are reserved for tool namespacing.'
+                f"Underscores are not allowed as they are reserved for tool namespacing."
             )
         if skill.name != dir_name:
             result.warnings.append(
@@ -135,9 +135,7 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
     if not skill.version or not isinstance(skill.version, str):
         result.errors.append("Missing or invalid `version` (must be a non-empty string)")
     elif not SEMVER_PATTERN.match(skill.version):
-        result.warnings.append(
-            f'Version "{skill.version}" does not match semver pattern (X.Y.Z)'
-        )
+        result.warnings.append(f'Version "{skill.version}" does not match semver pattern (X.Y.Z)')
 
     # --- Validate hooks ---
     if skill.hooks:
@@ -175,9 +173,7 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
                 tool_names.add(defn.name)
 
             if not defn.description or not isinstance(defn.description, str):
-                result.warnings.append(
-                    f'{prefix} ("{defn.name or "?"}"): missing description'
-                )
+                result.warnings.append(f'{prefix} ("{defn.name or "?"}"): missing description')
 
             params = defn.parameters
             if not params or params.get("type") != "object":
@@ -186,18 +182,14 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
                 )
 
             if not callable(tool.execute):
-                result.errors.append(
-                    f'{prefix} ("{defn.name or "?"}"): missing `execute` callable'
-                )
+                result.errors.append(f'{prefix} ("{defn.name or "?"}"): missing `execute` callable')
 
     # --- Validate tickInterval ---
     if skill.tick_interval is not None:
         if not isinstance(skill.tick_interval, int):
             result.errors.append("`tick_interval` must be an integer")
         elif skill.tick_interval < 1000:
-            result.errors.append(
-                f"tick_interval {skill.tick_interval}ms is below minimum (1000ms)"
-            )
+            result.errors.append(f"tick_interval {skill.tick_interval}ms is below minimum (1000ms)")
 
     # --- Validate setup flow ---
     has_setup_start = skill.hooks and skill.hooks.on_setup_start is not None
@@ -207,15 +199,11 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
 
     if skill.has_setup:
         if not has_setup_start:
-            result.errors.append(
-                "has_setup is True but on_setup_start hook is not defined"
-            )
+            result.errors.append("has_setup is True but on_setup_start hook is not defined")
         elif not callable(skill.hooks.on_setup_start):  # type: ignore[union-attr]
             result.errors.append("on_setup_start must be callable")
         if not has_setup_submit:
-            result.errors.append(
-                "has_setup is True but on_setup_submit hook is not defined"
-            )
+            result.errors.append("has_setup is True but on_setup_submit hook is not defined")
         elif not callable(skill.hooks.on_setup_submit):  # type: ignore[union-attr]
             result.errors.append("on_setup_submit must be callable")
     elif has_any_setup_hook:
@@ -243,9 +231,7 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
 
             # Select type requires options list
             if opt.type == "select" and not opt.options:
-                result.errors.append(
-                    f'Option "{opt.name}": select type requires an options list'
-                )
+                result.errors.append(f'Option "{opt.name}": select type requires an options list')
 
             # Default type check
             if opt.default is not None:
@@ -279,9 +265,7 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
     has_disconnect_hook = skill.hooks and skill.hooks.on_disconnect is not None
     if skill.has_disconnect:
         if not has_disconnect_hook:
-            result.errors.append(
-                "has_disconnect is True but on_disconnect hook is not defined"
-            )
+            result.errors.append("has_disconnect is True but on_disconnect hook is not defined")
         elif not callable(skill.hooks.on_disconnect):  # type: ignore[union-attr]
             result.errors.append("on_disconnect must be callable")
     elif has_disconnect_hook:
@@ -297,9 +281,7 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
         entity_type_ids: set[str] = set()
         for et in es.entity_types:
             if et.type in entity_type_ids:
-                result.errors.append(
-                    f'Duplicate entity type "{et.type}" in entity_schema'
-                )
+                result.errors.append(f'Duplicate entity type "{et.type}" in entity_schema')
             entity_type_ids.add(et.type)
 
             # Warn if type doesn't use skill-name prefix
@@ -320,20 +302,16 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
         rel_type_ids: set[str] = set()
         for rt in es.relationship_types:
             if rt.type in rel_type_ids:
-                result.errors.append(
-                    f'Duplicate relationship type "{rt.type}" in entity_schema'
-                )
+                result.errors.append(f'Duplicate relationship type "{rt.type}" in entity_schema')
             rel_type_ids.add(rt.type)
 
             if rt.source_type not in entity_type_ids:
                 result.errors.append(
-                    f'Relationship "{rt.type}" references unknown source_type '
-                    f'"{rt.source_type}"'
+                    f'Relationship "{rt.type}" references unknown source_type "{rt.source_type}"'
                 )
             if rt.target_type not in entity_type_ids:
                 result.errors.append(
-                    f'Relationship "{rt.type}" references unknown target_type '
-                    f'"{rt.target_type}"'
+                    f'Relationship "{rt.type}" references unknown target_type "{rt.target_type}"'
                 )
 
     return result

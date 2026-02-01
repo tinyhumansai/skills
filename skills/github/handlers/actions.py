@@ -74,8 +74,7 @@ async def list_workflow_runs(args: dict[str, Any]) -> ToolResult:
             conclusion = r.conclusion or r.status or "in_progress"
             branch_name = r.head_branch or ""
             lines.append(
-                f"#{r.run_number} {r.name} [{conclusion}] "
-                f"on {branch_name} ({r.created_at})"
+                f"#{r.run_number} {r.name} [{conclusion}] on {branch_name} ({r.created_at})"
             )
         return ToolResult(content="\n".join(lines))
     except Exception as e:
@@ -149,7 +148,7 @@ async def get_run_logs(args: dict[str, Any]) -> ToolResult:
         logs_url = f"https://github.com/{spec}/actions/runs/{run_id}"
         return ToolResult(
             content=f"Run #{run.run_number} ({run.conclusion or run.status})\n"
-                    f"View logs at: {logs_url}"
+            f"View logs at: {logs_url}"
         )
     except Exception as e:
         return log_and_format_error("get_run_logs", e, ErrorCategory.ACTIONS)

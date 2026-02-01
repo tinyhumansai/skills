@@ -54,22 +54,29 @@ async def register_chat_handlers(client: TelegramClient) -> None:
                 elif action_type in ("user_kicked", "user_left"):
                     delta = -1
                 if delta != 0:
-                    store.update_chat(chat_id, {
-                        "participants_count": max(0, existing_chat.participants_count + delta)
-                    })
+                    store.update_chat(
+                        chat_id,
+                        {"participants_count": max(0, existing_chat.participants_count + delta)},
+                    )
 
             # Persist event to SQLite
             try:
                 db = await get_db()
-                await insert_event(db, "chat_action", chat_id or None, {
-                    "action": action_type,
-                })
+                await insert_event(
+                    db,
+                    "chat_action",
+                    chat_id or None,
+                    {
+                        "action": action_type,
+                    },
+                )
             except Exception:
                 log.exception("Failed to persist chat action to SQLite")
 
             # Update chat entity with new participants count
             try:
                 from ..server import get_entity_callbacks
+
                 upsert_entity_fn, upsert_rel_fn = get_entity_callbacks()
                 if upsert_entity_fn and chat_id:
                     refreshed_chat = store.get_chat_by_id(chat_id)

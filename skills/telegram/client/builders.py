@@ -33,6 +33,7 @@ log = logging.getLogger("skill.telegram.builders")
 # Peer ID helpers
 # ---------------------------------------------------------------------------
 
+
 def build_peer_id(peer: Any) -> str:
     """Extract a string ID from a Telethon peer object."""
     if peer is None:
@@ -67,6 +68,7 @@ def get_chat_type(entity: Any) -> str:
 # ---------------------------------------------------------------------------
 # Chat builder
 # ---------------------------------------------------------------------------
+
 
 def build_chat(
     dialog_or_entity: Any,
@@ -121,6 +123,7 @@ def build_chat(
 # Message builder
 # ---------------------------------------------------------------------------
 
+
 def build_message(msg: Any, fallback_chat_id: str = "") -> TelegramMessage | None:
     """Build a TelegramMessage from a Telethon Message."""
     if msg is None or not isinstance(msg, Message):
@@ -166,6 +169,7 @@ def build_message(msg: Any, fallback_chat_id: str = "") -> TelegramMessage | Non
 # User builder
 # ---------------------------------------------------------------------------
 
+
 def build_user(user: Any) -> TelegramUser:
     """Build a TelegramUser from a Telethon User object."""
     if user is None or not hasattr(user, "id"):
@@ -180,13 +184,16 @@ def build_user(user: Any) -> TelegramUser:
         is_bot=bool(getattr(user, "bot", False)),
         is_verified=True if getattr(user, "verified", False) else None,
         is_premium=True if getattr(user, "premium", False) else None,
-        access_hash=str(user.access_hash) if getattr(user, "access_hash", None) is not None else None,
+        access_hash=str(user.access_hash)
+        if getattr(user, "access_hash", None) is not None
+        else None,
     )
 
 
 # ---------------------------------------------------------------------------
 # Entity map builder
 # ---------------------------------------------------------------------------
+
 
 def build_entity_map(result: Any) -> dict[str, Any]:
     """Build a map of entity ID -> raw entity from a Telethon result."""
@@ -209,6 +216,7 @@ def build_entity_map(result: Any) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Channel pts extraction
 # ---------------------------------------------------------------------------
+
 
 def extract_channel_pts_from_dialogs(dialogs: Any) -> dict[str, int]:
     """Extract channel pts from raw GetDialogs result for sync tracking.

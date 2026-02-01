@@ -15,7 +15,11 @@ release_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
-                "limit": {"type": "number", "description": "Maximum number of releases to return", "default": 30},
+                "limit": {
+                    "type": "number",
+                    "description": "Maximum number of releases to return",
+                    "default": 30,
+                },
             },
             "required": ["owner", "repo"],
         },
@@ -41,13 +45,34 @@ release_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
-                "tag": {"type": "string", "description": "Tag name for the release (e.g. 'v1.0.0')"},
+                "tag": {
+                    "type": "string",
+                    "description": "Tag name for the release (e.g. 'v1.0.0')",
+                },
                 "title": {"type": "string", "description": "Release title"},
-                "notes": {"type": "string", "description": "Release notes body (Markdown supported)"},
-                "draft": {"type": "boolean", "description": "Create as a draft release", "default": False},
-                "prerelease": {"type": "boolean", "description": "Mark as a pre-release", "default": False},
-                "target": {"type": "string", "description": "Target commitish (branch or commit SHA) for the tag"},
-                "generate_notes": {"type": "boolean", "description": "Auto-generate release notes from commits", "default": False},
+                "notes": {
+                    "type": "string",
+                    "description": "Release notes body (Markdown supported)",
+                },
+                "draft": {
+                    "type": "boolean",
+                    "description": "Create as a draft release",
+                    "default": False,
+                },
+                "prerelease": {
+                    "type": "boolean",
+                    "description": "Mark as a pre-release",
+                    "default": False,
+                },
+                "target": {
+                    "type": "string",
+                    "description": "Target commitish (branch or commit SHA) for the tag",
+                },
+                "generate_notes": {
+                    "type": "boolean",
+                    "description": "Auto-generate release notes from commits",
+                    "default": False,
+                },
             },
             "required": ["owner", "repo", "tag"],
         },
@@ -61,7 +86,11 @@ release_tools: list[Tool] = [
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
                 "tag": {"type": "string", "description": "Release tag name to delete"},
-                "cleanup_tag": {"type": "boolean", "description": "Also delete the associated git tag", "default": False},
+                "cleanup_tag": {
+                    "type": "boolean",
+                    "description": "Also delete the associated git tag",
+                    "default": False,
+                },
             },
             "required": ["owner", "repo", "tag"],
         },

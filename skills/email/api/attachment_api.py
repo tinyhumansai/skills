@@ -97,6 +97,7 @@ async def save_attachment(
     # Parse and extract the attachment
     import email as email_lib
     import email.policy
+
     msg = email_lib.message_from_bytes(raw_bytes, policy=email_lib.policy.default)
 
     att_count = 0
@@ -105,7 +106,14 @@ async def save_attachment(
         content_type = part.get_content_type()
 
         if "attachment" in disposition.lower() or (
-            content_type not in ("text/plain", "text/html", "multipart/alternative", "multipart/mixed", "multipart/related")
+            content_type
+            not in (
+                "text/plain",
+                "text/html",
+                "multipart/alternative",
+                "multipart/mixed",
+                "multipart/related",
+            )
             and disposition
         ):
             if att_count == attachment_index:

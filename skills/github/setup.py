@@ -72,6 +72,7 @@ async def on_setup_start(ctx: Any) -> SetupStep | SetupResult:
     if env_token:
         try:
             from github import Github, Auth
+
             gh = Github(auth=Auth.Token(env_token))
             user = gh.get_user()
             username = user.login
@@ -100,6 +101,7 @@ async def on_setup_start(ctx: Any) -> SetupStep | SetupResult:
             saved_token = config.get("token", "")
             if saved_token:
                 from github import Github, Auth
+
                 gh = Github(auth=Auth.Token(saved_token))
                 user = gh.get_user()
                 username = user.login
@@ -116,9 +118,7 @@ async def on_setup_start(ctx: Any) -> SetupStep | SetupResult:
     return STEP_TOKEN
 
 
-async def on_setup_submit(
-    ctx: Any, step_id: str, values: dict[str, Any]
-) -> SetupResult:
+async def on_setup_submit(ctx: Any, step_id: str, values: dict[str, Any]) -> SetupResult:
     """Validate and process a submitted step."""
     if step_id == "token":
         return await _handle_token(ctx, values)
@@ -159,15 +159,18 @@ async def _handle_token(ctx: Any, values: dict[str, Any]) -> SetupResult:
     ):
         return SetupResult(
             status="error",
-            errors=[SetupFieldError(
-                field="token",
-                message="Token should start with ghp_, github_pat_, gho_, ghu_, or ghs_",
-            )],
+            errors=[
+                SetupFieldError(
+                    field="token",
+                    message="Token should start with ghp_, github_pat_, gho_, ghu_, or ghs_",
+                )
+            ],
         )
 
     # Validate by calling the API
     try:
         from github import Github, Auth, GithubException
+
         gh = Github(auth=Auth.Token(raw_token))
         user = gh.get_user()
         username = user.login
@@ -175,10 +178,12 @@ async def _handle_token(ctx: Any, values: dict[str, Any]) -> SetupResult:
     except GithubException as exc:
         return SetupResult(
             status="error",
-            errors=[SetupFieldError(
-                field="token",
-                message=f"Invalid token: {exc.data.get('message', str(exc)) if hasattr(exc, 'data') and exc.data else str(exc)}",
-            )],
+            errors=[
+                SetupFieldError(
+                    field="token",
+                    message=f"Invalid token: {exc.data.get('message', str(exc)) if hasattr(exc, 'data') and exc.data else str(exc)}",
+                )
+            ],
         )
     except Exception as exc:
         return SetupResult(

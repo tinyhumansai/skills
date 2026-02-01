@@ -62,7 +62,9 @@ async def get_user_status(args: dict[str, Any]) -> ToolResult:
     try:
         user_id = validate_id(args.get("user_id"), "user_id")
         result = await settings_api.get_user_status(str(user_id))
-        return ToolResult(content=str(result.data) if result.data else f"Status for user {user_id}: unknown")
+        return ToolResult(
+            content=str(result.data) if result.data else f"Status for user {user_id}: unknown"
+        )
     except Exception as e:
         return log_and_format_error("get_user_status", e, ErrorCategory.PROFILE)
 
@@ -148,5 +150,3 @@ async def set_bot_commands(args: dict[str, Any]) -> ToolResult:
         return ToolResult(content=f"{len(cmd_list)} bot commands set.")
     except Exception as e:
         return log_and_format_error("set_bot_commands", e, ErrorCategory.PROFILE)
-
-

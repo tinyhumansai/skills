@@ -1,0 +1,42 @@
+#!/bin/bash
+# Pre-push hook for Python code quality checks
+
+set -e
+
+echo "Running pre-push checks..."
+
+# Check if ruff is installed
+if ! command -v ruff &> /dev/null; then
+    echo "Error: ruff is not installed. Run: pip install -r requirements-dev.txt"
+    exit 1
+fi
+
+# Check if mypy is installed
+if ! command -v mypy &> /dev/null; then
+    echo "Error: mypy is not installed. Run: pip install -r requirements-dev.txt"
+    exit 1
+fi
+
+# Run ruff check
+echo "Running ruff linter..."
+ruff check . || {
+    echo "❌ Ruff linting failed. Run 'ruff check .' to see errors."
+    exit 1
+}
+
+# Run ruff format check
+echo "Running ruff format check..."
+ruff format --check . || {
+    echo "❌ Code formatting check failed. Run 'ruff format .' to fix formatting."
+    exit 1
+}
+
+# Run mypy type checking
+echo "Running mypy type checker..."
+mypy . --ignore-missing-imports || {
+    echo "❌ Type checking failed. Run 'mypy .' to see errors."
+    exit 1
+}
+
+echo "✅ All pre-push checks passed!"
+exit 0

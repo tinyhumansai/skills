@@ -68,5 +68,11 @@ def list_providers() -> list[dict[str, str]]:
     result = []
     for pid, p in PROVIDERS.items():
         result.append({"id": pid, "name": p.name, "notes": p.notes})
-    result.append({"id": "custom", "name": "Custom IMAP/SMTP", "notes": "Enter your own IMAP and SMTP server settings."})
+    result.append(
+        {
+            "id": "custom",
+            "name": "Custom IMAP/SMTP",
+            "notes": "Enter your own IMAP and SMTP server settings.",
+        }
+    )
     return result

@@ -13,8 +13,16 @@ notification_tools: list[Tool] = [
         inputSchema={
             "type": "object",
             "properties": {
-                "all": {"type": "boolean", "description": "Include read notifications", "default": False},
-                "limit": {"type": "number", "description": "Maximum number of notifications to return", "default": 50},
+                "all": {
+                    "type": "boolean",
+                    "description": "Include read notifications",
+                    "default": False,
+                },
+                "limit": {
+                    "type": "number",
+                    "description": "Maximum number of notifications to return",
+                    "default": 50,
+                },
             },
         },
     ),

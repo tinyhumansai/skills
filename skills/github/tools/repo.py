@@ -13,10 +13,25 @@ repo_tools: list[Tool] = [
         inputSchema={
             "type": "object",
             "properties": {
-                "owner": {"type": "string", "description": "Repository owner (user or org). Defaults to the authenticated user"},
-                "limit": {"type": "number", "description": "Maximum number of repositories to return", "default": 30},
-                "visibility": {"type": "string", "description": "Filter by visibility", "enum": ["all", "public", "private"]},
-                "sort": {"type": "string", "description": "Sort field", "enum": ["created", "updated", "pushed", "full_name"]},
+                "owner": {
+                    "type": "string",
+                    "description": "Repository owner (user or org). Defaults to the authenticated user",
+                },
+                "limit": {
+                    "type": "number",
+                    "description": "Maximum number of repositories to return",
+                    "default": 30,
+                },
+                "visibility": {
+                    "type": "string",
+                    "description": "Filter by visibility",
+                    "enum": ["all", "public", "private"],
+                },
+                "sort": {
+                    "type": "string",
+                    "description": "Sort field",
+                    "enum": ["created", "updated", "pushed", "full_name"],
+                },
             },
         },
     ),
@@ -40,8 +55,17 @@ repo_tools: list[Tool] = [
             "properties": {
                 "name": {"type": "string", "description": "Repository name"},
                 "description": {"type": "string", "description": "Repository description"},
-                "visibility": {"type": "string", "description": "Repository visibility", "enum": ["public", "private"], "default": "private"},
-                "auto_init": {"type": "boolean", "description": "Initialize with a README", "default": False},
+                "visibility": {
+                    "type": "string",
+                    "description": "Repository visibility",
+                    "enum": ["public", "private"],
+                    "default": "private",
+                },
+                "auto_init": {
+                    "type": "boolean",
+                    "description": "Initialize with a README",
+                    "default": False,
+                },
             },
             "required": ["name"],
         },
@@ -54,7 +78,10 @@ repo_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Owner of the repository to fork"},
                 "repo": {"type": "string", "description": "Repository name to fork"},
-                "fork_name": {"type": "string", "description": "Custom name for the forked repository"},
+                "fork_name": {
+                    "type": "string",
+                    "description": "Custom name for the forked repository",
+                },
             },
             "required": ["owner", "repo"],
         },
@@ -80,7 +107,10 @@ repo_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
-                "directory": {"type": "string", "description": "Local directory path to clone into"},
+                "directory": {
+                    "type": "string",
+                    "description": "Local directory path to clone into",
+                },
             },
             "required": ["owner", "repo"],
         },
@@ -93,7 +123,11 @@ repo_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
-                "limit": {"type": "number", "description": "Maximum number of collaborators to return", "default": 30},
+                "limit": {
+                    "type": "number",
+                    "description": "Maximum number of collaborators to return",
+                    "default": 30,
+                },
             },
             "required": ["owner", "repo"],
         },
@@ -106,8 +140,16 @@ repo_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
-                "username": {"type": "string", "description": "GitHub username of the collaborator to add"},
-                "permission": {"type": "string", "description": "Permission level to grant", "enum": ["pull", "triage", "push", "maintain", "admin"], "default": "push"},
+                "username": {
+                    "type": "string",
+                    "description": "GitHub username of the collaborator to add",
+                },
+                "permission": {
+                    "type": "string",
+                    "description": "Permission level to grant",
+                    "enum": ["pull", "triage", "push", "maintain", "admin"],
+                    "default": "push",
+                },
             },
             "required": ["owner", "repo", "username"],
         },
@@ -120,7 +162,10 @@ repo_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
-                "username": {"type": "string", "description": "GitHub username of the collaborator to remove"},
+                "username": {
+                    "type": "string",
+                    "description": "GitHub username of the collaborator to remove",
+                },
             },
             "required": ["owner", "repo", "username"],
         },
@@ -145,7 +190,11 @@ repo_tools: list[Tool] = [
             "properties": {
                 "owner": {"type": "string", "description": "Repository owner"},
                 "repo": {"type": "string", "description": "Repository name"},
-                "topics": {"type": "array", "items": {"type": "string"}, "description": "List of topic names to set"},
+                "topics": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of topic names to set",
+                },
             },
             "required": ["owner", "repo", "topics"],
         },

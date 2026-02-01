@@ -53,6 +53,7 @@ async def _load_existing_exchanges(ctx: Any) -> list[dict[str, Any]]:
 # Step definitions
 # ---------------------------------------------------------------------------
 
+
 def _make_exchange_list_step(exchanges: list[dict[str, Any]]) -> SetupStep:
     """Build the exchange list step."""
     if not exchanges:
@@ -161,7 +162,7 @@ STEP_ADD_EXCHANGE = SetupStep(
             name="settings",
             type="text",
             label="Exchange Settings (JSON)",
-            description="Optional CCXT exchange settings as JSON. Can be an object or array of setting objects. Example: {\"defaultType\": \"spot\"} or [{\"key\": \"defaultType\", \"value\": \"spot\"}]",
+            description='Optional CCXT exchange settings as JSON. Can be an object or array of setting objects. Example: {"defaultType": "spot"} or [{"key": "defaultType", "value": "spot"}]',
             required=False,
             placeholder='{"defaultType": "spot"}',
         ),
@@ -173,6 +174,7 @@ STEP_ADD_EXCHANGE = SetupStep(
 # Hook handlers
 # ---------------------------------------------------------------------------
 
+
 async def on_setup_start(ctx: Any) -> SetupStep:
     """Return the first setup step."""
     _reset_state()
@@ -181,9 +183,7 @@ async def on_setup_start(ctx: Any) -> SetupStep:
     return _make_exchange_list_step(_exchanges)
 
 
-async def on_setup_submit(
-    ctx: Any, step_id: str, values: dict[str, Any]
-) -> SetupResult:
+async def on_setup_submit(ctx: Any, step_id: str, values: dict[str, Any]) -> SetupResult:
     """Validate and process a submitted step."""
     if step_id == "exchange_list":
         return await _handle_exchange_list(ctx, values)
@@ -205,9 +205,8 @@ async def on_setup_cancel(ctx: Any) -> None:
 # Step handlers
 # ---------------------------------------------------------------------------
 
-async def _handle_exchange_list(
-    ctx: Any, values: dict[str, Any]
-) -> SetupResult:
+
+async def _handle_exchange_list(ctx: Any, values: dict[str, Any]) -> SetupResult:
     global _exchanges
 
     action = str(values.get("action", "")).strip()
@@ -254,36 +253,26 @@ async def _handle_exchange_list(
     )
 
 
-async def _handle_exchange_add(
-    ctx: Any, values: dict[str, Any]
-) -> SetupResult:
+async def _handle_exchange_add(ctx: Any, values: dict[str, Any]) -> SetupResult:
     global _exchanges
 
     errors: list[SetupFieldError] = []
 
     exchange_id = str(values.get("exchange_id", "")).strip()
     if not exchange_id:
-        errors.append(
-            SetupFieldError(field="exchange_id", message="Connection ID is required")
-        )
+        errors.append(SetupFieldError(field="exchange_id", message="Connection ID is required"))
 
     exchange_name = str(values.get("exchange_name", "")).strip().lower()
     if not exchange_name:
-        errors.append(
-            SetupFieldError(field="exchange_name", message="Exchange name is required")
-        )
+        errors.append(SetupFieldError(field="exchange_name", message="Exchange name is required"))
 
     api_key = str(values.get("api_key", "")).strip()
     if not api_key:
-        errors.append(
-            SetupFieldError(field="api_key", message="API key is required")
-        )
+        errors.append(SetupFieldError(field="api_key", message="API key is required"))
 
     secret = str(values.get("secret", ""))
     if not secret:
-        errors.append(
-            SetupFieldError(field="secret", message="API secret is required")
-        )
+        errors.append(SetupFieldError(field="secret", message="API secret is required"))
 
     if errors:
         return SetupResult(status="error", errors=errors)

@@ -154,6 +154,7 @@ async def run_setup_if_needed() -> tuple[int, str, str]:
 
     # Import and run test-setup inline
     import subprocess
+
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "test-setup.py"), str(SKILL_DIR)],
         cwd=str(ROOT),
@@ -186,14 +187,21 @@ CATEGORIES = [
 ]
 
 
-def build_tool_index(all_tools: list[Any]) -> tuple[
+def build_tool_index(
+    all_tools: list[Any],
+) -> tuple[
     dict[str, list[Any]],  # category -> tools
-    dict[str, Any],         # name -> tool
+    dict[str, Any],  # name -> tool
 ]:
     """Group tools by category and build lookup index."""
     from telegram.tools import (
-        chat_tools, message_tools, contact_tools, admin_tools,
-        profile_media_tools, settings_tools, search_tools,
+        chat_tools,
+        message_tools,
+        contact_tools,
+        admin_tools,
+        profile_media_tools,
+        settings_tools,
+        search_tools,
     )
 
     groups = {
@@ -381,7 +389,11 @@ async def tool_repl(
             query = input("  Search: ").strip().lower()
             if not query:
                 continue
-            matches = [t for name, t in by_name.items() if query in name.lower() or query in (t.description or "").lower()]
+            matches = [
+                t
+                for name, t in by_name.items()
+                if query in name.lower() or query in (t.description or "").lower()
+            ]
             if not matches:
                 print(yellow("  No tools found."))
                 continue
@@ -522,14 +534,17 @@ async def main_async() -> int:
     data_dir = str(DATA_DIR)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    await on_skill_load({
-        "apiId": str(api_id),
-        "apiHash": api_hash,
-        "sessionString": session_string,
-        "dataDir": data_dir,
-    })
+    await on_skill_load(
+        {
+            "apiId": str(api_id),
+            "apiHash": api_hash,
+            "sessionString": session_string,
+            "dataDir": data_dir,
+        }
+    )
 
     from telegram.state import store
+
     state = store.get_state()
 
     if state.auth_status != "authenticated":

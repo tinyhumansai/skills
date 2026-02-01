@@ -241,11 +241,7 @@ def collect_field(field: SetupField) -> Any:
             # multiselect
             raw = input(f"  Choices (comma-separated) [1-{len(field.options)}]: ").strip()
             indices = [int(x.strip()) for x in raw.split(",") if x.strip().isdigit()]
-            return [
-                field.options[i - 1].value
-                for i in indices
-                if 1 <= i <= len(field.options)
-            ]
+            return [field.options[i - 1].value for i in indices if 1 <= i <= len(field.options)]
 
     # Boolean
     if field.type == "boolean":

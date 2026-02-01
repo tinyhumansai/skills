@@ -36,6 +36,7 @@ def get_client() -> OtterClient:
 # Speech list
 # ---------------------------------------------------------------------------
 
+
 def _parse_speech(raw: dict[str, Any]) -> OtterSpeech:
     """Parse a raw API speech object into an OtterSpeech model."""
     return OtterSpeech(
@@ -79,7 +80,9 @@ async def fetch_speeches(limit: int = 50, folder: str | None = None) -> list[Ott
     result = await client.get_speeches(limit=limit, folder=folder)
 
     # Handle both list and dict responses
-    raw_speeches = result if isinstance(result, list) else result.get("speeches", result.get("data", []))
+    raw_speeches = (
+        result if isinstance(result, list) else result.get("speeches", result.get("data", []))
+    )
     if not isinstance(raw_speeches, list):
         raw_speeches = []
 
@@ -131,7 +134,9 @@ async def fetch_transcript(speech_id: str) -> list[OtterTranscriptSegment]:
     result = await client.get_transcript(speech_id)
 
     # Handle response format
-    raw_segments = result if isinstance(result, list) else result.get("transcript", result.get("segments", []))
+    raw_segments = (
+        result if isinstance(result, list) else result.get("transcript", result.get("segments", []))
+    )
     if not isinstance(raw_segments, list):
         # May be plain text
         text = result.get("text", "")
@@ -176,7 +181,9 @@ async def fetch_speakers() -> list[OtterSpeaker]:
 
     result = await client.get_speakers()
 
-    raw_speakers = result if isinstance(result, list) else result.get("speakers", result.get("data", []))
+    raw_speakers = (
+        result if isinstance(result, list) else result.get("speakers", result.get("data", []))
+    )
     if not isinstance(raw_speakers, list):
         raw_speakers = []
 
@@ -203,7 +210,9 @@ async def search_speeches(query: str, limit: int = 20) -> list[OtterSpeech]:
 
     result = await client.search_speeches(query, limit=limit)
 
-    raw_speeches = result if isinstance(result, list) else result.get("speeches", result.get("results", []))
+    raw_speeches = (
+        result if isinstance(result, list) else result.get("speeches", result.get("results", []))
+    )
     if not isinstance(raw_speeches, list):
         raw_speeches = []
 
