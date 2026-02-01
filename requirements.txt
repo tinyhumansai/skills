@@ -12,3 +12,4 @@ aiosqlite>=0.20.0
 -r skills/slack/requirements.txt
 -r skills/ccxt/requirements.txt
 -r skills/wallet/requirements.txt
+-r skills/browser/requirements.txt

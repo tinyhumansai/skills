@@ -64,7 +64,7 @@ ALL_TOOLS: list[Tool] = [
         "force": {
           "type": "boolean",
           "description": "Force click even if element is not visible",
-          "default": false,
+          "default": False,
         },
       },
       "required": ["selector"],
@@ -165,7 +165,7 @@ ALL_TOOLS: list[Tool] = [
         "multiple": {
           "type": "boolean",
           "description": "Whether to allow multiple selections",
-          "default": false,
+          "default": False,
         },
       },
       "required": ["selector"],
@@ -184,7 +184,7 @@ ALL_TOOLS: list[Tool] = [
         "checked": {
           "type": "boolean",
           "description": "Whether to check or uncheck",
-          "default": true,
+          "default": True,
         },
       },
       "required": ["selector"],
@@ -251,7 +251,7 @@ ALL_TOOLS: list[Tool] = [
         "full_page": {
           "type": "boolean",
           "description": "Capture full scrollable page",
-          "default": false,
+          "default": False,
         },
         "type": {
           "type": "string",
@@ -276,7 +276,7 @@ ALL_TOOLS: list[Tool] = [
         "inner_text": {
           "type": "boolean",
           "description": "Get innerText instead of textContent",
-          "default": false,
+          "default": False,
         },
       },
       "required": [],
@@ -295,7 +295,7 @@ ALL_TOOLS: list[Tool] = [
         "outer_html": {
           "type": "boolean",
           "description": "Include the element itself in HTML",
-          "default": true,
+          "default": True,
         },
       },
       "required": [],
@@ -429,12 +429,12 @@ ALL_TOOLS: list[Tool] = [
         "http_only": {
           "type": "boolean",
           "description": "HTTP-only flag",
-          "default": false,
+          "default": False,
         },
         "secure": {
           "type": "boolean",
           "description": "Secure flag (HTTPS only)",
-          "default": false,
+          "default": False,
         },
         "same_site": {
           "type": "string",
@@ -753,7 +753,7 @@ ALL_TOOLS: list[Tool] = [
         "multiple": {
           "type": "boolean",
           "description": "Whether to upload multiple files",
-          "default": false,
+          "default": False,
         },
       },
       "required": ["selector", "file_path"],

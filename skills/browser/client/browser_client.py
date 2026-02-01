@@ -708,7 +708,7 @@ class BrowserClient:
         if url in page.url:
           self.current_page_index = i
           return {"success": True, "page_index": i, "url": page.url}
-      return {"success": False, "error": f"Page with URL not found: {url}")
+      return {"success": False, "error": f"Page with URL not found: {url}"}
     else:
       return {"success": False, "error": "Must provide index or url"}
 
