@@ -24,6 +24,35 @@ from dev.types.setup_types import (  # noqa: F401  — re-exported
 
 
 # ---------------------------------------------------------------------------
+# Skill Option Definition
+# ---------------------------------------------------------------------------
+
+
+class SkillOptionDefinition(BaseModel):
+    """A runtime-configurable option exposed to the frontend."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str = Field(description="Option key (snake_case, unique per skill)")
+    type: Literal["boolean", "text", "number", "select"] = Field(
+        description="Value type"
+    )
+    label: str = Field(description="Human-readable label for UI")
+    description: str | None = None
+    default: str | float | bool | None = None
+    options: list[SetupFieldOption] | None = Field(
+        default=None, description="Choices for select type"
+    )
+    group: str | None = Field(
+        default=None, description="UI grouping key"
+    )
+    tool_filter: list[str] | None = Field(
+        default=None,
+        description="Tool names controlled by this boolean option (True=included, False=excluded)",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Tool Definition & Result
 # ---------------------------------------------------------------------------
 
@@ -210,6 +239,7 @@ class SkillContext(Protocol):
     def get_state(self) -> Any: ...
     def set_state(self, partial: dict[str, Any]) -> None: ...
     def emit_event(self, event_name: str, data: Any) -> None: ...
+    def get_options(self) -> dict[str, Any]: ...
 
 
 # ---------------------------------------------------------------------------
@@ -222,6 +252,8 @@ SessionHook = Callable[[SkillContext, str], Awaitable[None]]
 MessageHook = Callable[[SkillContext, str], Awaitable[str | None]]
 TickHook = Callable[[SkillContext], Awaitable[None]]
 StatusHook = Callable[[SkillContext], Awaitable[dict[str, Any]]]
+OptionsChangeHook = Callable[[SkillContext, dict[str, Any]], Awaitable[None]]
+DisconnectHook = Callable[[SkillContext], Awaitable[None]]
 
 SetupStartHandler = Callable[[SkillContext], Awaitable[SetupStep]]
 SetupSubmitHandler = Callable[[SkillContext, str, dict[str, Any]], Awaitable[SetupResult]]
@@ -250,6 +282,8 @@ class SkillHooks(BaseModel):
     on_setup_start: Optional[SetupStartHandler] = None
     on_setup_submit: Optional[SetupSubmitHandler] = None
     on_setup_cancel: Optional[SetupCancelHandler] = None
+    on_options_change: Optional[OptionsChangeHook] = None
+    on_disconnect: Optional[DisconnectHook] = None
 
 
 # ---------------------------------------------------------------------------
@@ -291,6 +325,14 @@ class SkillDefinition(BaseModel):
     has_setup: bool = Field(
         default=False,
         description="Whether this skill has an interactive setup flow",
+    )
+    options: list[SkillOptionDefinition] = Field(
+        default_factory=list,
+        description="Runtime-configurable options exposed to the frontend",
+    )
+    has_disconnect: bool = Field(
+        default=False,
+        description="Whether this skill supports a disconnect/logout operation",
     )
     entity_schema: EntitySchema | None = Field(
         default=None,

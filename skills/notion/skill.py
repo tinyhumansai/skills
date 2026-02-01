@@ -15,6 +15,7 @@ from typing import Any
 from dev.types.skill_types import (
     SkillDefinition,
     SkillHooks,
+    SkillOptionDefinition,
     SkillTool,
     ToolResult as SkillToolResult,
 )
@@ -122,6 +123,81 @@ async def _on_status(ctx: Any) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Disconnect handler
+# ---------------------------------------------------------------------------
+
+
+async def _on_disconnect(ctx: Any) -> None:
+    """Clear Notion client and credentials."""
+    from .server import on_skill_unload
+
+    await on_skill_unload()
+
+    try:
+        await ctx.write_data("config.json", "{}")
+    except Exception:
+        log.warning("Failed to clear config.json on disconnect")
+
+
+# ---------------------------------------------------------------------------
+# Tool-category toggle options
+# ---------------------------------------------------------------------------
+
+TOOL_CATEGORY_OPTIONS = [
+    SkillOptionDefinition(
+        name="enable_page_tools",
+        type="boolean",
+        label="Pages",
+        description="8 tools — create, get, update, delete, list, and search pages",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "notion_create_page", "notion_delete_page", "notion_get_page",
+            "notion_get_page_content", "notion_list_all_pages", "notion_search",
+            "notion_update_page", "notion_append_text",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_database_tools",
+        type="boolean",
+        label="Databases",
+        description="5 tools — create, get, update, query, and list databases",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "notion_create_database", "notion_get_database",
+            "notion_list_all_databases", "notion_query_database",
+            "notion_update_database",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_block_tools",
+        type="boolean",
+        label="Blocks",
+        description="5 tools — get, update, delete, append, and list block children",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "notion_append_blocks", "notion_delete_block", "notion_get_block",
+            "notion_get_block_children", "notion_update_block",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_user_comment_tools",
+        type="boolean",
+        label="Users & Comments",
+        description="4 tools — get user, list users, create and list comments",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "notion_create_comment", "notion_get_user", "notion_list_comments",
+            "notion_list_users",
+        ],
+    ),
+]
+
+
+# ---------------------------------------------------------------------------
 # Skill definition
 # ---------------------------------------------------------------------------
 
@@ -130,8 +206,10 @@ skill = SkillDefinition(
     description="Notion workspace integration — 22 tools for pages, databases, blocks, users, comments, and search.",
     version="1.0.0",
     has_setup=True,
+    has_disconnect=True,
     tick_interval=300_000,  # 5 minutes
     tools=_convert_tools(),
+    options=TOOL_CATEGORY_OPTIONS,
     hooks=SkillHooks(
         on_load=_on_load,
         on_unload=_on_unload,
@@ -140,5 +218,6 @@ skill = SkillDefinition(
         on_setup_start=on_setup_start,
         on_setup_submit=on_setup_submit,
         on_setup_cancel=on_setup_cancel,
+        on_disconnect=_on_disconnect,
     ),
 )

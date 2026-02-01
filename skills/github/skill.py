@@ -16,6 +16,7 @@ from typing import Any
 from dev.types.skill_types import (
     SkillDefinition,
     SkillHooks,
+    SkillOptionDefinition,
     SkillTool,
     ToolDefinition,
     ToolResult as SkillToolResult,
@@ -121,6 +122,144 @@ async def _on_status(ctx: Any) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Disconnect handler
+# ---------------------------------------------------------------------------
+
+
+async def _on_disconnect(ctx: Any) -> None:
+    """Clear PyGithub client and credentials."""
+    from .server import on_skill_unload
+
+    await on_skill_unload()
+
+    try:
+        await ctx.write_data("config.json", "{}")
+    except Exception:
+        log.warning("Failed to clear config.json on disconnect")
+
+
+# ---------------------------------------------------------------------------
+# Tool-category toggle options
+# ---------------------------------------------------------------------------
+
+TOOL_CATEGORY_OPTIONS = [
+    SkillOptionDefinition(
+        name="enable_repo_tools",
+        type="boolean",
+        label="Repository Management",
+        description="12 tools — create, delete, fork, clone repos, manage collaborators and topics",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "add_collaborator", "clone_repo", "create_repo", "delete_repo",
+            "fork_repo", "get_readme", "get_repo", "list_collaborators",
+            "list_languages", "list_repos", "list_topics", "remove_collaborator",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_issue_tools",
+        type="boolean",
+        label="Issues",
+        description="12 tools — create, edit, close, reopen issues, manage labels and assignees",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "add_issue_assignees", "add_issue_labels", "close_issue",
+            "comment_on_issue", "create_issue", "edit_issue", "get_issue",
+            "list_issue_comments", "list_issues", "remove_issue_assignees",
+            "remove_issue_labels", "reopen_issue",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_pr_tools",
+        type="boolean",
+        label="Pull Requests",
+        description="16 tools — create, edit, merge, review PRs, view diffs and checks",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "close_pr", "comment_on_pr", "create_pr", "create_pr_review",
+            "edit_pr", "get_pr", "get_pr_checks", "get_pr_diff",
+            "list_pr_comments", "list_pr_files", "list_pr_reviews",
+            "list_prs", "mark_pr_ready", "merge_pr", "reopen_pr",
+            "request_pr_reviewers",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_search_tools",
+        type="boolean",
+        label="Search",
+        description="4 tools — search repos, issues, code, and commits",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "search_code", "search_commits", "search_issues", "search_repos",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_code_tools",
+        type="boolean",
+        label="Code & Files",
+        description="3 tools — view files, list directories, set topics",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "list_directory", "set_topics", "view_file",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_release_tools",
+        type="boolean",
+        label="Releases",
+        description="6 tools — create, delete, get, list releases and assets",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "create_release", "delete_release", "get_latest_release",
+            "get_release", "list_release_assets", "list_releases",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_gist_tools",
+        type="boolean",
+        label="Gists",
+        description="6 tools — create, edit, delete, clone, get, and list gists",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "clone_gist", "create_gist", "delete_gist", "edit_gist",
+            "get_gist", "list_gists",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_workflow_tools",
+        type="boolean",
+        label="Actions & Workflows",
+        description="9 tools — list, trigger, rerun, cancel workflows and view run logs",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "cancel_workflow_run", "get_run_logs", "get_workflow_run",
+            "list_run_jobs", "list_workflow_runs", "list_workflows",
+            "rerun_workflow", "trigger_workflow", "view_workflow_yaml",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_notification_tools",
+        type="boolean",
+        label="Notifications",
+        description="4 tools — list notifications, mark read, and raw API access",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "gh_api", "list_notifications", "mark_all_notifications_read",
+            "mark_notification_read",
+        ],
+    ),
+]
+
+
+# ---------------------------------------------------------------------------
 # Skill definition
 # ---------------------------------------------------------------------------
 
@@ -129,8 +268,10 @@ skill = SkillDefinition(
     description="GitHub integration via PyGithub — 72 tools for repos, issues, PRs, releases, gists, actions, search, notifications, and raw API access.",
     version="1.0.0",
     has_setup=True,
+    has_disconnect=True,
     tick_interval=300_000,  # 5 minutes
     tools=_convert_tools(),
+    options=TOOL_CATEGORY_OPTIONS,
     hooks=SkillHooks(
         on_load=_on_load,
         on_unload=_on_unload,
@@ -139,5 +280,6 @@ skill = SkillDefinition(
         on_setup_start=on_setup_start,
         on_setup_submit=on_setup_submit,
         on_setup_cancel=on_setup_cancel,
+        on_disconnect=_on_disconnect,
     ),
 )

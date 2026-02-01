@@ -41,10 +41,21 @@ Every hook receives a `SkillContext` with:
 | `log(message)` | Debug logging |
 | `get_state()` / `set_state(partial)` | Skill state store |
 | `emit_event(name, data)` | Emit events for intelligence rules |
+| `get_options()` | Returns current runtime option values as a dict |
 
 ### Tool Registration Pattern
 
 Skills expose tools to the AI via the `tools` list. Each tool has a `definition` (ToolDefinition with name, description, JSON Schema parameters) and an `execute(args)` async function returning `ToolResult(content=...)`.
+
+### Options System
+
+Skills can define runtime-configurable options via the `options` list on `SkillDefinition`. Each option is a `SkillOptionDefinition` with a name, type (`boolean`, `text`, `number`, `select`), label, and optional `tool_filter`. Boolean options with `tool_filter` automatically include/exclude tools from `tools/list` based on their value. Options are persisted to `options.json` in the skill's data directory.
+
+JSON-RPC methods: `options/list`, `options/get`, `options/set`, `options/reset`.
+
+### Disconnect Capability
+
+Skills with `has_disconnect=True` must implement an `on_disconnect` hook. This provides a standardized way for the frontend to trigger a clean disconnection (close connections, clear credentials). Called via `skill/disconnect` JSON-RPC method.
 
 ## Repository Structure
 
@@ -145,3 +156,5 @@ skill-catalog
 - Skills cannot access other skills' data directories
 - **No underscores in skill names** — skill names must be lowercase-hyphens (e.g., `my-skill`, not `my_skill`). Underscores are reserved for tool namespacing (`skillId__toolName`). If a skill name contains an underscore, replace it with a dash. The validator and scaffolder both enforce this.
 - Skills with `has_setup=True` must implement `on_setup_start` and `on_setup_submit` hooks
+- Skills with `has_disconnect=True` must implement an `on_disconnect` hook
+- **Split large files into smaller pieces** — avoid writing monolithic files. When a module exceeds ~300 lines, split it into logical sub-modules (e.g., separate files for types, handlers, constants, options). This applies to skill implementations, dev tooling, and any other code in this repo.

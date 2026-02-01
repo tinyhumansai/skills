@@ -20,6 +20,7 @@ from dev.types.skill_types import (
     SkillDefinition,
     SkillContext,
     SkillHooks,
+    SkillOptionDefinition,
     SkillTool,
     ToolDefinition,
     ToolResult,
@@ -706,6 +707,26 @@ _TOOLS = [
 
 
 # ---------------------------------------------------------------------------
+# Tool-category toggle options
+# ---------------------------------------------------------------------------
+
+TOOL_CATEGORY_OPTIONS = [
+    SkillOptionDefinition(
+        name="enable_generator_tools",
+        type="boolean",
+        label="Skill Generation",
+        description="6 tools — list, generate, write, validate, test, and scan skills",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "list_available_skills", "generate_skill", "write_skill_file",
+            "validate_skill", "test_skill", "security_scan_skill",
+        ],
+    ),
+]
+
+
+# ---------------------------------------------------------------------------
 # Skill definition
 # ---------------------------------------------------------------------------
 
@@ -713,6 +734,7 @@ skill = SkillDefinition(
     name="skill-generator",
     description="Meta-skill that creates, validates, tests, and scans new AlphaHuman skills on-the-fly.",
     version="1.0.0",
+    options=TOOL_CATEGORY_OPTIONS,
     hooks=SkillHooks(
         on_load=_on_load,
         on_session_start=_on_session_start,

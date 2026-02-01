@@ -16,6 +16,7 @@ from typing import Any
 from dev.types.skill_types import (
     SkillDefinition,
     SkillHooks,
+    SkillOptionDefinition,
     SkillTool,
     ToolDefinition,
     ToolResult as SkillToolResult,
@@ -125,6 +126,126 @@ async def _on_status(ctx: Any) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Disconnect handler
+# ---------------------------------------------------------------------------
+
+
+async def _on_disconnect(ctx: Any) -> None:
+    """Disconnect Telethon client and clear credentials."""
+    from .server import on_skill_unload
+
+    # Disconnect the client
+    await on_skill_unload()
+
+    # Clear persisted config (session, api credentials)
+    try:
+        await ctx.write_data("config.json", "{}")
+    except Exception:
+        log.warning("Failed to clear config.json on disconnect")
+
+
+# ---------------------------------------------------------------------------
+# Tool-category toggle options
+# ---------------------------------------------------------------------------
+
+TOOL_CATEGORY_OPTIONS = [
+    SkillOptionDefinition(
+        name="enable_chat_tools",
+        type="boolean",
+        label="Chat & Group Management",
+        description="14 tools — create/archive/mute chats, join/leave groups, manage invite links",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "archive-chat", "create-channel", "create-group", "export-chat-invite",
+            "get-chat", "get-chats", "get-invite-link", "import-chat-invite",
+            "join-chat-by-link", "leave-chat", "list-chats", "mute-chat",
+            "subscribe-public-channel", "unarchive-chat",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_message_tools",
+        type="boolean",
+        label="Messaging & Reactions",
+        description="25 tools — send/edit/delete/forward messages, reactions, polls, drafts, pins",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "clear-draft", "create-poll", "delete-message", "edit-message",
+            "forward-message", "get-drafts", "get-history", "get-message-context",
+            "get-message-reactions", "get-messages", "get-pinned-messages",
+            "list-inline-buttons", "list-messages", "list-topics", "mark-as-read",
+            "pin-message", "press-inline-button", "remove-reaction", "reply-to-message",
+            "save-draft", "send-message", "send-reaction", "unmute-chat",
+            "unpin-message", "get-recent-actions",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_contact_tools",
+        type="boolean",
+        label="Contacts & Blocking",
+        description="13 tools — add/delete/search/export contacts, block/unblock users",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "add-contact", "block-user", "delete-contact", "export-contacts",
+            "get-blocked-users", "get-contact-chats", "get-contact-ids",
+            "get-direct-chat-by-contact", "get-last-interaction", "import-contacts",
+            "list-contacts", "search-contacts", "unblock-user",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_admin_tools",
+        type="boolean",
+        label="Admin & Moderation",
+        description="8 tools — promote/demote admins, ban/unban users, invite to groups",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "ban-user", "demote-admin", "get-admins", "get-banned-users",
+            "get-participants", "invite-to-group", "promote-admin", "unban-user",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_profile_media_tools",
+        type="boolean",
+        label="Profile & Media",
+        description="10 tools — profile photos, chat photos, user status, bot info, media info",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "delete-chat-photo", "delete-profile-photo", "edit-chat-photo",
+            "edit-chat-title", "get-bot-info", "get-me", "get-media-info",
+            "get-user-photos", "get-user-status", "set-profile-photo",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_settings_tools",
+        type="boolean",
+        label="Settings & Privacy",
+        description="5 tools — privacy settings, profile updates, bot commands",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "get-privacy-settings", "resolve-username", "set-bot-commands",
+            "set-privacy-settings", "update-profile",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_search_tools",
+        type="boolean",
+        label="Search & Discovery",
+        description="2 tools — search messages and public chats",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "search-messages", "search-public-chats",
+        ],
+    ),
+]
+
+
+# ---------------------------------------------------------------------------
 # Skill definition
 # ---------------------------------------------------------------------------
 
@@ -133,8 +254,10 @@ skill = SkillDefinition(
     description="Telegram integration via Telethon MTProto — 75+ tools for chats, messages, contacts, admin, media, and settings.",
     version="2.0.0",
     has_setup=True,
+    has_disconnect=True,
     tick_interval=1_200_000,  # 20 minutes
     tools=_convert_tools(),
+    options=TOOL_CATEGORY_OPTIONS,
     hooks=SkillHooks(
         on_load=_on_load,
         on_unload=_on_unload,
@@ -143,5 +266,6 @@ skill = SkillDefinition(
         on_setup_start=on_setup_start,
         on_setup_submit=on_setup_submit,
         on_setup_cancel=on_setup_cancel,
+        on_disconnect=_on_disconnect,
     ),
 )

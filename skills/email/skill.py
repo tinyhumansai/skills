@@ -15,6 +15,7 @@ from typing import Any
 from dev.types.skill_types import (
     SkillDefinition,
     SkillHooks,
+    SkillOptionDefinition,
     SkillTool,
     ToolDefinition,
     ToolResult as SkillToolResult,
@@ -117,6 +118,113 @@ async def _on_status(ctx: Any) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Disconnect handler
+# ---------------------------------------------------------------------------
+
+
+async def _on_disconnect(ctx: Any) -> None:
+    """Close IMAP/SMTP connections and clear credentials."""
+    from .server import on_skill_unload
+
+    await on_skill_unload()
+
+    try:
+        await ctx.write_data("config.json", "{}")
+    except Exception:
+        log.warning("Failed to clear config.json on disconnect")
+
+
+# ---------------------------------------------------------------------------
+# Tool-category toggle options
+# ---------------------------------------------------------------------------
+
+TOOL_CATEGORY_OPTIONS = [
+    SkillOptionDefinition(
+        name="enable_folder_tools",
+        type="boolean",
+        label="Folder Management",
+        description="5 tools — create, rename, delete, list, and get folder status",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "create_folder", "delete_folder", "get_folder_status",
+            "list_folders", "rename_folder",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_read_tools",
+        type="boolean",
+        label="Message Reading",
+        description="7 tools — get messages, threads, unread counts, and mailbox summaries",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "count_messages", "get_mailbox_summary", "get_message",
+            "get_recent_messages", "get_thread", "get_unread_count",
+            "get_unread_messages",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_send_tools",
+        type="boolean",
+        label="Sending & Replying",
+        description="3 tools — send email, reply to email, forward email",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "forward_email", "reply_to_email", "send_email",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_manage_tools",
+        type="boolean",
+        label="Message Management",
+        description="7 tools — archive, delete, move, flag/unflag, mark read/unread",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "archive_message", "delete_message", "flag_message",
+            "mark_read", "mark_unread", "move_message", "unflag_message",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_attachment_tools",
+        type="boolean",
+        label="Attachments",
+        description="3 tools — list, get info, and save attachments",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "get_attachment_info", "list_attachments", "save_attachment",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_draft_tools",
+        type="boolean",
+        label="Drafts",
+        description="4 tools — save, update, delete, and list drafts",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "delete_draft", "list_drafts", "save_draft", "update_draft",
+        ],
+    ),
+    SkillOptionDefinition(
+        name="enable_account_tools",
+        type="boolean",
+        label="Account & Sync",
+        description="6 tools — account info, connection test, sync status, search messages/contacts",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "get_account_info", "get_sync_status", "list_messages",
+            "search_contacts", "search_messages", "test_connection",
+        ],
+    ),
+]
+
+
+# ---------------------------------------------------------------------------
 # Skill definition
 # ---------------------------------------------------------------------------
 
@@ -125,8 +233,10 @@ skill = SkillDefinition(
     description="Email integration via IMAP/SMTP — 35 tools for reading, sending, searching, and managing email across Gmail, Outlook, Yahoo, iCloud, and custom servers.",
     version="1.0.0",
     has_setup=True,
+    has_disconnect=True,
     tick_interval=300_000,  # 5 minutes
     tools=_convert_tools(),
+    options=TOOL_CATEGORY_OPTIONS,
     hooks=SkillHooks(
         on_load=_on_load,
         on_unload=_on_unload,
@@ -135,5 +245,6 @@ skill = SkillDefinition(
         on_setup_start=on_setup_start,
         on_setup_submit=on_setup_submit,
         on_setup_cancel=on_setup_cancel,
+        on_disconnect=_on_disconnect,
     ),
 )

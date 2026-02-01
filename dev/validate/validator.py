@@ -45,9 +45,12 @@ VALID_HOOKS = {
     "on_after_response",
     "on_memory_flush",
     "on_tick",
+    "on_status",
     "on_setup_start",
     "on_setup_submit",
     "on_setup_cancel",
+    "on_options_change",
+    "on_disconnect",
 }
 
 # ---------------------------------------------------------------------------
@@ -218,6 +221,72 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
     elif has_any_setup_hook:
         result.warnings.append(
             "Setup hooks defined but has_setup is False — hooks will not be called"
+        )
+
+    # --- Validate options ---
+    if skill.options:
+        # Collect tool names for tool_filter validation
+        all_tool_names: set[str] = set()
+        if skill.tools:
+            all_tool_names = {t.definition.name for t in skill.tools}
+
+        option_names: set[str] = set()
+        for opt in skill.options:
+            # Unique names
+            if opt.name in option_names:
+                result.errors.append(f'Duplicate option name "{opt.name}"')
+            option_names.add(opt.name)
+
+            # Label required
+            if not opt.label:
+                result.errors.append(f'Option "{opt.name}": label is required')
+
+            # Select type requires options list
+            if opt.type == "select" and not opt.options:
+                result.errors.append(
+                    f'Option "{opt.name}": select type requires an options list'
+                )
+
+            # Default type check
+            if opt.default is not None:
+                if opt.type == "boolean" and not isinstance(opt.default, bool):
+                    result.errors.append(
+                        f'Option "{opt.name}": default must be bool for boolean type'
+                    )
+                elif opt.type == "number" and not isinstance(opt.default, (int, float)):
+                    result.errors.append(
+                        f'Option "{opt.name}": default must be numeric for number type'
+                    )
+                elif opt.type == "text" and not isinstance(opt.default, str):
+                    result.errors.append(
+                        f'Option "{opt.name}": default must be string for text type'
+                    )
+
+            # tool_filter only on boolean options
+            if opt.tool_filter is not None:
+                if opt.type != "boolean":
+                    result.errors.append(
+                        f'Option "{opt.name}": tool_filter is only valid on boolean options'
+                    )
+                elif all_tool_names:
+                    for tool_name in opt.tool_filter:
+                        if tool_name not in all_tool_names:
+                            result.warnings.append(
+                                f'Option "{opt.name}": tool_filter references unknown tool "{tool_name}"'
+                            )
+
+    # --- Validate disconnect ---
+    has_disconnect_hook = skill.hooks and skill.hooks.on_disconnect is not None
+    if skill.has_disconnect:
+        if not has_disconnect_hook:
+            result.errors.append(
+                "has_disconnect is True but on_disconnect hook is not defined"
+            )
+        elif not callable(skill.hooks.on_disconnect):  # type: ignore[union-attr]
+            result.errors.append("on_disconnect must be callable")
+    elif has_disconnect_hook:
+        result.warnings.append(
+            "on_disconnect hook defined but has_disconnect is False — hook will not be called"
         )
 
     # --- Validate entity schema ---

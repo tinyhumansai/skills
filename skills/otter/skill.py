@@ -16,6 +16,7 @@ from typing import Any
 from dev.types.skill_types import (
     SkillDefinition,
     SkillHooks,
+    SkillOptionDefinition,
     SkillTool,
     ToolDefinition,
     ToolResult as SkillToolResult,
@@ -437,6 +438,57 @@ async def _on_status(ctx: Any) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Disconnect handler
+# ---------------------------------------------------------------------------
+
+
+async def _on_disconnect(ctx: Any) -> None:
+    """Close Otter client, close DB, and clear credentials."""
+    from .api import speech_api
+    from .db.connection import close_db
+    from .state import store
+
+    try:
+        client = speech_api.get_client()
+        await client.close()
+    except Exception:
+        pass
+
+    try:
+        await close_db()
+    except Exception:
+        pass
+
+    store.reset_state()
+
+    try:
+        await ctx.write_data("config.json", "{}")
+    except Exception:
+        log.warning("Failed to clear config.json on disconnect")
+
+
+# ---------------------------------------------------------------------------
+# Tool-category toggle options
+# ---------------------------------------------------------------------------
+
+TOOL_CATEGORY_OPTIONS = [
+    SkillOptionDefinition(
+        name="enable_meeting_tools",
+        type="boolean",
+        label="Meetings & Transcripts",
+        description="8 tools — list, get, search, and download meetings, transcripts, speakers, and user profile",
+        default=True,
+        group="tool_categories",
+        tool_filter=[
+            "list_meetings", "get_meeting", "get_meeting_summary",
+            "search_meetings", "search_in_meeting", "download_meeting_transcript",
+            "get_otter_user", "list_speakers",
+        ],
+    ),
+]
+
+
+# ---------------------------------------------------------------------------
 # Skill definition
 # ---------------------------------------------------------------------------
 
@@ -445,8 +497,10 @@ skill = SkillDefinition(
     description="Otter.ai meeting notes integration — fetch transcripts, summaries, and search across meetings.",
     version="1.0.0",
     has_setup=True,
+    has_disconnect=True,
     tick_interval=300_000,  # 5 minutes
     tools=_build_tools(),
+    options=TOOL_CATEGORY_OPTIONS,
     hooks=SkillHooks(
         on_load=_on_load,
         on_unload=_on_unload,
@@ -455,6 +509,7 @@ skill = SkillDefinition(
         on_setup_start=on_setup_start,
         on_setup_submit=on_setup_submit,
         on_setup_cancel=on_setup_cancel,
+        on_disconnect=_on_disconnect,
     ),
     entity_schema=ENTITY_SCHEMA,
 )

@@ -22,7 +22,7 @@ import json
 import sys
 from typing import Any
 
-from dev.types.skill_types import SkillDefinition, SkillTool
+from dev.types.skill_types import SkillDefinition, SkillTool, SkillOptionDefinition
 from dev.types.setup_types import SetupStep, SetupResult
 
 
@@ -30,10 +30,18 @@ class SkillServer:
     """JSON-RPC 2.0 server that bridges a Python skill to the AlphaHuman host."""
 
     def __init__(self, skill: SkillDefinition) -> None:
-        self._tools: dict[str, SkillTool] = {
+        self._all_tools: dict[str, SkillTool] = {
             t.definition.name: t for t in skill.tools
         }
+        self._tools: dict[str, SkillTool] = dict(self._all_tools)
         self._hooks = skill.hooks
+        self._skill = skill
+        self._option_defs: dict[str, SkillOptionDefinition] = {
+            o.name: o for o in skill.options
+        }
+        self._options: dict[str, Any] = {
+            o.name: o.default for o in skill.options
+        }
         self._pending: dict[int | str, asyncio.Future[Any]] = {}
         self._next_id = 1
         self._manifest: dict[str, str] | None = None
@@ -249,6 +257,8 @@ class SkillServer:
                 self._manifest = p["manifest"]
             if p.get("dataDir"):
                 self._data_dir = p["dataDir"]
+            # Load persisted options and apply tool filter
+            await self._load_options()
             if self._hooks and self._hooks.on_load:
                 await self._hooks.on_load(self._create_context())
             return {"ok": True}
@@ -332,6 +342,73 @@ class SkillServer:
                 await self._hooks.on_setup_cancel(self._create_context())
             return {"ok": True}
 
+        # -- Options methods --
+        if method == "options/list":
+            return {
+                "options": [
+                    {
+                        "name": od.name,
+                        "type": od.type,
+                        "label": od.label,
+                        "description": od.description,
+                        "default": od.default,
+                        "options": (
+                            [{"label": o.label, "value": o.value} for o in od.options]
+                            if od.options
+                            else None
+                        ),
+                        "group": od.group,
+                        "toolFilter": od.tool_filter,
+                        "value": self._options.get(od.name, od.default),
+                    }
+                    for od in self._option_defs.values()
+                ]
+            }
+
+        if method == "options/get":
+            return {"options": dict(self._options)}
+
+        if method == "options/set":
+            name = p.get("name", "")
+            value = p.get("value")
+            od = self._option_defs.get(name)
+            if not od:
+                raise ValueError(f"Unknown option: {name}")
+            # Basic type validation
+            if od.type == "boolean" and not isinstance(value, bool):
+                raise ValueError(f"Option '{name}' requires a boolean value")
+            if od.type == "number" and not isinstance(value, (int, float)):
+                raise ValueError(f"Option '{name}' requires a numeric value")
+            if od.type == "text" and not isinstance(value, str):
+                raise ValueError(f"Option '{name}' requires a string value")
+            if od.type == "select":
+                valid_values = [o.value for o in (od.options or [])]
+                if str(value) not in valid_values:
+                    raise ValueError(f"Option '{name}' must be one of: {valid_values}")
+            self._options[name] = value
+            self._apply_tool_filter()
+            await self._persist_options()
+            if self._hooks and self._hooks.on_options_change:
+                await self._hooks.on_options_change(self._create_context(), dict(self._options))
+            return {"ok": True}
+
+        if method == "options/reset":
+            self._options = {o.name: o.default for o in self._option_defs.values()}
+            self._apply_tool_filter()
+            await self._persist_options()
+            if self._hooks and self._hooks.on_options_change:
+                await self._hooks.on_options_change(self._create_context(), dict(self._options))
+            return {"ok": True}
+
+        # -- Disconnect method --
+        if method == "skill/disconnect":
+            if not self._skill.has_disconnect:
+                raise ValueError("Skill does not support disconnect")
+            if not self._hooks or not self._hooks.on_disconnect:
+                raise ValueError("Skill has no on_disconnect hook")
+            await self._hooks.on_disconnect(self._create_context())
+            return {"ok": True}
+
         raise ValueError(f"Unknown method: {method}")
 
     # --------------------------------------------------------------------- #
@@ -363,6 +440,47 @@ class SkillServer:
                 for f in step.fields
             ],
         }
+
+    # --------------------------------------------------------------------- #
+    # Internal — options persistence & tool filtering
+    # --------------------------------------------------------------------- #
+
+    def _apply_tool_filter(self) -> None:
+        """Rebuild self._tools based on current option values and tool_filter lists."""
+        excluded: set[str] = set()
+        for od in self._option_defs.values():
+            if od.type == "boolean" and od.tool_filter:
+                if not self._options.get(od.name, od.default):
+                    excluded.update(od.tool_filter)
+        self._tools = {
+            name: tool
+            for name, tool in self._all_tools.items()
+            if name not in excluded
+        }
+
+    async def _persist_options(self) -> None:
+        """Persist current option values to options.json via reverse RPC."""
+        try:
+            await self.write_data("options.json", json.dumps(self._options))
+        except Exception:
+            self.log("Failed to persist options")
+
+    async def _load_options(self) -> None:
+        """Load persisted option values from options.json, merge with defaults."""
+        if not self._option_defs:
+            return
+        try:
+            raw = await self.read_data("options.json")
+            persisted = json.loads(raw) if raw else {}
+        except Exception:
+            persisted = {}
+        # Merge: persisted values win over defaults, but only for known options
+        for name, od in self._option_defs.items():
+            if name in persisted:
+                self._options[name] = persisted[name]
+            else:
+                self._options[name] = od.default
+        self._apply_tool_filter()
 
     # --------------------------------------------------------------------- #
     # Internal — context factory
@@ -457,6 +575,9 @@ class SkillServer:
 
             def emit_event(self, event_name: str, data: Any) -> None:
                 asyncio.ensure_future(server.emit_event(event_name, data))
+
+            def get_options(self) -> dict[str, Any]:
+                return dict(server._options)
 
         return _Context()
 
