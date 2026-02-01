@@ -1,0 +1,585 @@
+scripts/analyze-and-split.py:143: error: Dict entry 0 has incompatible type
+"str": "str"; expected "str": "int | None"  [dict-item]
+                  "name": current_section,
+                  ^~~~~~~~~~~~~~~~~~~~~~~
+scripts/analyze-and-split.py:156: error: Dict entry 0 has incompatible type
+"str": "str"; expected "str": "int | None"  [dict-item]
+                "name": current_section,
+                ^~~~~~~~~~~~~~~~~~~~~~~
+scripts/analyze-and-split.py:170: error: Dict entry 0 has incompatible type
+"str": "str"; expected "str": "int | None"  [dict-item]
+                "name": f"Class: {cls['name']}",
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+scripts/analyze-and-split.py:217: error: Dict entry 0 has incompatible type
+"str": "str"; expected "str": "int | None"  [dict-item]
+                  "name": f"{current_prefix}_functions",
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+scripts/analyze-and-split.py:230: error: Dict entry 0 has incompatible type
+"str": "str"; expected "str": "int | None"  [dict-item]
+                "name": f"{current_prefix}_functions",
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+dev/validate/validator.py:178: error: Unused "type: ignore" comment 
+[unused-ignore]
+          if not callable(tool.execute):  # type: ignore[unreachable]
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+dev/validate/validator.py:179: error: Statement is unreachable  [unreachable]
+            result.errors.append(f'{prefix} ("{defn.name or "?"}"): missin...
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+dev/validate/validator.py:183: error: Unused "type: ignore" comment 
+[unused-ignore]
+        if not isinstance(skill.tick_interval, int):  # type: ignore[unrea...
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+dev/validate/validator.py:184: error: Statement is unreachable  [unreachable]
+          result.errors.append("`tick_interval` must be an integer")
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+dev/catalog/build_catalog.py:172: error: Name "tick_ms" already defined on line
+100  [no-redef]
+                        tick_ms: int = keyword.value.value
+                        ^~~~~~~
+skills/telegram/client/telethon_client.py:73: error: Statement is unreachable 
+[unreachable]
+            return
+            ^~~~~~
+skills/email/client/imap_client.py:14: error: Skipping analyzing "aioimaplib":
+module is installed, but missing library stubs or py.typed marker 
+[import-untyped]
+    from aioimaplib import IMAP4_SSL, IMAP4
+    ^
+skills/email/client/imap_client.py:14: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+skills/email/client/imap_client.py:106: error: Returning Any from function
+declared to return "bool"  [no-any-return]
+          return response.result == "OK"
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/email/client/imap_client.py:118: error: Item "None" of
+"Any | Any | None" has no attribute "examine"  [union-attr]
+          response = await self._imap.examine(folder)
+                           ^~~~~~~~~~~~~~~~~~
+skills/email/client/imap_client.py:120: error: Item "None" of
+"Any | Any | None" has no attribute "select"  [union-attr]
+          response = await self._imap.select(folder)
+                           ^~~~~~~~~~~~~~~~~
+skills/email/client/imap_client.py:134: error: Item "None" of
+"Any | Any | None" has no attribute "list"  [union-attr]
+        response = await self._imap.list('""', "*")
+                         ^~~~~~~~~~~~~~~
+skills/email/client/imap_client.py:240: error: Returning Any from function
+declared to return "bool"  [no-any-return]
+          return response.result == "OK"
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/email/client/imap_client.py:253: error: Returning Any from function
+declared to return "bool"  [no-any-return]
+          return response.result == "OK"
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/email/client/imap_client.py:270: error: Returning Any from function
+declared to return "bool"  [no-any-return]
+          return response.result == "OK"
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/email/client/imap_client.py:281: error: Returning Any from function
+declared to return "bool"  [no-any-return]
+          return response.result == "OK"
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/email/client/imap_client.py:292: error: Returning Any from function
+declared to return "bool"  [no-any-return]
+          return response.result == "OK"
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/email/client/imap_client.py:303: error: Returning Any from function
+declared to return "bool"  [no-any-return]
+          return response.result == "OK"
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/email/client/imap_client.py:314: error: Returning Any from function
+declared to return "bool"  [no-any-return]
+          return response.result == "OK"
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/email/client/imap_client.py:347: error: Statement is unreachable 
+[unreachable]
+          continue
+          ^~~~~~~~
+skills/email/client/imap_client.py:384: error: Dict entry 2 has incompatible
+type "str": "list[str]"; expected "str": "str"  [dict-item]
+    ...turn {"name": name.strip('"'), "delimiter": delimiter, "flags": flags}
+                                                              ^~~~~~~~~~~~~~
+scripts/test-sync.py:230: error: Cannot find implementation or library stub for
+module named "telegram.server"  [import-not-found]
+      from telegram.server import on_skill_load, on_skill_unload
+    ^
+scripts/test-sync.py:231: error: Cannot find implementation or library stub for
+module named "telegram.state"  [import-not-found]
+      from telegram.state import store
+    ^
+scripts/test-sync.py:359: error: Cannot find implementation or library stub for
+module named "telegram.db.connection"  [import-not-found]
+      from telegram.db.connection import get_db
+    ^
+scripts/test-setup.py:127: error: Function
+"test-setup._SetupMockContext._NoOp.list" is not valid as a type  [valid-type]
+        async def get_by_tag(self, *a: Any, **kw: Any) -> list:
+                                                          ^
+scripts/test-setup.py:127: note: Perhaps you need "Callable[...]" or a callback protocol?
+scripts/test-setup.py:361: error: Statement is unreachable  [unreachable]
+        print(red(f"\n  Unknown status: {result.status}\n"))
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+scripts/test-server.py:108: error: Returning Any from function declared to
+return "dict[str, Any] | None"  [no-any-return]
+          return json.loads(CONFIG_PATH.read_text())
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+scripts/test-server.py:197: error: Cannot find implementation or library stub
+for module named "telegram.tools"  [import-not-found]
+      from telegram.tools import (
+    ^
+scripts/test-server.py:530: error: Cannot find implementation or library stub
+for module named "telegram.server"  [import-not-found]
+      from telegram.server import on_skill_load, on_skill_unload
+    ^
+scripts/test-server.py:532: error: Cannot find implementation or library stub
+for module named "telegram.handlers"  [import-not-found]
+      from telegram.handlers import dispatch_tool
+    ^
+scripts/test-server.py:546: error: Cannot find implementation or library stub
+for module named "telegram.state"  [import-not-found]
+      from telegram.state import store
+    ^
+scripts/test-entities.py:261: error: Cannot find implementation or library stub
+for module named "telegram.server"  [import-not-found]
+      from telegram.server import on_skill_load, on_skill_unload, on_skill...
+    ^
+scripts/test-entities.py:262: error: Cannot find implementation or library stub
+for module named "telegram.state"  [import-not-found]
+      from telegram.state import store
+    ^
+scripts/test-entities.py:304: error: Cannot find implementation or library stub
+for module named "telegram.api.chat_api"  [import-not-found]
+      from telegram.api.chat_api import get_chats as api_get_chats
+    ^
+scripts/test-entities.py:304: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+scripts/test-entities.py:305: error: Cannot find implementation or library stub
+for module named "telegram.api.contact_api"  [import-not-found]
+      from telegram.api.contact_api import list_contacts as api_list_conta...
+    ^
+scripts/test-entities.py:306: error: Cannot find implementation or library stub
+for module named "telegram.entities"  [import-not-found]
+      from telegram.entities import emit_initial_entities
+    ^
+dev/runtime/server.py:285: error: Name "result" already defined on line 241 
+[no-redef]
+            result: str | None = await self._hooks.on_before_message(self....
+            ^~~~~~
+dev/runtime/server.py:292: error: Name "result" already defined on line 241 
+[no-redef]
+            result: str | None = await self._hooks.on_after_response(self....
+            ^~~~~~
+dev/runtime/server.py:325: error: Name "result" already defined on line 241 
+[no-redef]
+          result: SetupResult = await self._hooks.on_setup_submit(self._cr...
+          ^~~~~~
+dev/runtime/server.py:327: error: "ToolResult" has no attribute "status" 
+[attr-defined]
+            "status": result.status,
+                      ^~~~~~~~~~~~~
+dev/runtime/server.py:328: error: "ToolResult" has no attribute "next_step" 
+[attr-defined]
+            "nextStep": self._serialize_step(result.next_step) if result.n...
+                                             ^~~~~~~~~~~~~~~~
+dev/runtime/server.py:329: error: "ToolResult" has no attribute "errors" 
+[attr-defined]
+    ...rs": [{"field": e.field, "message": e.message} for e in result.errors]
+                                                               ^~~~~~~~~~~~~
+dev/runtime/server.py:330: error: "ToolResult" has no attribute "errors" 
+[attr-defined]
+            if result.errors
+               ^~~~~~~~~~~~~
+dev/runtime/server.py:332: error: "ToolResult" has no attribute "message" 
+[attr-defined]
+            "message": result.message,
+                       ^~~~~~~~~~~~~~
+skills/desktop/skill.py:26: error: Cannot assign to a type  [misc]
+      DesktopClient = None  # type: ignore[assignment]
+      ^~~~~~~~~~~~~
+skills/desktop/skill.py:26: note: Error code "misc" not covered by "type: ignore" comment
+skills/desktop/skill.py:77: error: Unused "type: ignore" comment 
+[unused-ignore]
+      if DesktopClient is None:  # type: ignore[comparison-overlap]
+      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/desktop/skill.py:78: error: Statement is unreachable  [unreachable]
+        log.error("DesktopClient not available: pynput is not installed")
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/desktop/skill.py:83: error: Unused "type: ignore" comment 
+[unused-ignore]
+        _desktop_client = DesktopClient()  # type: ignore[misc]
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/skillcoder/skill_run_validator_via_the_validate_skill_py_function_directly.py:26: error:
+Argument 1 to "validate_skill_py" has incompatible type "str"; expected "Path" 
+[arg-type]
+      result = validate_skill_py(skill_py, skill_name)
+                                 ^~~~~~~~
+skills/skillcoder/skill_run_validator_via_the_validate_skill_py_function_directly.py:60: error:
+Incompatible return value type (got "ToolResult", expected "dict[str, Any]") 
+[return-value]
+      return ToolResult(content=json.dumps(report, indent=2))
+             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+dev/harness/runner.py:284: error: "None" not callable  [misc]
+              step = await hooks_obj.on_setup_start(ctx)
+                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+dev/harness/runner.py:321: error: "None" not callable  [misc]
+              result = await hooks_obj.on_setup_submit(ctx, step.id, dummy...
+                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+dev/harness/runner.py:344: error: "None" not callable  [misc]
+              await hooks_obj.on_setup_cancel(ctx)
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/telegram/api/contact_api.py:301: error: Argument 1 to "append" of "list"
+has incompatible type "TelegramMessage"; expected "TelegramUser"  [arg-type]
+              all_messages.append(msg)
+                                  ^~~
+skills/telegram/api/contact_api.py:304: error: "TelegramUser" has no attribute
+"date"  [attr-defined]
+          all_messages.sort(key=lambda m: m.date, reverse=True)
+                                          ^~~~~~
+skills/telegram/handlers/chat.py:121: error: Argument 3 to "create_channel" has
+incompatible type "Any | bool | None"; expected "bool"  [arg-type]
+    ... result = await chat_api.create_channel(title, description, megagroup)
+                                                                   ^~~~~~~~~
+skills/slack/client/slack_client.py:109: error: Returning Any from function
+declared to return "dict[str, Any]"  [no-any-return]
+              return data
+              ^~~~~~~~~~~
+skills/slack/client/slack_client.py:142: error: Returning Any from function
+declared to return "bool"  [no-any-return]
+          return result.get("ok", False)
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/otter/client/otter_client.py:90: error: Returning Any from function
+declared to return "dict[str, Any] | list[Any]"  [no-any-return]
+                return await resp.json()
+                ^~~~~~~~~~~~~~~~~~~~~~~~
+skills/otter/client/otter_client.py:113: error: Incompatible return value type
+(got "dict[str, Any] | list[Any]", expected "dict[str, Any]")  [return-value]
+        return await self._request("GET", "/speeches", params=params)
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/otter/client/otter_client.py:117: error: Incompatible return value type
+(got "dict[str, Any] | list[Any]", expected "dict[str, Any]")  [return-value]
+        return await self._request("GET", f"/speeches/{speech_id}")
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/otter/client/otter_client.py:121: error: Incompatible return value type
+(got "dict[str, Any] | list[Any]", expected "dict[str, Any]")  [return-value]
+        return await self._request("GET", f"/speeches/{speech_id}/transcri...
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+skills/otter/client/otter_client.py:125: error: Incompatible return value type
+(got "dict[str, Any] | list[Any]", expected "dict[str, Any]")  [return-value]
+        return await self._request("GET", "/user")
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/otter/client/otter_client.py:129: error: Incompatible return value type
+(got "dict[str, Any] | list[Any]", expected "dict[str, Any]")  [return-value]
+        return await self._request("GET", "/speakers")
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/otter/client/otter_client.py:134: error: Incompatible return value type
+(got "dict[str, Any] | list[Any]", expected "dict[str, Any]")  [return-value]
+        return await self._request("GET", "/speeches/search", params=param...
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/telegram/entities.py:261: error: Argument 1 to "len" has incompatible
+type "Iterable[Row]"; expected "Sized"  [arg-type]
+      log.info("Emitted %d summary entities", len(rows))
+                                                  ^~~~
+skills/otter/entities.py:195: error: Argument 1 to "len" has incompatible type
+"Iterable[Row]"; expected "Sized"  [arg-type]
+      log.info("Emitted %d summary entities", len(rows))
+                                                  ^~~~
+skills/email/db/sync.py:174: error: Argument "flags" to "EmailFolder" has
+incompatible type "str | list[str]"; expected "list[str]"  [arg-type]
+            flags=f.get("flags", []),
+                  ^~~~~~~~~~~~~~~~~~
+skills/email/api/draft_api.py:66: error: Incompatible types in assignment
+(expression has type "MIMEText", variable has type "MIMEMultipart") 
+[assignment]
+        msg = MIMEText(body, "plain", "utf-8")
+              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/email/api/attachment_api.py:83: error: Item "None" of "Any | None" has
+no attribute "uid"  [union-attr]
+      response = await client._imap.uid("fetch", str(uid), "(RFC822)")
+                       ^~~~~~~~~~~~~~~~
+skills/email/api/attachment_api.py:132: error: Argument 1 to "write" of
+"BufferedWriter" has incompatible type "Message[str, str] | Any | bytes";
+expected "Buffer"  [arg-type]
+              f.write(payload)
+                      ^~~~~~~
+skills/telegram/handlers/message.py:76: error: Module has no attribute
+"send_message"; maybe "edit_message" or "pin_message"?  [attr-defined]
+        await message_api.send_message(str(chat_id), message)
+              ^~~~~~~~~~~~~~~~~~~~~~~~
+skills/telegram/handlers/message.py:172: error: Module has no attribute
+"get_history"  [attr-defined]
+        result = await message_api.get_history(str(chat_id), limit * 2 + 1...
+                       ^~~~~~~~~~~~~~~~~~~~~~~
+skills/telegram/handlers/message.py:192: error: Module has no attribute
+"get_history"  [attr-defined]
+        result = await message_api.get_history(
+                       ^~~~~~~~~~~~~~~~~~~~~~~
+skills/telegram/handlers/message.py:210: error: Module has no attribute
+"get_pinned_messages"; maybe "get_messages"?  [attr-defined]
+        result = await message_api.get_pinned_messages(str(chat_id))
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/telegram/handlers/message.py:255: error: Module has no attribute
+"get_message_reactions"  [attr-defined]
+        result = await message_api.get_message_reactions(str(chat_id), mes...
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/otter/api/speech_api.py:84: error: Subclass of "dict[str, Any]" and
+"list[Any]" cannot exist: have distinct disjoint bases  [unreachable]
+        result if isinstance(result, list) else result.get("speeches", res...
+                             ^~~~~~
+skills/otter/api/speech_api.py:138: error: Subclass of "dict[str, Any]" and
+"list[Any]" cannot exist: have distinct disjoint bases  [unreachable]
+        result if isinstance(result, list) else result.get("transcript", r...
+                             ^~~~~~
+skills/otter/api/speech_api.py:185: error: Subclass of "dict[str, Any]" and
+"list[Any]" cannot exist: have distinct disjoint bases  [unreachable]
+        result if isinstance(result, list) else result.get("speakers", res...
+                             ^~~~~~
+skills/otter/api/speech_api.py:214: error: Subclass of "dict[str, Any]" and
+"list[Any]" cannot exist: have distinct disjoint bases  [unreachable]
+        result if isinstance(result, list) else result.get("speeches", res...
+                             ^~~~~~
+skills/telegram/handlers/__init__.py:30: error: Returning Any from function
+declared to return "ToolResult"  [no-any-return]
+      return await handler(arguments)
+      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/slack/handlers/__init__.py:30: error: Returning Any from function
+declared to return "ToolResult"  [no-any-return]
+      return await handler(arguments)
+      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/otter/handlers/user.py:33: error: Incompatible types in assignment
+(expression has type "OtterUser | None", variable has type "OtterUser") 
+[assignment]
+        user = await speech_api.fetch_user()
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/email/client/smtp_client.py:72: error: Incompatible types in assignment
+(expression has type "MIMEText", variable has type "MIMEMultipart") 
+[assignment]
+        msg = MIMEText(body, "plain", "utf-8")
+              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/otter/handlers/__init__.py:30: error: Returning Any from function
+declared to return "ToolResult"  [no-any-return]
+      return await handler(arguments)
+      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/browser/client/browser_client.py:50: error: Incompatible types in
+assignment (expression has type "Playwright", variable has type "None") 
+[assignment]
+          self.playwright = await async_playwright().start()
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/browser/client/browser_client.py:149: error: Statement is unreachable 
+[unreachable]
+          await self.playwright.stop()
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/browser/client/browser_client.py:195: error: Argument "wait_until" to
+"goto" of "Page" has incompatible type "str"; expected
+"Literal['commit', 'domcontentloaded', 'load', 'networkidle'] | None" 
+[arg-type]
+          response = await page.goto(url, wait_until=wait_until, timeout=t...
+                                                     ^~~~~~~~~~
+skills/browser/client/browser_client.py:222: error: Argument "button" to
+"click" of "Locator" has incompatible type "str"; expected
+"Literal['left', 'middle', 'right'] | None"  [arg-type]
+              button=button, click_count=click_count, delay=delay, force=f...
+                     ^~~~~~
+skills/browser/client/browser_client.py:227: error: Argument "button" to
+"click" of "Locator" has incompatible type "str"; expected
+"Literal['left', 'middle', 'right'] | None"  [arg-type]
+              button=button, click_count=click_count, delay=delay, force=f...
+                     ^~~~~~
+skills/browser/client/browser_client.py:230: error: Argument "button" to
+"click" of "Page" has incompatible type "str"; expected
+"Literal['left', 'middle', 'right'] | None"  [arg-type]
+            await page.click(selector, button=button, click_count=click_co...
+                                              ^~~~~~
+skills/browser/client/browser_client.py:384: error: Incompatible types in
+assignment (expression has type "str | None", variable has type "str") 
+[assignment]
+              text = await element.text_content()
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/browser/client/browser_client.py:389: error: Incompatible types in
+assignment (expression has type "str | None", variable has type "str") 
+[assignment]
+              text = await page.text_content("body")
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/browser/client/browser_client.py:439: error: Argument "state" to
+"wait_for_selector" of "Page" has incompatible type "str"; expected
+"Literal['attached', 'detached', 'hidden', 'visible'] | None"  [arg-type]
+    ...    await page.wait_for_selector(selector, state=state, timeout=timeou...
+                                                        ^~~~~
+skills/browser/client/browser_client.py:497: error: List item 0 has
+incompatible type "dict[str, Any]"; expected "SetCookieParam"  [list-item]
+          await self.context.add_cookies([cookie])
+                                          ^~~~~~
+skills/browser/client/browser_client.py:652: error: Argument "wait_until" to
+"reload" of "Page" has incompatible type "str"; expected
+"Literal['commit', 'domcontentloaded', 'load', 'networkidle'] | None" 
+[arg-type]
+          await page.reload(wait_until=wait_until, timeout=timeout)
+                                       ^~~~~~~~~~
+skills/email/setup.py:274: error: Skipping analyzing "aioimaplib": module is
+installed, but missing library stubs or py.typed marker  [import-untyped]
+        from aioimaplib import IMAP4_SSL, IMAP4
+    ^
+skills/github/handlers/search.py:21: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(results[:limit]))
+        ^~~~~
+skills/github/handlers/search.py:49: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(results[:limit]))
+        ^~~~~
+skills/github/handlers/search.py:83: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(results[:limit]))
+        ^~~~~
+skills/github/handlers/search.py:108: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(results[:limit]))
+        ^~~~~
+skills/github/handlers/repo.py:41: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(repos[:limit]))
+        ^~~~~
+skills/github/handlers/repo.py:111: error: Item "NamedUser" of
+"NamedUser | AuthenticatedUser" has no attribute "create_repo"  [union-attr]
+        repo = await run_sync(user.create_repo, **kwargs)
+                              ^~~~~~~~~~~~~~~~
+skills/github/handlers/repo.py:170: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(collabs[:limit]))
+        ^~~~~
+skills/github/handlers/release.py:26: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(releases[:limit]))
+        ^~~~~
+skills/github/handlers/release.py:58: error: Need type annotation for
+"asset_items" (hint: "asset_items: list[<type>] = ...")  [var-annotated]
+        asset_items = await run_sync(lambda: list(assets[:20]))
+        ^~~~~~~~~~~
+skills/github/handlers/release.py:145: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(assets[:30]))
+        ^~~~~
+skills/github/handlers/pr.py:34: error: Need type annotation for "items" (hint:
+"items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(pulls[:limit]))
+        ^~~~~
+skills/github/handlers/pr.py:226: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(comments[:limit]))
+        ^~~~~
+skills/github/handlers/pr.py:250: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(reviews[:30]))
+        ^~~~~
+skills/github/handlers/pr.py:290: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(files[:100]))
+        ^~~~~
+skills/github/handlers/pr.py:313: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(files[:50]))
+        ^~~~~
+skills/github/handlers/pr.py:343: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(check_runs[:30]))
+        ^~~~~
+skills/github/handlers/pr.py:389: error: "Github" has no attribute
+"_Github__requester"; maybe "__requester"?  [attr-defined]
+          gh._Github__requester.requestJsonAndCheck,
+          ^~~~~~~~~~~~~~~~~~~~~
+skills/github/handlers/notification.py:19: error: Item "NamedUser" of
+"NamedUser | AuthenticatedUser" has no attribute "get_notifications" 
+[union-attr]
+        notifications = await run_sync(user.get_notifications, all=all_not...
+                                       ^~~~~~~~~~~~~~~~~~~~~~
+skills/github/handlers/notification.py:43: error: Item "NamedUser" of
+"NamedUser | AuthenticatedUser" has no attribute "get_notification" 
+[union-attr]
+        notification = await run_sync(user.get_notification, thread_id)
+                                      ^~~~~~~~~~~~~~~~~~~~~
+skills/github/handlers/notification.py:54: error: Item "NamedUser" of
+"NamedUser | AuthenticatedUser" has no attribute "mark_notifications_as_read" 
+[union-attr]
+        await run_sync(user.mark_notifications_as_read)
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/github/handlers/issue.py:40: error: Need type annotation for "issue" 
+[var-annotated]
+        for issue in await run_sync(lambda: list(issues[: limit * 2])):
+        ^
+skills/github/handlers/issue.py:51: error: Incompatible types in assignment
+(expression has type "str", variable has type "list[Label]")  [assignment]
+          labels = ", ".join(l.name for l in i.labels) if i.labels else ""
+                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+skills/github/handlers/issue.py:207: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(comments[:limit]))
+        ^~~~~
+skills/github/handlers/gist.py:25: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(gists[:limit]))
+        ^~~~~
+skills/github/handlers/gist.py:92: error: Item "NamedUser" of
+"NamedUser | AuthenticatedUser" has no attribute "create_gist"  [union-attr]
+        gist = await run_sync(user.create_gist, public, input_files, descr...
+                              ^~~~~~~~~~~~~~~~
+skills/github/handlers/api.py:25: error: "Github" has no attribute
+"_Github__requester"; maybe "__requester"?  [attr-defined]
+        requester = gh._Github__requester
+                    ^~~~~~~~~~~~~~~~~~~~~
+skills/github/handlers/actions.py:25: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(workflows[:30]))
+        ^~~~~
+skills/github/handlers/actions.py:53: error: Incompatible types in assignment
+(expression has type "str", variable has type "int")  [assignment]
+            wf_id = workflow_id
+                    ^~~~~~~~~~~
+skills/github/handlers/actions.py:69: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(runs[:limit]))
+        ^~~~~
+skills/github/handlers/actions.py:118: error: Need type annotation for "items"
+(hint: "items: list[<type>] = ...")  [var-annotated]
+        items = await run_sync(lambda: list(jobs[:30]))
+        ^~~~~
+skills/github/handlers/actions.py:197: error: Incompatible types in assignment
+(expression has type "str", variable has type "int")  [assignment]
+          wf_id = workflow_id
+                  ^~~~~~~~~~~
+skills/github/handlers/actions.py:216: error: Incompatible types in assignment
+(expression has type "str", variable has type "int")  [assignment]
+          wf_id = workflow_id
+                  ^~~~~~~~~~~
+skills/otter/skill.py:171: error: Argument 1 to "init_host_sync" has
+incompatible type "Callable[[dict[str, Any]], None]"; expected
+"Callable[[dict[str, Any]], Awaitable[None]]"  [arg-type]
+      init_host_sync(set_state_fn)
+                     ^~~~~~~~~~~~
+skills/notion/handlers/databases.py:45: error: "DatabasesEndpoint" has no
+attribute "query"  [attr-defined]
+        response = await client.databases.query(**kwargs)
+                         ^~~~~~~~~~~~~~~~~~~~~~
+skills/wallet/setup.py:272: error: Argument 1 to "seed_from_mnemonic" has
+incompatible type "Mnemonic"; expected "str"  [arg-type]
+        _seed_bytes = seed_from_mnemonic(mnemo, raw_phrase)
+                                         ^~~~~
+skills/wallet/client/wallet_client.py:53: error: Argument 1 to
+"seed_from_mnemonic" has incompatible type "Mnemonic"; expected "str" 
+[arg-type]
+          seed_bytes = seed_from_mnemonic(mnemo, self.seed_phrase)
+                                          ^~~~~
+skills/github/server.py:92: error: Item "NamedUser" of
+"NamedUser | AuthenticatedUser" has no attribute "get_notifications" 
+[union-attr]
+        notifications = await run_sync(user.get_notifications)
+                                       ^~~~~~~~~~~~~~~~~~~~~~
+skills/github/skill.py:332: error: Argument "on_setup_start" to "SkillHooks"
+has incompatible type
+"Callable[[Any], Coroutine[Any, Any, SetupStep | SetupResult]]"; expected
+"Callable[[SkillContext], Awaitable[SetupStep]] | None"  [arg-type]
+        on_setup_start=on_setup_start,
+                       ^~~~~~~~~~~~~~
+skills/skillcoder/skill_section.py:51: error: Argument "on_session_start" to
+"SkillHooks" has incompatible type
+"Callable[[SkillContext], Coroutine[Any, Any, None]]"; expected
+"Callable[[SkillContext, str], Awaitable[None]] | None"  [arg-type]
+        on_session_start=_on_session_start,
+                         ^~~~~~~~~~~~~~~~~
+Found 140 errors in 47 files (checked 290 source files)

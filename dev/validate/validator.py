@@ -176,12 +176,12 @@ def validate_skill_py(skill_py_path: Path, dir_name: str) -> SkillResult:
           f'{prefix} ("{defn.name or "?"}"): parameters must be {{"type": "object", ...}}'
         )
       # Continue validation even if params are invalid
-      if not callable(tool.execute):
+      if not callable(tool.execute):  # type: ignore[unreachable]
         result.errors.append(f'{prefix} ("{defn.name or "?"}"): missing `execute` callable')
 
   # --- Validate tickInterval ---
   if skill.tick_interval is not None:
-    if not isinstance(skill.tick_interval, int):
+    if not isinstance(skill.tick_interval, int):  # type: ignore[unreachable]
       result.errors.append("`tick_interval` must be an integer")
     else:
       if skill.tick_interval < 1000:

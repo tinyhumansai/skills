@@ -72,7 +72,7 @@ class MTProtoClient:
       # Double-check locking pattern - another coroutine may have connected
       # between the outer check and acquiring the lock
       # Check again inside lock to prevent race condition
-      if self._is_connected:
+      if self._is_connected:  # type: ignore[unreachable]
         return
       await self._do_connect()
 

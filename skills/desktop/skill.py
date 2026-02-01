@@ -83,8 +83,9 @@ async def _on_load(ctx: Any) -> None:
     _desktop_client = None
     return
 
+  # DesktopClient is not None here due to the check above
   try:
-    _desktop_client = DesktopClient()  # type: ignore[misc, call-arg]
+    _desktop_client = DesktopClient()  # type: ignore[call-arg]
     set_desktop_client(_desktop_client)
     log.info("Desktop client initialized")
   except Exception as exc:

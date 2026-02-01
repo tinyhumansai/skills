@@ -192,4 +192,4 @@ async def emit_summaries(
           exc_info=True,
         )
 
-  log.info("Emitted %d summary entities", len(rows))
+  log.info("Emitted %d summary entities", len(list(rows)))

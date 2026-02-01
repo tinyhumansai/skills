@@ -143,7 +143,7 @@ class FileAnalyzer:
               "name": current_section,
               "start": section_start,
               "end": i - 1,
-            }
+            }  # type: ignore[dict-item]
           )
         current_section = stripped.strip("#").strip()
         section_start = i
@@ -156,7 +156,7 @@ class FileAnalyzer:
             "name": current_section,
             "start": section_start,
             "end": len(self.lines),
-          }
+          }  # type: ignore[dict-item]
         )
       return sections
 
@@ -216,7 +216,7 @@ class FileAnalyzer:
               "name": f"{current_prefix}_functions",
               "start": current_start,
               "end": current_end,
-            }
+            }  # type: ignore[dict-item]
           )
           current_prefix = prefix
           current_start = func["line"]
@@ -229,7 +229,7 @@ class FileAnalyzer:
             "name": f"{current_prefix}_functions",
             "start": current_start,
             "end": current_end,
-          }
+          }  # type: ignore[dict-item]
         )
 
       return sections
