@@ -1,0 +1,12 @@
+{
+  "id": "ccxt",
+  "name": "Crypto Exchanges",
+  "version": "1.0.0",
+  "description": "A skill that connects to multiple cryptocurrency exchanges simultaneously for trading, balance checks, market data, and order management.",
+  "runtime": "python",
+  "entry": "__main__.py",
+  "tick_interval": 300000,
+  "env": [],
+  "dependencies": ["ccxt>=4.0.0", "mcp>=1.0.0", "pydantic>=2.0"],
+  "setup": { "required": true, "label": "Connect Exchanges" }
+}

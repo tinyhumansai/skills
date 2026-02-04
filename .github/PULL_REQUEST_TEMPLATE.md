@@ -38,4 +38,4 @@ Describe how you tested this skill:
 - [ ] Community
 - [ ] NFT
 - [ ] Security
-- [ ] Other: ___
+- [ ] Other: \_\_\_

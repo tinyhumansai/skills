@@ -1,0 +1,91 @@
+{
+  "id": "otter",
+  "name": "Otter.ai",
+  "version": "1.0.0",
+  "description": "Otter.ai meeting notes integration — fetch transcripts, summaries, and search across meetings.",
+  "runtime": "python",
+  "entry": "__main__.py",
+  "tick_interval": 300000,
+  "env": [],
+  "dependencies": ["aiohttp>=3.9.0", "pydantic>=2.0", "aiosqlite>=0.20.0"],
+  "setup": { "required": true, "label": "Connect Otter.ai" },
+  "entity_schema": {
+    "entity_types": [
+      {
+        "type": "otter.meeting",
+        "label": "Otter Meeting",
+        "description": "An Otter.ai meeting transcript/recording.",
+        "properties": [
+          { "name": "title", "type": "string", "description": "Meeting title" },
+          { "name": "duration", "type": "number", "description": "Duration in seconds" },
+          {
+            "name": "created_at",
+            "type": "number",
+            "description": "Creation time as Unix timestamp"
+          },
+          {
+            "name": "speaker_count",
+            "type": "number",
+            "description": "Number of speakers detected"
+          },
+          {
+            "name": "word_count",
+            "type": "number",
+            "description": "Total word count of transcript"
+          },
+          {
+            "name": "is_processed",
+            "type": "boolean",
+            "description": "Whether transcription is complete"
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "description": "AI-generated summary",
+            "optional": true
+          }
+        ]
+      },
+      {
+        "type": "otter.speaker",
+        "label": "Otter Speaker",
+        "description": "A recognized speaker in Otter.ai meetings.",
+        "properties": [{ "name": "name", "type": "string", "description": "Speaker display name" }]
+      },
+      {
+        "type": "otter.summary",
+        "label": "Otter Summary",
+        "description": "A periodic digest summarizing recent meeting activity.",
+        "properties": [
+          {
+            "name": "summary_type",
+            "type": "string",
+            "description": "Type of summary (e.g. activity, weekly)"
+          },
+          {
+            "name": "start_date",
+            "type": "number",
+            "description": "Period start as Unix timestamp"
+          },
+          { "name": "end_date", "type": "number", "description": "Period end as Unix timestamp" }
+        ]
+      }
+    ],
+    "relationship_types": [
+      {
+        "type": "speaker_in",
+        "source_type": "otter.speaker",
+        "target_type": "otter.meeting",
+        "description": "Speaker participated in this meeting.",
+        "cardinality": "many_to_many"
+      },
+      {
+        "type": "summarizes",
+        "source_type": "otter.summary",
+        "target_type": "otter.meeting",
+        "description": "Summary covers activity from this meeting.",
+        "cardinality": "many_to_many"
+      }
+    ]
+  }
+}

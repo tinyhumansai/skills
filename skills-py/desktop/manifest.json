@@ -1,0 +1,12 @@
+{
+  "id": "desktop",
+  "name": "Desktop Automation",
+  "version": "1.0.0",
+  "description": "Desktop automation skill — control mouse and keyboard to autonomously navigate and interact with the desktop, applications, and windows. Supports mouse movement, clicking, scrolling, keyboard typing, hotkeys, and screen capture.",
+  "runtime": "python",
+  "entry": "__main__.py",
+  "tick_interval": null,
+  "env": [],
+  "dependencies": ["pynput>=1.7.6", "Pillow>=10.0.0", "mcp>=1.0.0", "pydantic>=2.0"],
+  "setup": { "required": false, "label": "Configure Desktop Automation" }
+}

@@ -27,3 +27,12 @@ dmypy.json
 # Ruff
 .ruff_cache/
 *.log
+
+# Compiled JavaScript from TypeScript skills
+skills
+skills-ts-out
+examples/**/*.js
+src/**/*.js
+
+# Compiled JavaScript from test harness
+dev/js-harness/**/*.js

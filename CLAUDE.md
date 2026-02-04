@@ -8,261 +8,626 @@ This is the **AlphaHuman Skills** repository — a plugin/extension system for t
 
 ## Architecture
 
-Each skill is a directory under `skills/` containing:
+Skills are written in **TypeScript** and compiled to **JavaScript** for execution in a sandboxed **V8** runtime embedded in the Rust host application.
 
-- **skill.py** — Python module exporting a `skill` variable (a `SkillDefinition` from `dev.types.skill_types`). Provides lifecycle hooks, custom AI tools, and periodic tasks.
-- **setup.py** _(optional)_ — Setup flow handlers for interactive configuration wizards (e.g., Telegram auth).
-- **manifest.json** — Skill metadata (id, name, version, runtime, dependencies, setup config).
-
-### Skill Lifecycle
-
-`on_load` → `on_session_start` → message loop (`on_before_message` / `on_after_response`) → `on_tick` (periodic) → `on_session_end` → `on_unload`
-
-### Setup Flow (Optional)
-
-Skills with `has_setup=True` define an interactive multi-step configuration wizard:
-
-`on_setup_start` → host renders form → `on_setup_submit` → (next step | validation error | complete) → ... → `on_setup_cancel` (if user aborts)
-
-Communication uses JSON-RPC 2.0 methods: `setup/start`, `setup/submit`, `setup/cancel`.
-
-### SkillContext API
-
-Every hook receives a `SkillContext` with:
-
-| Property                                                | Purpose                                                    |
-| ------------------------------------------------------- | ---------------------------------------------------------- |
-| `memory`                                                | Read/write/search the shared memory system                 |
-| `session`                                               | Current session manager                                    |
-| `tools`                                                 | Register/unregister AI tools at runtime                    |
-| `entities`                                              | Query the platform entity graph (contacts, chats, wallets) |
-| `data_dir`                                              | Path to skill's isolated persistent data directory         |
-| `read_data(filename)` / `write_data(filename, content)` | File I/O within `data_dir`                                 |
-| `log(message)`                                          | Debug logging                                              |
-| `get_state()` / `set_state(partial)`                    | Skill state store                                          |
-| `emit_event(name, data)`                                | Emit events for intelligence rules                         |
-| `get_options()`                                         | Returns current runtime option values as a dict            |
-| `skills`                                                | Discover and interact with other skills (SkillsManager)    |
-
-### Tool Registration Pattern
-
-Skills expose tools to the AI via the `tools` list. Each tool has a `definition` (ToolDefinition with name, description, JSON Schema parameters) and an `execute(args)` async function returning `ToolResult(content=...)`.
-
-### Options System
-
-Skills can define runtime-configurable options via the `options` list on `SkillDefinition`. Each option is a `SkillOptionDefinition` with a name, type (`boolean`, `text`, `number`, `select`), label, and optional `tool_filter`. Boolean options with `tool_filter` automatically include/exclude tools from `tools/list` based on their value. Options are persisted to `options.json` in the skill's data directory.
-
-JSON-RPC methods: `options/list`, `options/get`, `options/set`, `options/reset`.
-
-### Disconnect Capability
-
-Skills with `has_disconnect=True` must implement an `on_disconnect` hook. This provides a standardized way for the frontend to trigger a clean disconnection (close connections, clear credentials). Called via `skill/disconnect` JSON-RPC method.
-
-### Triggers System
-
-Skills can declare trigger types via `trigger_schema` on `SkillDefinition`. The LLM creates trigger instances through auto-generated tools. Skills evaluate conditions in their event handlers and fire triggers via `ctx.fire_trigger()`, which notifies the host to start a new AI conversation.
-
-**Trigger Schema**: Declared on `SkillDefinition.trigger_schema` using `TriggerSchema` (contains `TriggerTypeDefinition` objects). Each type declares `condition_fields` (fields usable in conditions) and `config_schema` (type-specific configuration).
-
-**Trigger Hooks**:
-- `on_trigger_register(ctx, trigger)` — Called when a trigger is created or loaded from persistence
-- `on_trigger_remove(ctx, trigger_id)` — Called when a trigger is deleted
-
-**SkillContext methods**:
-- `fire_trigger(trigger_id, matched_data, context)` — Fire-and-forget; sends `triggers/fired` reverse RPC to host
-- `get_triggers()` — Returns all registered trigger instances
-
-**Conditions**: Recursive model supporting `regex`, `keyword`, `threshold`, and compound `and`/`or`/`not`. Evaluated by `dev.utils.conditions.evaluate_condition()`.
-
-**Auto-generated tools** (added to `tools/list` when `trigger_schema` is present): `list-trigger-types`, `list-triggers`, `create-trigger`, `update-trigger`, `delete-trigger`, `get-trigger`.
-
-**JSON-RPC methods**: `triggers/types`, `triggers/list`, `triggers/create`, `triggers/update`, `triggers/delete`, `triggers/get`. Reverse RPC: `triggers/fired`.
-
-**Persistence**: Triggers are persisted to `triggers.json` in the skill's data directory and reloaded on `skill/load`.
-
-### Inter-Skill Communication (Interop)
-
-Skills can discover each other, request data, and call functions across skill boundaries — all routed through the host IPC. Skills declare what they expose via `interop_schema` on `SkillDefinition`, with per-endpoint visibility controlling access.
-
-**Visibility Model**: Per-endpoint `visibility: list[Literal["skills", "frontend"]]`. `[]` = private, `["skills"]` = other skills can access, `["frontend"]` = frontend can access, `["skills", "frontend"]` = both.
-
-**Interop Schema**: Declared on `SkillDefinition.interop_schema` using `InteropSchema` containing `ExposedDataDefinition` and `ExposedFunctionDefinition` objects. Each has a `name`, `description`, `visibility`, and async `handler`.
-
-**SkillContext.skills** (SkillsManager protocol):
-- `list_skills()` — Discover all registered skills
-- `get_skill(skill_id)` — Get info about a specific skill
-- `list_data(skill_id?)` — List exposed data endpoints
-- `list_functions(skill_id?)` — List exposed functions
-- `request_data(skill_id, data_name, params?)` — Request data from another skill
-- `call_function(skill_id, function_name, arguments?)` — Call a function on another skill
-
-**Interop Hooks** (optional interceptors on incoming requests):
-- `on_interop_data(ctx, caller_skill_id, data_name, params) -> dict | None` — intercept data requests
-- `on_interop_call(ctx, caller_skill_id, function_name, arguments) -> dict | None` — intercept function calls
-
-**Auto-generated tools** (always present on every skill): `list-skills`, `list-skill-data`, `list-skill-functions`, `request-skill-data`, `call-skill-function`.
-
-**Forward RPC** (host → skill): `interop/getData`, `interop/callFunction`, `interop/listExposed`.
-
-**Reverse RPC** (skill → host): `skills/list`, `skills/get`, `skills/listData`, `skills/listFunctions`, `skills/requestData`, `skills/callFunction`.
-
-**Types**: `from dev.types.interop_types import ExposedDataDefinition, ExposedFunctionDefinition, InteropSchema, SkillInfo, ExposedDataInfo, ExposedFunctionInfo`.
-
-## Repository Structure
+### Directory Structure
 
 ```
 skills/                          # Repo root
-├── skills/                      # Production skills
-│   └── telegram/                # Telegram integration (75+ tools)
-├── dev/                         # Developer tooling (Python)
-│   ├── pyproject.toml           # Dependencies: pydantic>=2.0
-│   ├── types/
-│   │   ├── skill_types.py       # Pydantic v2 type definitions
-│   │   ├── setup_types.py       # Setup flow types (SetupStep, SetupField, etc.)
-│   │   ├── trigger_types.py     # Trigger/automation types (TriggerCondition, TriggerInstance, etc.)
-│   │   └── interop_types.py     # Inter-skill communication types (InteropSchema, ExposedDataDefinition, etc.)
-│   ├── utils/
-│   │   └── conditions.py        # Trigger condition evaluator (regex, keyword, threshold, compound)
-│   ├── runtime/
-│   │   ├── server.py            # asyncio JSON-RPC 2.0 server
-│   │   └── interop.py           # Inter-skill communication runtime helpers
-│   ├── harness/                 # Mock context + test runner
-│   ├── validate/                # skill.py validator
-│   ├── scaffold/                # Interactive skill scaffolder
-│   ├── security/                # Secret/pattern scanner
-│   └── catalog/                 # Skills catalog builder
+├── src/                         # TypeScript source files
+│   ├── server-ping/             # Server health monitoring skill
+│   │   ├── index.ts             # Main skill code
+│   │   ├── manifest.json        # Skill metadata
+│   │   └── __tests__/           # Unit tests
+│   ├── notion/                  # Notion API integration
+│   └── telegram/                # Telegram integration
+├── skills/                      # Compiled JavaScript output (git-ignored)
+├── types/
+│   └── globals.d.ts             # Ambient type declarations for bridge APIs
+├── dev/
+│   └── js-harness/              # V8 test harness
+├── scripts/
+│   ├── strip-exports.mjs        # Post-build processing
+│   └── test-js.sh               # Test runner
 ├── examples/                    # Example skills
-│   ├── prompt-only/             # Prompt-only example (no code)
-│   └── tool-skill/              # Python tool example
-├── prompts/                     # Non-coder prompt templates
-│   ├── generate-skill.md
-│   ├── refine-skill.md
-│   └── categories/
-├── docs/                        # Developer documentation
-├── scripts/                     # Developer scripts
-│   ├── test-setup.py            # Interactive setup flow tester
-│   ├── test-server.py           # Interactive server REPL for tools
-│   ├── test-entities.py         # Entity emission tester (live Telegram)
-│   ├── debug-graph.py           # Entity graph inspector / REPL
-│   └── update-catalog.py        # Skills catalog builder
-├── .github/                     # CI/CD and PR templates
-├── CONTRIBUTING.md              # Contribution guidelines
-└── README.md                    # Project README
+├── skills-py/                   # Legacy Python skills (deprecated)
+├── package.json                 # Build scripts
+├── tsconfig.json                # Base TypeScript config
+├── tsconfig.build.json          # Production build config
+└── tsconfig.test.json           # Test build config
 ```
 
-## Dev Tooling Commands
+### Skill Structure
 
-All dev tools are Python and live in `dev/`. Install once with pip:
+Each skill is a directory under `src/` containing:
 
-```bash
-pip install -e dev/
+- **index.ts** — TypeScript source with lifecycle hooks, tools, and business logic
+- **manifest.json** — Metadata (id, name, version, runtime, platforms, setup config)
+- \***\*tests**/\*\* _(optional)_ — Unit tests
 
-# Validate all skills (structure + types)
-python -m dev.validate.validator
+### manifest.json
 
-# Test a specific skill with mock context
-python -m dev.harness.runner skills/telegram --verbose
-
-# Test a skill's interactive setup flow
-python scripts/test-setup.py skills/telegram
-
-# Interactive server REPL — connect, browse tools, call them live
-python scripts/test-server.py
-
-# Update the skills catalog
-python scripts/update-catalog.py
-
-# Security scan all skills
-python -m dev.security.scan_secrets
-
-# Scaffold a new skill interactively
-python -m dev.scaffold.new_skill
-
-# Build skills catalog
-python -m dev.catalog.build_catalog
+```json
+{
+  "id": "my-skill",
+  "name": "My Skill",
+  "runtime": "v8",
+  "entry": "index.js",
+  "version": "1.0.0",
+  "description": "What this skill does",
+  "auto_start": false,
+  "platforms": ["windows", "macos", "linux"],
+  "setup": { "required": true, "label": "Configure My Skill" }
+}
 ```
 
-Or use the CLI entry points after `pip install -e dev/`:
+## Build Commands
 
 ```bash
-skill-validate
-skill-test skills/telegram --verbose
-skill-scan
-skill-new my-skill
-skill-catalog
+# Install dependencies
+yarn install
+
+# Full build: clean, compile TypeScript, post-process
+yarn build
+
+# Type checking only (no emit)
+yarn typecheck
+
+# Watch mode for development
+yarn build:watch
+
+# Run all tests
+yarn test
+
+# Run specific test
+yarn test src/server-ping/__tests__/test-server-ping.ts
 ```
 
-## Code Quality Tools
+## Bridge APIs
 
-The repository uses automated code quality checks that run on pre-push:
+Skills have access to these global namespaces (defined in `types/globals.d.ts`):
 
-- **Ruff** — Fast Python linter and formatter
-- **MyPy** — Static type checker
+| Namespace  | Purpose                             |
+| ---------- | ----------------------------------- |
+| `db`       | SQLite database scoped to skill     |
+| `store`    | Persistent key-value store          |
+| `net`      | HTTP networking (synchronous)       |
+| `cron`     | Cron scheduling (6-field syntax)    |
+| `skills`   | Inter-skill communication           |
+| `platform` | OS info, env vars, notifications    |
+| `state`    | Real-time frontend state publishing |
+| `data`     | File I/O in skill's data directory  |
 
-**IMPORTANT: Always run `ruff check .` and `ruff format .` after making changes and fix any errors before considering the task complete.**
+### Database (`db`)
 
-### Setup
-
-Install development dependencies:
-
-```bash
-pip install -r requirements-dev.txt
+```typescript
+db.exec('CREATE TABLE IF NOT EXISTS logs (...)', []);
+db.exec('INSERT INTO logs (msg) VALUES (?)', ['hello']);
+const row = db.get('SELECT * FROM logs WHERE id = ?', [1]);
+const rows = db.all('SELECT * FROM logs LIMIT 10', []);
+db.kvSet('key', { any: 'value' });
+const value = db.kvGet('key');
 ```
 
-### Manual Usage
+### Store (`store`)
 
-```bash
-# Run linter (must pass before finishing)
-ruff check .
-
-# Format code (run this to auto-fix formatting)
-ruff format .
-
-# Verify formatting without modifying files
-ruff format --check .
-
-# Type checking
-mypy .
+```typescript
+store.set('config', { apiKey: 'xxx' });
+const config = store.get('config');
+store.delete('config');
+const keys = store.keys();
 ```
 
-### Pre-Push Hook
+### HTTP (`net`)
 
-A pre-push git hook automatically runs all checks before pushing. The hook runs:
+```typescript
+const response = net.fetch('https://api.example.com/data', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ query: 'test' }),
+  timeout: 10000,
+});
+// response: { status: number, headers: Record<string, string>, body: string }
+```
 
-- `ruff check .` — Linting
-- `ruff format --check .` — Format verification
-- `mypy .` — Type checking
+### Cron (`cron`)
 
-If any check fails, the push is blocked. Fix the issues and try again.
+```typescript
+// 6-field syntax: seconds minutes hours day month dow
+cron.register('every-10s', '*/10 * * * * *');
+cron.unregister('every-10s');
+const schedules = cron.list();
+```
 
-To bypass the hook (not recommended):
+### State (`state`)
+
+```typescript
+state.set('status', 'healthy');
+state.setPartial({ lastPing: Date.now(), uptime: 99.9 });
+const status = state.get('status');
+```
+
+### Data (`data`)
+
+```typescript
+data.write('config.json', JSON.stringify(config, null, 2));
+const content = data.read('config.json'); // null if not found
+```
+
+### Platform (`platform`)
+
+```typescript
+const os = platform.os(); // "windows", "macos", "linux", "android", "ios"
+const apiKey = platform.env('MY_API_KEY');
+platform.notify('Title', 'Body');
+```
+
+### Skills Interop (`skills`)
+
+```typescript
+const allSkills = skills.list();
+const result = skills.callTool('other-skill', 'tool-name', { arg: 'value' });
+```
+
+## Lifecycle Hooks
+
+Skills implement these functions (all synchronous):
+
+```typescript
+function init(): void; // Load config, create DB tables
+function start(): void; // Register cron schedules, begin work
+function stop(): void; // Cleanup, persist state
+function onCronTrigger(scheduleId: string): void; // Handle cron triggers
+function onSessionStart(args: { sessionId: string }): void; // User started conversation
+function onSessionEnd(args: { sessionId: string }): void; // Conversation ended
+function onSetupStart(): SetupStartResult; // Return first setup step
+function onSetupSubmit(args): SetupSubmitResult; // Process setup step
+function onSetupCancel(): void; // Cleanup on cancel
+function onDisconnect(): void; // User disconnected skill
+function onListOptions(): { options: SkillOption[] }; // Runtime options
+function onSetOption(args: { name: string; value: unknown }): void;
+```
+
+### Lifecycle Flow
+
+```
+Skill Load ── init()
+                │
+        ┌── start()
+        │       │
+        │   onCronTrigger(scheduleId) ← fires on schedule
+        │       │
+        │   onSessionStart/End
+        │       │
+        └── stop()
+```
+
+## Tool Registration
+
+Tools are exposed to the AI via the global `tools` array:
+
+```typescript
+tools = [
+  {
+    name: 'get-status',
+    description: 'Get current skill status',
+    input_schema: {
+      type: 'object',
+      properties: {
+        format: { type: 'string', enum: ['json', 'text'], description: 'Output format' },
+      },
+      required: [],
+    },
+    execute(args): string {
+      // Must return JSON string
+      return JSON.stringify({ status: 'ok', uptime: 99.9 });
+    },
+  },
+];
+```
+
+**Important**: Tool `execute` functions must return **JSON strings**, not objects.
+
+## Setup Flow
+
+Multi-step configuration wizard:
+
+```typescript
+function onSetupStart(): SetupStartResult {
+  return {
+    step: {
+      id: "credentials",
+      title: "API Credentials",
+      description: "Enter your credentials",
+      fields: [
+        { name: "apiKey", type: "password", label: "API Key", required: true },
+        { name: "region", type: "select", label: "Region", options: [...] },
+      ],
+    },
+  };
+}
+
+function onSetupSubmit(args: { stepId: string; values: Record<string, unknown> }): SetupSubmitResult {
+  if (args.stepId === "credentials") {
+    if (!args.values.apiKey) {
+      return { status: "error", errors: [{ field: "apiKey", message: "Required" }] };
+    }
+    // Multi-step: return next step
+    return { status: "next", nextStep: { id: "step2", ... } };
+    // Or complete:
+    return { status: "complete" };
+  }
+}
+```
+
+Field types: `text`, `password`, `number`, `select`, `boolean`.
+
+## Options System
+
+Runtime-configurable settings:
+
+```typescript
+function onListOptions(): { options: SkillOption[] } {
+  return {
+    options: [
+      {
+        name: 'interval',
+        type: 'select',
+        label: 'Check Interval',
+        value: String(CONFIG.interval),
+        options: [
+          { label: 'Every 10s', value: '10' },
+          { label: 'Every 30s', value: '30' },
+        ],
+      },
+    ],
+  };
+}
+
+function onSetOption(args: { name: string; value: unknown }): void {
+  if (args.name === 'interval') {
+    CONFIG.interval = parseInt(args.value as string);
+    // Update cron schedule
+    cron.unregister('work');
+    cron.register('work', `*/${CONFIG.interval} * * * * *`);
+  }
+}
+```
+
+## Testing
+
+Tests use a V8 harness with mocked bridge APIs.
+
+### Test Structure
+
+```typescript
+// src/my-skill/__tests__/test-my-skill.ts
+
+function freshInit(overrides?: Partial<Config>): void {
+  setupSkillTest({
+    storeData: { config: { ...defaultConfig, ...overrides } },
+    fetchResponses: { 'https://api.example.com': { status: 200, body: '{"ok":true}' } },
+  });
+  init();
+}
+
+_describe('My Skill', () => {
+  _it('should initialize', () => {
+    freshInit();
+    _assertNotNull(store.get('config'));
+  });
+
+  _it('should call API', () => {
+    freshInit({ apiKey: 'test' });
+    start();
+    const result = callTool('get-status', {});
+    _assertEqual(result.status, 'ok');
+  });
+});
+```
+
+### Test Helpers
+
+```typescript
+setupSkillTest(options?: {
+  storeData?: Record<string, unknown>;
+  fetchResponses?: Record<string, { status: number; body: string }>;
+  env?: Record<string, string>;
+  platformOs?: string;
+});
+
+callTool(name: string, args?: Record<string, unknown>): unknown;
+getMockState(): { store, fetchCalls, notifications, cronSchedules, ... };
+mockFetchResponse(url: string, status: number, body: string): void;
+mockFetchError(url: string, message?: string): void;
+```
+
+### Running Tests
 
 ```bash
-git push --no-verify
+# Run all tests
+yarn test
+
+# Run specific test
+yarn test src/server-ping/__tests__/test-server-ping.ts
+
+# Compile only (for debugging)
+npx tsc -p tsconfig.test.json
 ```
 
 ## Creating a New Skill
 
-1. Use the scaffolder: `python -m dev.scaffold.new_skill my-skill`
-2. Or copy an example from `examples/tool-skill/`
-3. Edit `skill.py` — implement hooks and tools
-4. Optionally add `setup.py` if the skill needs interactive configuration
-5. Validate: `python -m dev.validate.validator`
-6. Test: `python -m dev.harness.runner skills/your-skill-name`
-7. Submit a pull request
+1. Create directory: `mkdir src/my-skill`
+
+2. Create `manifest.json`:
+
+```json
+{
+  "id": "my-skill",
+  "name": "My Skill",
+  "runtime": "v8",
+  "entry": "index.js",
+  "version": "1.0.0",
+  "description": "What this skill does",
+  "platforms": ["windows", "macos", "linux"]
+}
+```
+
+3. Create `index.ts` with lifecycle hooks and tools
+
+4. Build and test:
+
+```bash
+yarn build
+yarn typecheck
+yarn test src/my-skill/__tests__/test-my-skill.ts
+```
 
 ## Key Constraints
 
-- All skills are Python — no TypeScript, no SKILL.md prompt files
-- Types come from `dev.types.skill_types` and `dev.types.setup_types` (Pydantic v2 models)
-- `tick_interval` is in milliseconds (e.g., `60_000` for one minute), minimum 1000
-- Data persistence uses `read_data`/`write_data` with JSON files in the skill's `data/` directory
-- `on_before_message` and `on_after_response` can transform content by returning a string; other hooks cannot
-- Hooks have a 10-second timeout — keep them fast
-- Skills cannot access other skills' data directories
-- **No underscores in skill names** — skill names must be lowercase-hyphens (e.g., `my-skill`, not `my_skill`). Underscores are reserved for tool namespacing (`skillId__toolName`). If a skill name contains an underscore, replace it with a dash. The validator and scaffolder both enforce this.
-- Skills with `has_setup=True` must implement `on_setup_start` and `on_setup_submit` hooks
-- Skills with `has_disconnect=True` must implement an `on_disconnect` hook
-- Skills with `trigger_schema` should implement `on_trigger_register` and `on_trigger_remove` hooks. Types from `dev.types.trigger_types`.
-- Skills with `interop_schema` expose data/functions to other skills and the frontend. Types from `dev.types.interop_types`. Interop hooks (`on_interop_data`, `on_interop_call`) are optional interceptors for incoming requests.
-- **Split large files into smaller pieces** — avoid writing monolithic files. When a module exceeds ~300 lines, split it into logical sub-modules (e.g., separate files for types, handlers, constants, options). This applies to skill implementations, dev tooling, and any other code in this repo.
+- **TypeScript only** — Skills are TypeScript compiled to JavaScript
+- **V8 runtime** — Sandboxed JS environment with bridge APIs
+- **Synchronous execution** — No async/await; `net.fetch()` is sync with timeout
+- **JSON string results** — Tool execute functions must return JSON strings
+- **6-field cron** — Cron includes seconds: `sec min hour day month dow`
+- **SQL params required** — Always use `?` placeholders, never interpolation
+- **No underscores in skill names** — Use lowercase-hyphens (e.g., `my-skill`)
+- **Isolated data** — Skills cannot access other skills' databases or files
+- **Globals via globalThis** — Tools must access shared state via `globalThis.getSkillState()`, not bare variable names (see Skill State Management pattern)
+
+## Build Process
+
+1. **TypeScript Compilation**: `tsc -p tsconfig.build.json`
+   - Input: `src/*/index.ts`
+   - Output: `skills/*/index.js`
+
+2. **Post-Processing** (`strip-exports.mjs`):
+   - Removes `export {};` module boundaries
+   - Normalizes indentation (4-space → 2-space)
+   - Copies `manifest.json` to output
+
+3. **Output**: Ready-to-run JavaScript in `skills/`
+
+## Common Patterns
+
+### Skill State Management (Recommended Pattern)
+
+For skills with tools that need to access mutable state, use the **globalThis state pattern**. This ensures state is accessible in both the production V8 runtime and the test harness.
+
+**1. Create a `skill-state.ts` module:**
+
+```typescript
+// skill-state.ts
+import type { SkillConfig } from './types';
+
+export interface MySkillState {
+  config: SkillConfig;
+  counter: number;
+  isRunning: boolean;
+}
+
+// Extend globalThis type
+declare global {
+  function getSkillState(): MySkillState;
+  var __skillState: MySkillState;
+}
+
+// Initialize state on module load
+const state: MySkillState = {
+  config: { serverUrl: '', interval: 30 },
+  counter: 0,
+  isRunning: false,
+};
+globalThis.__skillState = state;
+
+// Expose getter function globally
+globalThis.getSkillState = function(): MySkillState {
+  return globalThis.__skillState;
+};
+```
+
+**2. Access state via `globalThis.getSkillState()` everywhere:**
+
+```typescript
+// In index.ts
+import './skill-state'; // Initializes state
+
+function init(): void {
+  const s = globalThis.getSkillState();
+  const saved = store.get('config');
+  if (saved) s.config = { ...s.config, ...saved };
+}
+
+function doPing(): void {
+  const s = globalThis.getSkillState();
+  s.counter++;
+  // ... use s.config, s.counter, etc.
+}
+```
+
+**3. Tools access state the same way:**
+
+```typescript
+// In tools/get-stats.ts
+import '../skill-state'; // Ensures initialization
+
+export const getStatsTool: ToolDefinition = {
+  name: 'get-stats',
+  execute(): string {
+    const s = globalThis.getSkillState();
+    return JSON.stringify({ counter: s.counter });
+  },
+};
+```
+
+**4. Expose helper functions on globalThis for tools:**
+
+```typescript
+// In index.ts - expose functions for tools to call
+const _g = globalThis as Record<string, unknown>;
+_g.doPing = doPing;
+_g.publishState = publishState;
+
+// In tools that call these functions
+(globalThis as { doPing?: () => void }).doPing?.();
+```
+
+**Why this pattern?**
+- Bundled skills use esbuild IIFE format, which creates module-local scopes
+- The test harness uses `new Function()` which has its own scope limitations
+- Accessing state via `globalThis.getSkillState()` works in both environments
+- The production Rust V8 runtime handles this correctly via `execute_script`
+
+### Config Persistence (Simple Pattern)
+
+For simple skills without tools that need state access:
+
+```typescript
+interface SkillConfig {
+  serverUrl: string;
+  interval: number;
+}
+
+const CONFIG: SkillConfig = { serverUrl: '', interval: 30 };
+
+function init(): void {
+  const saved = store.get('config') as Partial<SkillConfig> | null;
+  if (saved) {
+    CONFIG.serverUrl = saved.serverUrl ?? CONFIG.serverUrl;
+    CONFIG.interval = saved.interval ?? CONFIG.interval;
+  }
+}
+
+function stop(): void {
+  store.set('config', CONFIG);
+}
+```
+
+### API Integration
+
+```typescript
+function callApi(endpoint: string, data?: unknown): unknown {
+  try {
+    const response = net.fetch(`https://api.example.com${endpoint}`, {
+      method: data ? 'POST' : 'GET',
+      headers: { Authorization: `Bearer ${CONFIG.apiKey}`, 'Content-Type': 'application/json' },
+      body: data ? JSON.stringify(data) : undefined,
+      timeout: 10000,
+    });
+
+    if (response.status >= 400) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return JSON.parse(response.body);
+  } catch (e) {
+    console.error(`API call failed: ${e}`);
+    throw e;
+  }
+}
+```
+
+### State Publishing
+
+```typescript
+function publishState(): void {
+  state.setPartial({
+    status: isHealthy ? 'healthy' : 'down',
+    lastCheck: new Date().toISOString(),
+    uptime: calculateUptime(),
+    errorCount: FAIL_COUNT,
+  });
+}
+```
+
+### Error Handling with Notifications
+
+```typescript
+function onCronTrigger(scheduleId: string): void {
+  if (scheduleId === 'health-check') {
+    try {
+      const result = checkHealth();
+      if (!result.ok && CONFIG.notifyOnError) {
+        platform.notify('Health Check Failed', result.message);
+      }
+    } catch (e) {
+      console.error(`Health check error: ${e}`);
+      if (CONFIG.notifyOnError) {
+        platform.notify('Health Check Error', String(e));
+      }
+    }
+  }
+}
+```
+
+## Type Definitions
+
+All bridge API types are in `types/globals.d.ts`. Key interfaces:
+
+```typescript
+interface ToolDefinition {
+  name: string;
+  description: string;
+  input_schema: ToolInputSchema;
+  execute: (args: Record<string, unknown>) => string;
+}
+
+interface SetupStep {
+  id: string;
+  title: string;
+  description: string;
+  fields: SetupField[];
+}
+
+interface SetupField {
+  name: string;
+  type: 'text' | 'select' | 'boolean' | 'number' | 'password';
+  label: string;
+  description?: string;
+  required?: boolean;
+  default?: unknown;
+  options?: SetupFieldOption[];
+}
+
+interface SetupStartResult {
+  step: SetupStep;
+}
+
+interface SetupSubmitResult {
+  status: 'next' | 'complete' | 'error';
+  nextStep?: SetupStep;
+  errors?: SetupFieldError[];
+}
+
+interface SkillOption {
+  name: string;
+  type: 'boolean' | 'text' | 'number' | 'select';
+  label: string;
+  value: unknown;
+  options?: SetupFieldOption[];
+}
+```
+
+## Legacy Python Skills
+
+The `skills-py/` directory contains legacy Python skills that are being migrated to TypeScript. Do not create new Python skills — all new skills should be TypeScript.

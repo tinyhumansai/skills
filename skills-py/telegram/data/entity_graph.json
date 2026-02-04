@@ -1,0 +1,1927 @@
+{
+  "entities": [
+    {
+      "type": "telegram.contact",
+      "source": "telegram",
+      "id": null,
+      "source_id": "8012662752",
+      "title": "Dre",
+      "summary": null,
+      "metadata": {
+        "first_name": "Dre",
+        "is_bot": false,
+        "last_name": "Cronye 💵",
+        "username": "drecronye",
+        "phone_number": "96569028879",
+        "is_self": true
+      }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2725355234",
+      "title": "Rezerve Finance / Core",
+      "summary": null,
+      "metadata": { "unread_count": 134, "is_pinned": true, "participants_count": 16 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2063955422",
+      "title": "Hfun Chat",
+      "summary": null,
+      "metadata": { "unread_count": 13328, "is_pinned": false, "participants_count": 12348 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2571758211",
+      "title": "ROPE HAUS",
+      "summary": null,
+      "metadata": { "unread_count": 6404, "is_pinned": false, "participants_count": 366 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2796348057",
+      "title": "Liquid Sonic Drop | $LSD",
+      "summary": null,
+      "metadata": { "unread_count": 432, "is_pinned": false, "participants_count": 405 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "1242127973",
+      "title": "LobsterDAO 🦞",
+      "summary": null,
+      "metadata": {
+        "unread_count": 125,
+        "is_pinned": false,
+        "username": "lobsters_chat",
+        "participants_count": 25812
+      }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2834450712",
+      "title": "ETH Strategy",
+      "summary": null,
+      "metadata": {
+        "unread_count": 21,
+        "is_pinned": false,
+        "username": "ethstrat",
+        "participants_count": 680
+      }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2424600823",
+      "title": "toona sonic",
+      "summary": null,
+      "metadata": {
+        "unread_count": 454,
+        "is_pinned": false,
+        "username": "toonasonic",
+        "participants_count": 596
+      }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "1954915497",
+      "title": "Sonic degenerates",
+      "summary": null,
+      "metadata": { "unread_count": 1992, "is_pinned": false, "participants_count": 2704 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2455278332",
+      "title": "$HEDGY",
+      "summary": null,
+      "metadata": { "unread_count": 530, "is_pinned": false, "participants_count": 724 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "777000",
+      "title": "Telegram",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2237085971",
+      "title": "$GOGLZ | SONIC",
+      "summary": null,
+      "metadata": { "unread_count": 217, "is_pinned": false, "participants_count": 2085 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4517822599",
+      "title": "1% Club",
+      "summary": null,
+      "metadata": { "unread_count": 509, "is_pinned": false, "participants_count": 19 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "1231096558",
+      "title": "TOKEN2049 (Official)",
+      "summary": null,
+      "metadata": {
+        "unread_count": 1626,
+        "is_pinned": false,
+        "username": "token2049official",
+        "participants_count": 22864
+      }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "1369376451",
+      "title": "Sonic Community",
+      "summary": null,
+      "metadata": {
+        "unread_count": 72,
+        "is_pinned": false,
+        "username": "Sonic_English",
+        "participants_count": 26172
+      }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2463701984",
+      "title": "PiPonHL💧",
+      "summary": null,
+      "metadata": { "unread_count": 321, "is_pinned": false, "participants_count": 1215 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2426155788",
+      "title": "Metropolis",
+      "summary": null,
+      "metadata": {
+        "unread_count": 564,
+        "is_pinned": false,
+        "username": "MetropolisDEX",
+        "participants_count": 1398
+      }
+    },
+    {
+      "type": "telegram.channel",
+      "source": "telegram",
+      "id": null,
+      "source_id": "1936296396",
+      "title": "Cat Agency 💕",
+      "summary": null,
+      "metadata": { "unread_count": 126, "is_pinned": false, "participants_count": 161 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2449245625",
+      "title": "HypurrCo & Frens",
+      "summary": null,
+      "metadata": { "unread_count": 3815, "is_pinned": false, "participants_count": 5368 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "8043922470",
+      "title": "AlphaHuman Local Bot",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "steve_test_robot" }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "6140155011",
+      "title": "Esse",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "username": "Esseohen" }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "7948282604",
+      "title": "AlphaHuman Bot",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "alphahumanx_bot" }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "8512120130",
+      "title": "AlphaHuman Staging Bot",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "alphahumantest_bot" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2309778680",
+      "title": "Sonic Ecosystem | App Updates",
+      "summary": null,
+      "metadata": {
+        "unread_count": 9,
+        "is_pinned": false,
+        "username": "SonicEcosystemX",
+        "participants_count": 260
+      }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2630755525",
+      "title": "Daily Farmer 👨‍🌾 $S Trenches",
+      "summary": null,
+      "metadata": {
+        "unread_count": 1,
+        "is_pinned": false,
+        "username": "s_trenches",
+        "participants_count": 145
+      }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "1363104511",
+      "title": "Sonic Builders",
+      "summary": null,
+      "metadata": {
+        "unread_count": 199,
+        "is_pinned": false,
+        "username": "SonicBuilders",
+        "participants_count": 3467
+      }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2666298168",
+      "title": "WOMO Community",
+      "summary": null,
+      "metadata": {
+        "unread_count": 5,
+        "is_pinned": false,
+        "username": "womo_finance",
+        "participants_count": 320
+      }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4835100132",
+      "title": "Rezerve <> Alchemix",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 6 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "340853632",
+      "title": "Shahaf",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "kotevcode" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4806283118",
+      "title": "Poseidon <> Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 5 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2049086589",
+      "title": "Muttski your Furry Friend",
+      "summary": null,
+      "metadata": { "unread_count": 295, "is_pinned": false, "participants_count": 1031 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "8509073799",
+      "title": "Poke 🌴",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "interaction_poke_bot" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4944246221",
+      "title": "rezerve.money <> Vibe Trading",
+      "summary": null,
+      "metadata": { "unread_count": 5, "is_pinned": false, "participants_count": 9 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4968143451",
+      "title": "Rezerve Money / Nansen",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "participants_count": 5 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "7916885366",
+      "title": "Brad Dillon",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "username": "braddill0n" }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "6998746280",
+      "title": "Eric",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "ugbuericsam" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4897305561",
+      "title": "Rezerve Money / Odos",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 7 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "8012662752",
+      "title": "Dre Cronye 💵",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "drecronye" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2879148943",
+      "title": "Balancer <> Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 15 }
+    },
+    {
+      "type": "telegram.channel",
+      "source": "telegram",
+      "id": null,
+      "source_id": "1262166366",
+      "title": "Sonic Announcements",
+      "summary": null,
+      "metadata": {
+        "unread_count": 0,
+        "is_pinned": false,
+        "username": "SonicAnnouncements",
+        "participants_count": 24326
+      }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4643039572",
+      "title": "StakeDAO <> Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 8 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4977938776",
+      "title": "ScribbleDAO <> Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 13, "is_pinned": false, "participants_count": 12 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2308005890",
+      "title": "Rezerve Money / Sonic Labs",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 15 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "7734912941",
+      "title": "Telebiz Bot",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "telebiz_auth_bot" }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "7666991405",
+      "title": "Chef de la Rezerve 🍝",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "CookinRZR" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4971078972",
+      "title": "Galxe x Rezerve Money",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 7 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "7716984487",
+      "title": "User 7716984487",
+      "summary": null,
+      "metadata": { "unread_count": 2, "is_pinned": false }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2664594987",
+      "title": "Rezerve Money / Liquidity Land",
+      "summary": null,
+      "metadata": { "unread_count": 4, "is_pinned": false, "participants_count": 11 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4927378034",
+      "title": "Rezerve x CommunityOneBot",
+      "summary": null,
+      "metadata": { "unread_count": 86, "is_pinned": false, "participants_count": 6 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "8473411829",
+      "title": "User 8473411829",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2264905053",
+      "title": "Sonic Spaces Founders Club",
+      "summary": null,
+      "metadata": { "unread_count": 30, "is_pinned": false, "participants_count": 214 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4880696654",
+      "title": "Rezerve Money / eOracle",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 11 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "474349297",
+      "title": "Fitz | Sherlock",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "username": "Z_Fitz" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4947260451",
+      "title": "Rezerve <> Fracas",
+      "summary": null,
+      "metadata": { "unread_count": 9, "is_pinned": false, "participants_count": 4 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2923046904",
+      "title": "Rezerve Money / Sherlock",
+      "summary": null,
+      "metadata": { "unread_count": 15, "is_pinned": false, "participants_count": 15 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "394326062",
+      "title": "Fez",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "fezbox" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4904296492",
+      "title": "Rezerve Money / Esse",
+      "summary": null,
+      "metadata": { "unread_count": 3, "is_pinned": false, "participants_count": 3 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2722774836",
+      "title": "Token Terminal <> Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 14, "is_pinned": false, "participants_count": 17 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "8016447475",
+      "title": "❤️💎❤️‍🔥",
+      "summary": null,
+      "metadata": { "unread_count": 2, "is_pinned": false, "username": "kamikamiflower" }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "5937297131",
+      "title": "Rahul",
+      "summary": null,
+      "metadata": { "unread_count": 15, "is_pinned": false, "username": "BTC_Rahul" }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "5786935325",
+      "title": "Rebecca M",
+      "summary": null,
+      "metadata": { "unread_count": 2, "is_pinned": false, "username": "TRM3581" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4905352722",
+      "title": "OpenOcean <> Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 11 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2732854129",
+      "title": "Rezerve Money / Gelato Network",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 4 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "1662819253",
+      "title": "Simon",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "s1mkner" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4950266585",
+      "title": "Rezerve Money / ApeBond Protocol",
+      "summary": null,
+      "metadata": { "unread_count": 3, "is_pinned": false, "participants_count": 12 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "6553159555",
+      "title": "Jake Qiang",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "username": "JakeOKX" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4672429503",
+      "title": "Rezerve <> Solus",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 7 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2750549627",
+      "title": "Euler <> Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 17 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4884586445",
+      "title": "Rezerve Money / Merkl",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 8 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "7765174201",
+      "title": "Rob | HYPERPNL",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "poopycit" }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "6055079800",
+      "title": "Justice | Hypernative",
+      "summary": null,
+      "metadata": { "unread_count": 2, "is_pinned": false, "username": "jayn05" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "3098258888",
+      "title": "Rezerve Money / Turtle Club",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 11 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "713858950",
+      "title": "Robin | Token Terminal",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "username": "Robbe300" }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "7891019214",
+      "title": "benji_07",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "benji_077" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4893638624",
+      "title": "Rezerve Money / Spectra",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 14 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "5957251201",
+      "title": "Cronje West",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "username": "cronjewest" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2973715161",
+      "title": "Rezerve <> Rahul MEXC",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 6 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4902881202",
+      "title": "Dopamyn | Rezerve | BABs",
+      "summary": null,
+      "metadata": { "unread_count": 18, "is_pinned": false, "participants_count": 6 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "5058047963",
+      "title": "The Ultimate Sonic Ecosystem Takeover on Galxe w Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 14, "is_pinned": false, "participants_count": 16 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4889883299",
+      "title": "Rezerve Money <> Kaito",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 8 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2446099524",
+      "title": "Alpha Room",
+      "summary": null,
+      "metadata": { "unread_count": 269, "is_pinned": false, "participants_count": 273 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4931138077",
+      "title": "Rezerve <> Lunar (KOLs)",
+      "summary": null,
+      "metadata": { "unread_count": 33, "is_pinned": false, "participants_count": 10 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "5666498864",
+      "title": "Sham",
+      "summary": null,
+      "metadata": { "unread_count": 7, "is_pinned": false, "username": "Shambhavi_78" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2517880491",
+      "title": "Binance wallet <> Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 13, "is_pinned": false, "participants_count": 9 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2881196192",
+      "title": "TheDefiant <> Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 35, "is_pinned": false, "participants_count": 11 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4836344697",
+      "title": "Rezerve money<>GateLabs",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "participants_count": 6 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "7765253315",
+      "title": "YellenDeezRates",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "username": "YellenDeezRates" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "5078024570",
+      "title": "Lighter <> Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 10, "is_pinned": false, "participants_count": 6 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "511018078",
+      "title": "Poppy | BloFin Listing",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "username": "poppypeng" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "2610011464",
+      "title": "Bankless <> Rezerve",
+      "summary": null,
+      "metadata": { "unread_count": 0, "is_pinned": false, "participants_count": 6 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4965572813",
+      "title": "Rezerve <> BNB / BSC",
+      "summary": null,
+      "metadata": { "unread_count": 8, "is_pinned": false, "participants_count": 8 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4948473571",
+      "title": "Rezerve Money <> LoopedHype",
+      "summary": null,
+      "metadata": { "unread_count": 9, "is_pinned": false, "participants_count": 11 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4999685467",
+      "title": "Rezerve <> Moonking",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "participants_count": 3 }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4807648122",
+      "title": "Rezerve Design Review",
+      "summary": null,
+      "metadata": { "unread_count": 49, "is_pinned": false, "participants_count": 8 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "6161989386",
+      "title": "Rod | Plexus",
+      "summary": null,
+      "metadata": { "unread_count": 10, "is_pinned": false, "username": "Rodbeck21" }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "1393687531",
+      "title": "Guy P - OpenOcean",
+      "summary": null,
+      "metadata": { "unread_count": 5, "is_pinned": false, "username": "GuyPolio" }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "1967726956",
+      "title": "The Real Sonic Builders 💥",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "participants_count": 194 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "5543794506",
+      "title": "Joe S. | Immunefi",
+      "summary": null,
+      "metadata": { "unread_count": 3, "is_pinned": false, "username": "Joe_Immunefi" }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "7996592161",
+      "title": "User 7996592161",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false }
+    },
+    {
+      "type": "telegram.group",
+      "source": "telegram",
+      "id": null,
+      "source_id": "4824941367",
+      "title": "Rezerve Money / Dia Data",
+      "summary": null,
+      "metadata": { "unread_count": 1, "is_pinned": false, "participants_count": 18 }
+    },
+    {
+      "type": "telegram.dm",
+      "source": "telegram",
+      "id": null,
+      "source_id": "8190249115",
+      "title": "Daniel Cicada",
+      "summary": null,
+      "metadata": { "unread_count": 6, "is_pinned": false, "username": "dani_cicada" }
+    },
+    {
+      "type": "telegram.summary",
+      "source": "telegram",
+      "id": null,
+      "source_id": "mentions:1769892693.140324:1769893893.140324",
+      "title": "Mentions Summary (Feb 01 02:21 - 02:41)",
+      "summary": null,
+      "metadata": {
+        "summary_type": "mentions",
+        "start_date": 1769892693.140324,
+        "end_date": 1769893893.140324,
+        "content": {
+          "mention_count": 0,
+          "mentions": [],
+          "period_start": 1769892693.140324,
+          "period_end": 1769893893.140324
+        },
+        "mention_count": 0
+      }
+    },
+    {
+      "type": "telegram.summary",
+      "source": "telegram",
+      "id": null,
+      "source_id": "top_chats:1769892693.140324:1769893893.140324",
+      "title": "Top Chats Summary (Feb 01 02:21 - 02:41)",
+      "summary": null,
+      "metadata": {
+        "summary_type": "top_chats",
+        "start_date": 1769892693.140324,
+        "end_date": 1769893893.140324,
+        "content": {
+          "top_chats": [],
+          "period_start": 1769892693.140324,
+          "period_end": 1769893893.140324
+        }
+      }
+    },
+    {
+      "type": "telegram.summary",
+      "source": "telegram",
+      "id": null,
+      "source_id": "unread:1769892693.140324:1769893893.140324",
+      "title": "Unread Summary (Feb 01 02:21 - 02:41)",
+      "summary": null,
+      "metadata": {
+        "summary_type": "unread",
+        "start_date": 1769892693.140324,
+        "end_date": 1769893893.140324,
+        "content": {
+          "total_unread": 31886,
+          "unread_chat_count": 65,
+          "unread_chats": [
+            {
+              "chat_id": "2063955422",
+              "title": "Hfun Chat",
+              "type": "supergroup",
+              "unread_count": 13328
+            },
+            {
+              "chat_id": "2571758211",
+              "title": "ROPE HAUS",
+              "type": "supergroup",
+              "unread_count": 6404
+            },
+            {
+              "chat_id": "2449245625",
+              "title": "HypurrCo & Frens",
+              "type": "supergroup",
+              "unread_count": 3815
+            },
+            {
+              "chat_id": "1954915497",
+              "title": "Sonic degenerates",
+              "type": "supergroup",
+              "unread_count": 1992
+            },
+            {
+              "chat_id": "1231096558",
+              "title": "TOKEN2049 (Official)",
+              "type": "supergroup",
+              "unread_count": 1626
+            },
+            {
+              "chat_id": "2426155788",
+              "title": "Metropolis",
+              "type": "supergroup",
+              "unread_count": 564
+            },
+            {
+              "chat_id": "2455278332",
+              "title": "$HEDGY",
+              "type": "supergroup",
+              "unread_count": 530
+            },
+            { "chat_id": "4517822599", "title": "1% Club", "type": "group", "unread_count": 509 },
+            {
+              "chat_id": "2424600823",
+              "title": "toona sonic",
+              "type": "supergroup",
+              "unread_count": 454
+            },
+            {
+              "chat_id": "2796348057",
+              "title": "Liquid Sonic Drop | $LSD",
+              "type": "supergroup",
+              "unread_count": 432
+            },
+            {
+              "chat_id": "2463701984",
+              "title": "PiPonHL💧",
+              "type": "supergroup",
+              "unread_count": 321
+            },
+            {
+              "chat_id": "2049086589",
+              "title": "Muttski your Furry Friend",
+              "type": "supergroup",
+              "unread_count": 295
+            },
+            {
+              "chat_id": "2446099524",
+              "title": "Alpha Room",
+              "type": "supergroup",
+              "unread_count": 269
+            },
+            {
+              "chat_id": "2237085971",
+              "title": "$GOGLZ | SONIC",
+              "type": "supergroup",
+              "unread_count": 217
+            },
+            {
+              "chat_id": "1363104511",
+              "title": "Sonic Builders",
+              "type": "supergroup",
+              "unread_count": 199
+            },
+            {
+              "chat_id": "2725355234",
+              "title": "Rezerve Finance / Core",
+              "type": "supergroup",
+              "unread_count": 134
+            },
+            {
+              "chat_id": "1936296396",
+              "title": "Cat Agency 💕",
+              "type": "channel",
+              "unread_count": 126
+            },
+            {
+              "chat_id": "1242127973",
+              "title": "LobsterDAO 🦞",
+              "type": "supergroup",
+              "unread_count": 125
+            },
+            {
+              "chat_id": "4927378034",
+              "title": "Rezerve x CommunityOneBot",
+              "type": "group",
+              "unread_count": 86
+            },
+            {
+              "chat_id": "1369376451",
+              "title": "Sonic Community",
+              "type": "supergroup",
+              "unread_count": 72
+            },
+            {
+              "chat_id": "4807648122",
+              "title": "Rezerve Design Review",
+              "type": "group",
+              "unread_count": 49
+            },
+            {
+              "chat_id": "2881196192",
+              "title": "TheDefiant <> Rezerve",
+              "type": "supergroup",
+              "unread_count": 35
+            },
+            {
+              "chat_id": "4931138077",
+              "title": "Rezerve <> Lunar (KOLs)",
+              "type": "group",
+              "unread_count": 33
+            },
+            {
+              "chat_id": "2264905053",
+              "title": "Sonic Spaces Founders Club",
+              "type": "supergroup",
+              "unread_count": 30
+            },
+            {
+              "chat_id": "2834450712",
+              "title": "ETH Strategy",
+              "type": "supergroup",
+              "unread_count": 21
+            },
+            {
+              "chat_id": "4902881202",
+              "title": "Dopamyn | Rezerve | BABs",
+              "type": "group",
+              "unread_count": 18
+            },
+            {
+              "chat_id": "2923046904",
+              "title": "Rezerve Money / Sherlock",
+              "type": "supergroup",
+              "unread_count": 15
+            },
+            { "chat_id": "5937297131", "title": "Rahul", "type": "private", "unread_count": 15 },
+            {
+              "chat_id": "2722774836",
+              "title": "Token Terminal <> Rezerve",
+              "type": "supergroup",
+              "unread_count": 14
+            },
+            {
+              "chat_id": "5058047963",
+              "title": "The Ultimate Sonic Ecosystem Takeover on Galxe w Rezerve",
+              "type": "group",
+              "unread_count": 14
+            }
+          ]
+        },
+        "total_unread": 31886
+      }
+    },
+    {
+      "type": "telegram.summary",
+      "source": "telegram",
+      "id": null,
+      "source_id": "activity:1769892693.140324:1769893893.140324",
+      "title": "Activity Summary (Feb 01 02:21 - 02:41)",
+      "summary": null,
+      "metadata": {
+        "summary_type": "activity",
+        "start_date": 1769892693.140324,
+        "end_date": 1769893893.140324,
+        "content": {
+          "total_messages": 0,
+          "active_chat_count": 0,
+          "unique_senders": 0,
+          "active_chats": [],
+          "period_start": 1769892693.140324,
+          "period_end": 1769893893.140324
+        },
+        "total_messages": 0,
+        "active_chat_count": 0
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "source_id": "telegram:777000",
+      "target_id": "telegram:777000",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8043922470",
+      "target_id": "telegram:8043922470",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:6140155011",
+      "target_id": "telegram:6140155011",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7948282604",
+      "target_id": "telegram:7948282604",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8512120130",
+      "target_id": "telegram:8512120130",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:340853632",
+      "target_id": "telegram:340853632",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8509073799",
+      "target_id": "telegram:8509073799",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7916885366",
+      "target_id": "telegram:7916885366",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:6998746280",
+      "target_id": "telegram:6998746280",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8012662752",
+      "target_id": "telegram:8012662752",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7734912941",
+      "target_id": "telegram:7734912941",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7666991405",
+      "target_id": "telegram:7666991405",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7716984487",
+      "target_id": "telegram:7716984487",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8473411829",
+      "target_id": "telegram:8473411829",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:474349297",
+      "target_id": "telegram:474349297",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:394326062",
+      "target_id": "telegram:394326062",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8016447475",
+      "target_id": "telegram:8016447475",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:5937297131",
+      "target_id": "telegram:5937297131",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:5786935325",
+      "target_id": "telegram:5786935325",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:1662819253",
+      "target_id": "telegram:1662819253",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:6553159555",
+      "target_id": "telegram:6553159555",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7765174201",
+      "target_id": "telegram:7765174201",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:6055079800",
+      "target_id": "telegram:6055079800",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:713858950",
+      "target_id": "telegram:713858950",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7891019214",
+      "target_id": "telegram:7891019214",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:5957251201",
+      "target_id": "telegram:5957251201",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:5666498864",
+      "target_id": "telegram:5666498864",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7765253315",
+      "target_id": "telegram:7765253315",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:511018078",
+      "target_id": "telegram:511018078",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:6161989386",
+      "target_id": "telegram:6161989386",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:1393687531",
+      "target_id": "telegram:1393687531",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:5543794506",
+      "target_id": "telegram:5543794506",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7996592161",
+      "target_id": "telegram:7996592161",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8190249115",
+      "target_id": "telegram:8190249115",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2063955422",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2571758211",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2449245625",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:1954915497",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:1231096558",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2426155788",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2455278332",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:4517822599",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2424600823",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2796348057",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2463701984",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2049086589",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2446099524",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2237085971",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:1363104511",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2725355234",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:1936296396",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:1242127973",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:4927378034",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:1369376451",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:4807648122",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2881196192",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:4931138077",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2264905053",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2834450712",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:4902881202",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2923046904",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:5937297131",
+      "type": "summarizes_dm",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:2722774836",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:unread:1769892693.140324:1769893893.140324",
+      "target_id": "telegram:5058047963",
+      "type": "summarizes",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:777000",
+      "target_id": "telegram:777000",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8043922470",
+      "target_id": "telegram:8043922470",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:6140155011",
+      "target_id": "telegram:6140155011",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7948282604",
+      "target_id": "telegram:7948282604",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8512120130",
+      "target_id": "telegram:8512120130",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:340853632",
+      "target_id": "telegram:340853632",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8509073799",
+      "target_id": "telegram:8509073799",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7916885366",
+      "target_id": "telegram:7916885366",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:6998746280",
+      "target_id": "telegram:6998746280",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8012662752",
+      "target_id": "telegram:8012662752",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7734912941",
+      "target_id": "telegram:7734912941",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7666991405",
+      "target_id": "telegram:7666991405",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7716984487",
+      "target_id": "telegram:7716984487",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8473411829",
+      "target_id": "telegram:8473411829",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:474349297",
+      "target_id": "telegram:474349297",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:394326062",
+      "target_id": "telegram:394326062",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8016447475",
+      "target_id": "telegram:8016447475",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:5937297131",
+      "target_id": "telegram:5937297131",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:5786935325",
+      "target_id": "telegram:5786935325",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:1662819253",
+      "target_id": "telegram:1662819253",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:6553159555",
+      "target_id": "telegram:6553159555",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7765174201",
+      "target_id": "telegram:7765174201",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:6055079800",
+      "target_id": "telegram:6055079800",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:713858950",
+      "target_id": "telegram:713858950",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7891019214",
+      "target_id": "telegram:7891019214",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:5957251201",
+      "target_id": "telegram:5957251201",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:5666498864",
+      "target_id": "telegram:5666498864",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7765253315",
+      "target_id": "telegram:7765253315",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:511018078",
+      "target_id": "telegram:511018078",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:6161989386",
+      "target_id": "telegram:6161989386",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:1393687531",
+      "target_id": "telegram:1393687531",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:5543794506",
+      "target_id": "telegram:5543794506",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:7996592161",
+      "target_id": "telegram:7996592161",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    },
+    {
+      "source_id": "telegram:8190249115",
+      "target_id": "telegram:8190249115",
+      "type": "dm_with",
+      "source": "telegram",
+      "metadata": {}
+    }
+  ],
+  "stats": {
+    "entity_count": 105,
+    "relationship_count": 98,
+    "entity_upsert_calls": 207,
+    "relationship_upsert_calls": 98,
+    "by_type": {
+      "telegram.channel": 2,
+      "telegram.contact": 1,
+      "telegram.dm": 34,
+      "telegram.group": 64,
+      "telegram.summary": 4
+    }
+  }
+}

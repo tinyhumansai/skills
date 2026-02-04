@@ -18,63 +18,123 @@ Thank you for contributing to the AlphaHuman skills ecosystem. This guide covers
 git clone https://github.com/YOUR-USERNAME/alphahuman-skills.git
 cd alphahuman-skills
 
-# Install dev tools
-pip install -e dev/
+# Install dependencies
+yarn install
 
 # Create a branch
 git checkout -b skill/my-skill-name
 ```
 
-### 2. Scaffold
+### 2. Create Skill Directory
 
 ```bash
-python -m dev.scaffold.new_skill my-skill
+mkdir src/my-skill
 ```
 
-Or manually copy `examples/tool-skill/` to `skills/your-skill-name/`.
+### 3. Create manifest.json
 
-### 3. Write skill.py
+```json
+{
+  "id": "my-skill",
+  "name": "My Skill",
+  "runtime": "quickjs",
+  "entry": "index.js",
+  "version": "1.0.0",
+  "description": "What this skill does",
+  "auto_start": false,
+  "platforms": ["windows", "macos", "linux"],
+  "setup": { "required": true, "label": "Configure My Skill" }
+}
+```
 
-Every skill needs a `skill.py` that exports a `SkillDefinition`:
+### 4. Write index.ts
 
-- `name` must be lowercase-hyphens matching the directory name
-- `description` — one sentence explaining what the skill does
-- `version` must be semver (X.Y.Z)
-- `hooks` — lifecycle handlers (on_load, on_tick, etc.)
-- `tools` — list of AI-callable tools with JSON Schema parameters
+Every skill needs an `index.ts` with lifecycle hooks and tools:
 
-### 4. Write setup.py (Optional)
+```typescript
+// Configuration
+interface SkillConfig {
+  apiKey: string;
+}
 
-If your skill needs interactive configuration (API keys, auth flows):
+const CONFIG: SkillConfig = { apiKey: '' };
 
-- Export `on_setup_start(ctx)` → returns the first `SetupStep`
-- Export `on_setup_submit(ctx, step_id, values)` → returns `SetupResult` (next/error/complete)
-- Export `on_setup_cancel(ctx)` → cleanup on user abort
-- Set `has_setup=True` in the `SkillDefinition`
+// Lifecycle hooks
+function init(): void {
+  const saved = store.get('config') as Partial<SkillConfig> | null;
+  if (saved) {
+    CONFIG.apiKey = saved.apiKey ?? CONFIG.apiKey;
+  }
+}
 
-### 5. Validate
+function start(): void {
+  console.log('[my-skill] Starting');
+}
+
+function stop(): void {
+  store.set('config', CONFIG);
+}
+
+// Setup flow (if required)
+function onSetupStart(): SetupStartResult {
+  return {
+    step: {
+      id: 'credentials',
+      title: 'API Credentials',
+      description: 'Enter your API key',
+      fields: [{ name: 'apiKey', type: 'password', label: 'API Key', required: true }],
+    },
+  };
+}
+
+function onSetupSubmit(args: {
+  stepId: string;
+  values: Record<string, unknown>;
+}): SetupSubmitResult {
+  if (args.stepId === 'credentials') {
+    const apiKey = args.values.apiKey as string;
+    if (!apiKey) {
+      return { status: 'error', errors: [{ field: 'apiKey', message: 'Required' }] };
+    }
+    CONFIG.apiKey = apiKey;
+    store.set('config', CONFIG);
+    return { status: 'complete' };
+  }
+  return { status: 'error', errors: [] };
+}
+
+function onSetupCancel(): void {}
+
+// Tools
+tools = [
+  {
+    name: 'get-status',
+    description: 'Get current status',
+    input_schema: { type: 'object', properties: {} },
+    execute(args): string {
+      return JSON.stringify({ status: 'ok' });
+    },
+  },
+];
+```
+
+### 5. Build and Test
 
 ```bash
-# Structure and type checks
-python -m dev.validate.validator
+# Build
+yarn build
 
-# Security scan
-python -m dev.security.scan_secrets
+# Type checking
+yarn typecheck
 
-# Test harness (runs hooks + tools with mock context)
-python -m dev.harness.runner skills/my-skill --verbose
-
-# Test setup flow interactively
-python scripts/test-setup.py skills/my-skill
-
-# Interactive server REPL — browse tools, call them live
-python scripts/test-server.py
+# Run tests (if you have __tests__/test-my-skill.ts)
+yarn test src/my-skill/__tests__/test-my-skill.ts
 ```
 
 ### 6. Submit
 
 ```bash
-git add skills/my-skill/
+git add src/my-skill/
 git commit -m "Add my-skill"
 git push -u origin skill/my-skill
 ```
@@ -87,44 +147,50 @@ Open a pull request. Fill out the PR template completely.
 - **Hyphens for spaces**: `on-chain-lookup`, not `on_chain_lookup`
 - **Descriptive**: `whale-watcher`, not `ww`
 - **No prefixes**: `price-tracker`, not `skill-price-tracker`
-- **Directory match**: `name` in skill.py must match the directory name
+- **Directory match**: `id` in manifest.json must match the directory name
 
 ## Code Standards
 
-### skill.py
+### index.ts
 
-- No pip dependencies beyond the skill's declared `dependencies` in manifest.json
-- No `eval()`, `Function()`, or dynamic code execution
-- No direct filesystem access outside `data_dir` — use `ctx.read_data()` / `ctx.write_data()`
-- All hooks must complete within 10 seconds
-- Use `try/except` for operations that might fail
-- Tools must return `ToolResult(content=...)` with a string
+- **Synchronous execution** — No async/await; use `net.fetch()` with timeout
+- **JSON string results** — Tool execute functions must return JSON strings
+- **SQL parameters** — Always use `?` placeholders, never string interpolation
+- **Error handling** — Use `try/catch` for operations that might fail
+- **No hardcoded secrets** — Use `platform.env()` or setup flow for credentials
 
-### setup.py
+### Setup Flow
 
-- Setup state should be module-level (transient, not persisted)
-- Each step validates by actually testing the configuration (e.g., connecting to an API)
-- On completion, persist config via `ctx.write_data("config.json", ...)`
-- Handle cancel gracefully — clean up connections and transient state
+- Each step should validate by actually testing the configuration (e.g., calling an API)
+- On completion, persist config via `store.set("config", ...)`
+- Handle cancel gracefully — clean up any transient state
+
+### Testing
+
+- Create `__tests__/test-my-skill.ts` for unit tests
+- Use `setupSkillTest()` to configure mock state
+- Use `callTool()` to test tools
+- Use `getMockState()` to inspect mock internals
 
 ## What Gets Rejected
 
-1. **Missing skill.py** — every skill needs a `skill.py` with a `skill` export
+1. **Missing manifest.json** — every skill needs a manifest with id, runtime, entry
 2. **Hardcoded secrets** — API keys, tokens, private keys in code
-3. **Dangerous code** — eval(), exec(), dynamic imports from user input
-4. **Name mismatches** — directory name must match skill.py name
-5. **Failing validation** — `python -m dev.validate.validator` must pass
-6. **Security issues** — `python -m dev.security.scan_secrets` must not report errors
-7. **Broken setup flow** — if `has_setup=True`, setup hooks must work correctly
+3. **Async code** — QuickJS doesn't support async/await in skills
+4. **Name mismatches** — directory name must match manifest.json id
+5. **Failing type checks** — `yarn typecheck` must pass
+6. **Security issues** — no eval(), no dynamic code execution
+7. **Broken setup flow** — if setup is required, it must work correctly
 
 ## PR Review Process
 
-1. **Automated CI** runs validation, security scanning, and test harness
+1. **Automated CI** runs build, type checking, and tests
 2. **Maintainer review** checks quality, clarity, and safety
 3. **Feedback round** — you may be asked to make changes
 4. **Merge** — skill becomes available to AlphaHuman users
 
 ## Getting Help
 
-- Check [docs/](docs/) for detailed guides
+- Check [README.md](README.md) for detailed guides
+- Check existing skills in `src/` for examples
 - Open an issue for questions or feature requests

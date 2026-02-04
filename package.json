@@ -1,0 +1,39 @@
+{
+  "name": "@alphahuman/skills",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "clean": "rimraf skills skills-ts-out",
+    "build:ts": "tsc -p tsconfig.build.json",
+    "build:strip": "node scripts/strip-exports.mjs",
+    "build:bundle": "node scripts/bundle-skills.mjs",
+    "build:telegram": "node scripts/bundle-telegram.mjs",
+    "build": "npm run clean && npm run build:ts && npm run build:bundle && npm run build:strip",
+    "build:watch": "node scripts/watch-build.mjs",
+    "watch": "npm run build:watch",
+    "typecheck": "tsc --noEmit",
+    "test": "bash scripts/test-js.sh",
+    "test:script": "deno run --allow-read --allow-env --allow-net --env dev/test-harness/runner.ts",
+    "test:live": "deno run --allow-read --allow-env --allow-net",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "dotenv": "^17.2.3",
+    "esbuild": "^0.24.2",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.4.2",
+    "rimraf": "^6.1.2",
+    "typescript": "~5.8.3"
+  }
+}

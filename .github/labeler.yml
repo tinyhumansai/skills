@@ -3,29 +3,29 @@
 
 new-skill:
   - changed-files:
-      - any-glob-to-any-file: "skills/*/SKILL.md"
+      - any-glob-to-any-file: 'skills/*/SKILL.md'
     all:
-      - head-branch: ["^(?!main$)"]
+      - head-branch: ['^(?!main$)']
 
 skill-update:
   - changed-files:
       - any-glob-to-any-file:
-          - "skills/*/skill.ts"
-          - "skills/*/SKILL.md"
+          - 'skills/*/skill.ts'
+          - 'skills/*/SKILL.md'
 
 tooling:
   - changed-files:
       - any-glob-to-any-file:
-          - "dev/**"
-          - ".github/**"
+          - 'dev/**'
+          - '.github/**'
 
 docs:
   - changed-files:
       - any-glob-to-any-file:
-          - "docs/**"
-          - "*.md"
-          - "prompts/**"
+          - 'docs/**'
+          - '*.md'
+          - 'prompts/**'
 
 examples:
   - changed-files:
-      - any-glob-to-any-file: "examples/**"
+      - any-glob-to-any-file: 'examples/**'

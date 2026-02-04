@@ -1,0 +1,12 @@
+{
+  "id": "onepassword",
+  "name": "1Password",
+  "version": "1.0.0",
+  "description": "Access credentials from local 1Password vault using the 1Password CLI. List items, get passwords, retrieve fields, and search for credentials.",
+  "runtime": "python",
+  "entry": "__main__.py",
+  "tick_interval": 300000,
+  "env": [],
+  "dependencies": [],
+  "setup": { "required": true, "label": "Configure 1Password" }
+}

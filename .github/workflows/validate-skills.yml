@@ -3,10 +3,10 @@ name: Validate Skills
 on:
   pull_request:
     paths:
-      - "skills/**"
-      - "TEMPLATE/**"
-      - "examples/**"
-      - "dev/**"
+      - 'skills/**'
+      - 'TEMPLATE/**'
+      - 'examples/**'
+      - 'dev/**'
 
 jobs:
   validate:
@@ -20,8 +20,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "npm"
+          node-version: '22'
+          cache: 'npm'
           cache-dependency-path: dev/package.json
 
       - name: Install dev dependencies

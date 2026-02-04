@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "lib": ["ES2020"],
+    "outDir": ".",
+    "rootDir": ".",
+    "declaration": false,
+    "sourceMap": false,
+    "noEmit": true,
+    "strict": true,
+    "alwaysStrict": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true
+  },
+  "include": ["types/**/*.d.ts", "src/*/index.ts", "examples/*/index.ts"],
+  "exclude": ["node_modules", ".venv", "dev"]
+}

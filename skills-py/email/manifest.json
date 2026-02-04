@@ -1,0 +1,119 @@
+{
+  "id": "email",
+  "name": "Email",
+  "version": "1.0.0",
+  "description": "Email integration via IMAP/SMTP — 35 tools for reading, sending, searching, and managing email across Gmail, Outlook, Yahoo, iCloud, and custom servers.",
+  "runtime": "python",
+  "entry": "__main__.py",
+  "tick_interval": 300000,
+  "env": [],
+  "dependencies": [
+    "aioimaplib>=2.0.0",
+    "aiosmtplib>=3.0.0",
+    "mcp>=1.0.0",
+    "pydantic>=2.0",
+    "aiosqlite>=0.20.0"
+  ],
+  "setup": { "required": true, "label": "Connect Email" },
+  "entity_schema": {
+    "entity_types": [
+      {
+        "type": "email.account",
+        "label": "Email Account",
+        "description": "A connected email account.",
+        "properties": [
+          { "name": "email", "type": "string", "description": "Email address" },
+          {
+            "name": "provider",
+            "type": "string",
+            "description": "Email provider (gmail, outlook, yahoo, icloud, custom)"
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "description": "Display name",
+            "optional": true
+          }
+        ]
+      },
+      {
+        "type": "email.folder",
+        "label": "Email Folder",
+        "description": "An IMAP mailbox folder.",
+        "properties": [
+          { "name": "name", "type": "string", "description": "Folder name" },
+          { "name": "total_messages", "type": "number", "description": "Total message count" },
+          { "name": "unseen_messages", "type": "number", "description": "Unread message count" }
+        ]
+      },
+      {
+        "type": "email.contact",
+        "label": "Email Contact",
+        "description": "An email address seen in messages.",
+        "properties": [
+          { "name": "email", "type": "string", "description": "Email address" },
+          {
+            "name": "display_name",
+            "type": "string",
+            "description": "Display name",
+            "optional": true
+          },
+          {
+            "name": "message_count",
+            "type": "number",
+            "description": "Number of messages involving this contact"
+          }
+        ]
+      },
+      {
+        "type": "email.summary",
+        "label": "Email Summary",
+        "description": "A periodic digest summarizing email activity.",
+        "properties": [
+          { "name": "summary_type", "type": "string", "description": "One of: activity, unread" },
+          {
+            "name": "start_date",
+            "type": "number",
+            "description": "Period start as Unix timestamp"
+          },
+          { "name": "end_date", "type": "number", "description": "Period end as Unix timestamp" },
+          {
+            "name": "new_messages",
+            "type": "number",
+            "description": "New messages in period",
+            "optional": true
+          },
+          {
+            "name": "total_unread",
+            "type": "number",
+            "description": "Total unread messages",
+            "optional": true
+          }
+        ]
+      }
+    ],
+    "relationship_types": [
+      {
+        "type": "belongs_to",
+        "source_type": "email.folder",
+        "target_type": "email.account",
+        "description": "Folder belongs to this email account.",
+        "cardinality": "many_to_one"
+      },
+      {
+        "type": "corresponds_with",
+        "source_type": "email.account",
+        "target_type": "email.contact",
+        "description": "Account has exchanged emails with this contact.",
+        "cardinality": "many_to_many"
+      },
+      {
+        "type": "summarizes",
+        "source_type": "email.summary",
+        "target_type": "email.account",
+        "description": "Summary covers activity for this account.",
+        "cardinality": "many_to_one"
+      }
+    ]
+  }
+}

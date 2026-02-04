@@ -4,413 +4,510 @@ A plugin system for the [AlphaHuman](https://github.com/bnbpad/alphahuman) platf
 
 ## Features
 
-- **Near real-time capabilities via events.** Skills hook into lifecycle events (`on_tick`, `on_before_message`, `on_after_response`) to react to changes as they happen, monitoring Telegram chats, tracking prices, or surfacing alerts without the user asking. The `on_tick` hook runs on a configurable interval (as low as 1 second), enabling continuous background monitoring.
+- **Near real-time capabilities via cron scheduling.** Skills register cron schedules with 6-field syntax (including seconds) for background monitoring, periodic health checks, and automated tasks. Schedules can run as frequently as every second.
 
-- **Powerful memory through bulk summaries.** Skills persist data to SQLite and JSON files within their isolated `data/` directory. The `on_memory_flush` hook lets skills compress and summarize accumulated data before memory compaction, keeping context rich without ballooning token usage. Skills read and write structured data directly, no round-trips through the LLM.
+- **Powerful persistence through SQLite and key-value stores.** Each skill has an isolated SQLite database and a persistent key-value store. Query with SQL, store structured data, and maintain state across restarts — all without round-trips through the LLM.
 
-- **Cost efficient by keeping logic in Python code.** Tool handlers, data transformations, API calls, and business logic are all written in Python, they execute as native code, not as LLM-generated text. The AI only sees tool definitions (name, description, JSON Schema parameters) and tool results (compact strings). This keeps prompts small and avoids spending tokens on logic that code handles better.
+- **Cost efficient by keeping logic in code.** Tool handlers, data transformations, API calls, and business logic are written in TypeScript, compiled to JavaScript, and run in a sandboxed QuickJS runtime. The AI only sees tool definitions and results. This keeps prompts small and avoids spending tokens on logic that code handles better.
 
-- **Relationship mapping across every integration.** Skills don't just expose tools — they build a structured knowledge graph of entities (contacts, chats, wallets, summaries) and the relationships between them. A Telegram skill emits contacts, groups, channels, and DMs as typed entities, then draws edges like `dm_with`, `summarizes`, and `summarizes_dm` to connect them. The host merges entities from every skill into a single graph the AI can query, traverse, and reason over. This means the AI understands *who* is connected to *what* across platforms, not just within one service. Skills declare their entity and relationship schemas upfront (`EntitySchema`), so the host knows what to expect and can validate the graph as it grows.
+- **Real-time state publishing to the frontend.** Skills can push state updates to the frontend in real time via the `state` API. Perfect for dashboards, status indicators, and live monitoring displays.
 
-**Learn more:** [Architecture](docs/architecture.md) | [API Reference](docs/api-reference.md) | [Lifecycle](docs/lifecycle.md) | [Testing](docs/testing.md) | [Python Skills](docs/python-skills.md) | [Publishing](docs/publishing.md) | [Getting Started](docs/getting-started.md)
+- **Cross-platform support.** Skills declare which platforms they support (Windows, macOS, Linux, Android, iOS). The runtime automatically handles platform-specific behaviors.
 
 ## How Skills Work
 
-A skill is a Python directory under `skills/` containing:
+A skill is a TypeScript directory under `src/` that compiles to JavaScript in `skills/`:
 
-| File            | Required | Purpose                                                                   |
-| --------------- | -------- | ------------------------------------------------------------------------- |
-| `skill.py`      | Yes      | Python module exporting a `SkillDefinition` with hooks, tools, and config |
-| `setup.py`      | No       | Interactive setup flow for configuration wizards (e.g., Telegram auth)    |
-| `manifest.json` | No       | Metadata for runtime skills (id, dependencies, env vars, setup config)    |
+| File            | Required | Purpose                                             |
+| --------------- | -------- | --------------------------------------------------- |
+| `index.ts`      | Yes      | TypeScript source with lifecycle hooks and tools    |
+| `manifest.json` | Yes      | Metadata (id, name, version, runtime, setup config) |
+| `__tests__/`    | No       | Test files for the skill                            |
 
-Skills register tools the AI can call, react to lifecycle events, persist data, and run periodic background tasks.
+Skills register tools the AI can call, react to lifecycle events, persist data, and run scheduled background tasks.
 
 ```
-skills/<SKILLNAME>/
-├── skill.py          # SkillDefinition with hooks and tools
-├── setup.py          # Multi-step Telegram auth wizard
-├── manifest.json     # Runtime config, dependencies, env vars
-├── client/           # Telethon client wrapper
-├── handlers/         # Tool handler functions
-├── api/              # Domain-specific API wrappers
-├── state/            # In-process state management
-├── db/               # SQLite persistence
-└── data/             # Auto-created persistent storage
+src/<skill-name>/
+├── index.ts          # Main skill code (TypeScript)
+├── manifest.json     # Metadata (id, runtime, entry, setup config)
+└── __tests__/
+    └── test-<name>.ts  # Unit tests
 ```
 
 ## Available Skills
 
-| Skill                          | Description                                                                                                    | Setup    |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------- | -------- |
-| [`telegram`](skills/telegram/) | Telegram integration via Telethon MTProto, 75+ tools for chats, messages, contacts, admin, media, and settings | Required |
+| Skill                             | Description                                                    | Setup    |
+| --------------------------------- | -------------------------------------------------------------- | -------- |
+| [`server-ping`](src/server-ping/) | Monitors server health with configurable ping intervals        | Required |
+| [`notion`](src/notion/)           | Notion integration with 22+ tools for pages, databases, blocks | Required |
+| [`telegram`](src/telegram/)       | Telegram integration (in development)                          | Required |
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/) or pip
+- Node.js 18+
+- [QuickJS](https://bellard.org/quickjs/) CLI for testing: `brew install quickjs`
 
-### Install dev tools
-
-```bash
-pip install -e dev/
-# or with uv:
-uv venv .venv && source .venv/bin/activate && uv pip install -e dev/
-```
-
-### Create a skill
+### Install dependencies
 
 ```bash
-# Scaffold a new skill interactively
-python -m dev.scaffold.new_skill my-skill
-
-# Or copy from an example
-cp -r examples/tool-skill/ skills/my-skill/
+yarn install
 ```
 
-### Validate and test
+### Build skills
 
 ```bash
-# Validate all skills
-python -m dev.validate.validator
+# Full build: clean, compile TypeScript, post-process
+yarn build
 
-# Test a specific skill with mock context
-python -m dev.harness.runner skills/my-skill --verbose
+# Type checking only
+yarn typecheck
 
-# Test a skill's interactive setup flow
-python scripts/test-setup.py skills/my-skill
-
-# Interactive server REPL, connect, browse tools, call them live
-python scripts/test-server.py
+# Watch mode for development
+yarn build:watch
 ```
 
-## skill.py Format
+### Run tests
 
-```python
-from dev.types.skill_types import SkillDefinition, SkillHooks, SkillTool, ToolDefinition, ToolResult
+```bash
+# Run all tests
+yarn test
 
-async def on_load(ctx):
-    ctx.log("Skill loaded")
-
-async def my_tool_execute(args):
-    return ToolResult(content=f"Result: {args.get('input', '')}")
-
-skill = SkillDefinition(
-    name="my-skill",
-    description="What this skill does",
-    version="1.0.0",
-    hooks=SkillHooks(
-        on_load=on_load,
-    ),
-    tools=[
-        SkillTool(
-            definition=ToolDefinition(
-                name="my_tool",
-                description="What the tool does",
-                parameters={
-                    "type": "object",
-                    "properties": {
-                        "input": {"type": "string", "description": "Input value"},
-                    },
-                    "required": ["input"],
-                },
-            ),
-            execute=my_tool_execute,
-        ),
-    ],
-    tick_interval=60_000,  # optional: periodic on_tick every 60s
-)
+# Run a specific test
+yarn test src/server-ping/__tests__/test-server-ping.ts
 ```
 
-## Setup Flow (Optional)
+## Skill Structure
 
-Skills that need interactive configuration (API keys, authentication, etc.) can define a setup flow. The host renders multi-step forms and the skill validates each step.
+### manifest.json
 
-```python
-# setup.py
-from dev.types.setup_types import SetupStep, SetupField, SetupResult, SetupFieldError
+```json
+{
+  "id": "my-skill",
+  "name": "My Skill",
+  "runtime": "quickjs",
+  "entry": "index.js",
+  "version": "1.0.0",
+  "description": "What this skill does",
+  "auto_start": false,
+  "platforms": ["windows", "macos", "linux"],
+  "setup": { "required": true, "label": "Configure My Skill" }
+}
+```
 
-async def on_setup_start(ctx):
-    return SetupStep(
-        id="credentials",
-        title="API Credentials",
-        fields=[
-            SetupField(name="api_key", type="password", label="API Key", required=True),
+### index.ts Structure
+
+```typescript
+// Configuration interface
+interface SkillConfig {
+  apiKey: string;
+  refreshInterval: number;
+}
+
+const CONFIG: SkillConfig = { apiKey: '', refreshInterval: 60 };
+
+// ---------------------------------------------------------------------------
+// Lifecycle hooks
+// ---------------------------------------------------------------------------
+
+function init(): void {
+  // Called when skill is loaded
+  // Initialize database tables, load config from store
+  db.exec('CREATE TABLE IF NOT EXISTS logs (...)', []);
+
+  const saved = store.get('config') as Partial<SkillConfig> | null;
+  if (saved) {
+    CONFIG.apiKey = saved.apiKey ?? CONFIG.apiKey;
+  }
+}
+
+function start(): void {
+  // Called when skill should begin active work
+  // Register cron schedules, publish initial state
+  cron.register('refresh', `*/${CONFIG.refreshInterval} * * * * *`);
+  publishState();
+}
+
+function stop(): void {
+  // Called on shutdown
+  // Unregister cron schedules, persist state
+  cron.unregister('refresh');
+  store.set('config', CONFIG);
+}
+
+function onCronTrigger(scheduleId: string): void {
+  // Called when a registered cron schedule fires
+  if (scheduleId === 'refresh') {
+    doRefresh();
+  }
+}
+
+function onSessionStart(args: { sessionId: string }): void {
+  // Called when user starts a conversation
+}
+
+function onSessionEnd(args: { sessionId: string }): void {
+  // Called when conversation ends
+}
+
+// ---------------------------------------------------------------------------
+// Setup flow (multi-step wizard)
+// ---------------------------------------------------------------------------
+
+function onSetupStart(): SetupStartResult {
+  return {
+    step: {
+      id: 'credentials',
+      title: 'API Credentials',
+      description: 'Enter your API key',
+      fields: [{ name: 'apiKey', type: 'password', label: 'API Key', required: true }],
+    },
+  };
+}
+
+function onSetupSubmit(args: {
+  stepId: string;
+  values: Record<string, unknown>;
+}): SetupSubmitResult {
+  if (args.stepId === 'credentials') {
+    const apiKey = args.values.apiKey as string;
+    if (!apiKey) {
+      return { status: 'error', errors: [{ field: 'apiKey', message: 'Required' }] };
+    }
+    CONFIG.apiKey = apiKey;
+    store.set('config', CONFIG);
+    return { status: 'complete' };
+  }
+  return { status: 'error', errors: [] };
+}
+
+function onSetupCancel(): void {
+  // Clean up transient state
+}
+
+function onDisconnect(): void {
+  // Called when user disconnects the skill
+  store.delete('config');
+}
+
+// ---------------------------------------------------------------------------
+// Options (runtime-configurable settings)
+// ---------------------------------------------------------------------------
+
+function onListOptions(): { options: SkillOption[] } {
+  return {
+    options: [
+      {
+        name: 'refreshInterval',
+        type: 'select',
+        label: 'Refresh Interval',
+        value: String(CONFIG.refreshInterval),
+        options: [
+          { label: 'Every 30 seconds', value: '30' },
+          { label: 'Every 60 seconds', value: '60' },
         ],
-    )
+      },
+    ],
+  };
+}
 
-async def on_setup_submit(ctx, step_id, values):
-    if not values.get("api_key"):
-        return SetupResult(
-            status="error",
-            errors=[SetupFieldError(field="api_key", message="Required")],
-        )
-    await ctx.write_data("config.json", json.dumps({"api_key": values["api_key"]}))
-    return SetupResult(status="complete", message="Connected!")
+function onSetOption(args: { name: string; value: unknown }): void {
+  if (args.name === 'refreshInterval') {
+    CONFIG.refreshInterval = parseInt(args.value as string);
+    cron.unregister('refresh');
+    cron.register('refresh', `*/${CONFIG.refreshInterval} * * * * *`);
+    store.set('config', CONFIG);
+  }
+}
 
-async def on_setup_cancel(ctx):
-    pass  # Clean up transient state
+// ---------------------------------------------------------------------------
+// Tools (exposed to AI)
+// ---------------------------------------------------------------------------
+
+tools = [
+  {
+    name: 'get-status',
+    description: 'Get current status',
+    input_schema: { type: 'object', properties: {} },
+    execute(args): string {
+      return JSON.stringify({ status: 'ok', config: CONFIG });
+    },
+  },
+];
 ```
 
-Field types: `text`, `number`, `password`, `select`, `multiselect`, `boolean`.
+## Bridge APIs
 
-Test interactively: `python scripts/test-setup.py skills/my-skill`
+Skills have access to these global namespaces:
+
+### `db` — SQLite Database
+
+```typescript
+db.exec('CREATE TABLE logs (id INTEGER PRIMARY KEY, msg TEXT)', []);
+db.exec('INSERT INTO logs (msg) VALUES (?)', ['hello']);
+const row = db.get('SELECT * FROM logs WHERE id = ?', [1]);
+const rows = db.all('SELECT * FROM logs LIMIT 10', []);
+db.kvSet('key', { any: 'value' });
+const value = db.kvGet('key');
+```
+
+### `store` — Persistent Key-Value Store
+
+```typescript
+store.set('config', { apiKey: 'xxx' });
+const config = store.get('config');
+store.delete('config');
+const keys = store.keys();
+```
+
+### `net` — HTTP Networking
+
+```typescript
+const response = net.fetch('https://api.example.com/data', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ query: 'test' }),
+  timeout: 10000,
+});
+// response: { status: number, headers: Record<string, string>, body: string }
+```
+
+### `cron` — Scheduling
+
+```typescript
+// 6-field cron syntax: seconds minutes hours day month dow
+cron.register('every-10s', '*/10 * * * * *');
+cron.register('every-minute', '0 * * * * *');
+cron.register('daily-9am', '0 0 9 * * *');
+cron.unregister('every-10s');
+const schedules = cron.list();
+```
+
+### `state` — Frontend State Publishing
+
+```typescript
+state.set('status', 'healthy');
+state.setPartial({ lastPing: Date.now(), uptime: 99.9 });
+const status = state.get('status');
+```
+
+### `data` — File I/O
+
+```typescript
+data.write('config.json', JSON.stringify(config, null, 2));
+const content = data.read('config.json'); // returns null if not found
+```
+
+### `platform` — OS Integration
+
+```typescript
+const os = platform.os(); // "windows", "macos", "linux", "android", "ios"
+const apiKey = platform.env('MY_API_KEY'); // whitelisted env vars only
+platform.notify('Server Down', 'api.example.com is not responding');
+```
+
+### `skills` — Inter-Skill Communication
+
+```typescript
+const allSkills = skills.list();
+const result = skills.callTool('other-skill', 'tool-name', { arg: 'value' });
+```
 
 ## Lifecycle Hooks
 
 ```
-App Start ── on_load
+Skill Load ── init()
                 │
-        ┌── on_session_start
+        ┌── start()
         │       │
-        │   on_before_message  ← can transform user message
+        │   onCronTrigger(scheduleId) ← fires on schedule
         │       │
-        │   [AI processes]
+        │   onSessionStart({ sessionId })
         │       │
-        │   on_after_response  ← can transform AI response
+        │   [AI conversation]
         │       │
-        └── on_session_end
-                │
-App Stop ── on_unload           on_tick ← runs every tick_interval ms
+        │   onSessionEnd({ sessionId })
+        │       │
+        └── stop()
 ```
 
-| Hook                | Can Transform? | Use Case                               |
-| ------------------- | :------------: | -------------------------------------- |
-| `on_load`           |                | Load cached data at startup            |
-| `on_unload`         |                | Persist state on shutdown              |
-| `on_session_start`  |                | Report cached alerts, load prefs       |
-| `on_session_end`    |                | Save session summary                   |
-| `on_before_message` |      Yes       | Annotate messages with context         |
-| `on_after_response` |      Yes       | Append disclaimers to responses        |
-| `on_memory_flush`   |                | Save data before memory compaction     |
-| `on_tick`           |                | Background monitoring, periodic checks |
-| `on_setup_start`    |                | Return first setup step                |
-| `on_setup_submit`   |                | Validate and process step submission   |
-| `on_setup_cancel`   |                | Clean up on user cancel                |
+| Hook                        | Purpose                                    |
+| --------------------------- | ------------------------------------------ |
+| `init()`                    | Initialize DB, load config                 |
+| `start()`                   | Begin active work, register cron schedules |
+| `stop()`                    | Clean shutdown, persist state              |
+| `onCronTrigger(scheduleId)` | Handle cron schedule triggers              |
+| `onSessionStart(args)`      | User started a conversation                |
+| `onSessionEnd(args)`        | Conversation ended                         |
+| `onSetupStart()`            | Return first setup step                    |
+| `onSetupSubmit(args)`       | Validate and process setup step            |
+| `onSetupCancel()`           | Clean up on user cancel                    |
+| `onDisconnect()`            | Clean disconnection (clear credentials)    |
+| `onListOptions()`           | Return runtime-configurable options        |
+| `onSetOption(args)`         | Handle option changes                      |
 
-All hooks have a **10-second timeout**. See [Lifecycle docs](docs/lifecycle.md) for details.
+## Setup Flow
 
-## SkillContext API
+Skills that need interactive configuration define a multi-step setup wizard:
 
-Every hook receives a `ctx` object:
+```typescript
+function onSetupStart(): SetupStartResult {
+  return {
+    step: {
+      id: "step1",
+      title: "Step 1",
+      description: "Configure basic settings",
+      fields: [
+        { name: "url", type: "text", label: "URL", required: true },
+        { name: "interval", type: "select", label: "Interval", options: [...] },
+      ],
+    },
+  };
+}
 
-```python
-ctx.memory           # Read/write/search shared memory
-ctx.session          # Session-scoped key-value store
-ctx.tools            # Register/unregister tools at runtime
-ctx.entities         # Query entity graph (contacts, wallets, chats)
-ctx.data_dir         # Path to skill's data directory
-ctx.read_data(file)  # Read from data directory
-ctx.write_data(file) # Write to data directory
-ctx.log(msg)         # Debug logging
-ctx.get_state()      # Read skill state store
-ctx.set_state(patch) # Update skill state store
-ctx.emit_event(name) # Emit events for intelligence rules
+function onSetupSubmit(args: { stepId: string; values: Record<string, unknown> }): SetupSubmitResult {
+  if (args.stepId === "step1") {
+    // Validate
+    if (!args.values.url) {
+      return { status: "error", errors: [{ field: "url", message: "Required" }] };
+    }
+    // Move to next step
+    return { status: "next", nextStep: { id: "step2", ... } };
+  }
+  if (args.stepId === "step2") {
+    // Final step
+    store.set("config", finalConfig);
+    return { status: "complete" };
+  }
+}
 ```
 
-See [API Reference](docs/api-reference.md) for the full type definitions.
+Field types: `text`, `password`, `number`, `select`, `boolean`.
 
-## Relationship Mapping
+## Testing
 
-Skills build a cross-platform knowledge graph by emitting **entities** and **relationships** to the host. The host merges entities from all active skills into a single graph the AI can query, so it understands how contacts, chats, wallets, and summaries relate to each other — across integrations, not just within one.
+Tests use a custom QuickJS harness with mocked bridge APIs.
 
-### How It Works
+### Writing Tests
 
-```
-Telegram Skill                        Host Entity Graph
-─────────────                         ─────────────────
-telegram.contact ──┐
-telegram.group   ──┤── upsert_entity ──►  Unified graph
-telegram.dm      ──┤                      the AI queries
-telegram.summary ──┘                      via ctx.entities
-                     upsert_relationship ──►  Edges between
-                     (dm_with, summarizes)     any two entities
-```
+```typescript
+// src/my-skill/__tests__/test-my-skill.ts
 
-Skills emit entities during `on_load` (initial sync) and `on_tick` (periodic refresh). Each entity has a namespaced type, a source identifier, and arbitrary metadata. Relationships are directed edges with a type and optional metadata.
+function freshInit(overrides?: Partial<Config>): void {
+  setupSkillTest({
+    storeData: { config: { ...defaultConfig, ...overrides } },
+    fetchResponses: { 'https://api.example.com/health': { status: 200, body: '{"ok":true}' } },
+  });
+  init();
+}
 
-### Declaring a Schema
+_describe('My Skill', () => {
+  _it('should initialize correctly', () => {
+    freshInit();
+    _assertNotNull(db.get('SELECT 1', []));
+  });
 
-Skills declare what entity and relationship types they produce via `entity_schema` on the `SkillDefinition`. This lets the host validate the graph and gives other skills and the AI a clear picture of what's available.
-
-```python
-from dev.types.skill_types import (
-    SkillDefinition, EntitySchema,
-    EntityTypeDeclaration, EntityPropertySchema,
-    RelationshipTypeDeclaration,
-)
-
-skill = SkillDefinition(
-    name="my-skill",
-    description="...",
-    entity_schema=EntitySchema(
-        entity_types=[
-            EntityTypeDeclaration(
-                type="myskill.account",
-                label="Account",
-                description="A user account from MyService",
-                properties=[
-                    EntityPropertySchema(name="username", type="string", description="Account handle"),
-                    EntityPropertySchema(name="is_verified", type="boolean", description="Verified status"),
-                ],
-            ),
-            EntityTypeDeclaration(
-                type="myskill.workspace",
-                label="Workspace",
-                description="A shared workspace",
-            ),
-        ],
-        relationship_types=[
-            RelationshipTypeDeclaration(
-                type="member_of",
-                source_type="myskill.account",
-                target_type="myskill.workspace",
-                description="Account is a member of workspace",
-                cardinality="many_to_many",
-            ),
-        ],
-    ),
-    # ... hooks, tools, etc.
-)
+  _it('should handle API calls', () => {
+    freshInit({ apiKey: 'test' });
+    start();
+    const result = callTool('get-status', {});
+    _assertEqual(result.status, 'ok');
+  });
+});
 ```
 
-### Emitting Entities and Relationships
+### Test Helpers
 
-Runtime skills emit entities and relationships via reverse RPC callbacks provided during `on_load`:
+```typescript
+setupSkillTest(options?: {
+  storeData?: Record<string, unknown>;
+  fetchResponses?: Record<string, { status: number; body: string }>;
+  env?: Record<string, string>;
+  platformOs?: string;
+});
 
-```python
-# Emit an entity
-await upsert_entity_fn(
-    type="telegram.contact",
-    source="telegram",
-    source_id="12345",
-    title="Alice",
-    metadata={"username": "alice", "is_premium": True},
-)
+callTool(name: string, args?: Record<string, unknown>): unknown;
 
-# Emit a relationship
-await upsert_relationship_fn(
-    source_id="telegram:dm_12345",
-    target_id="telegram:12345",
-    type="dm_with",
-    source="telegram",
-)
+getMockState(): {
+  store: Record<string, string>;
+  fetchCalls: { url: string; options: string }[];
+  notifications: { title: string; body: string }[];
+  cronSchedules: Record<string, string>;
+  stateValues: Record<string, unknown>;
+  dataFiles: Record<string, string>;
+};
+
+mockFetchResponse(url: string, status: number, body: string): void;
+mockFetchError(url: string, message?: string): void;
 ```
-
-The `upsert` semantics mean skills can safely re-emit entities on every tick — the host deduplicates by `(source, source_id)` and updates metadata in place.
-
-### Querying the Graph
-
-Any skill can query the merged entity graph through `ctx.entities`:
-
-```python
-# Free-text search across all entity types
-results = await ctx.entities.search("alice")
-
-# Filter by tag and type
-wallets = await ctx.entities.get_by_tag("whale", type="wallet")
-
-# Get a specific entity
-entity = await ctx.entities.get_by_id("telegram:12345")
-
-# Traverse relationships
-relationships = await ctx.entities.get_relationships(
-    entity_id="telegram:12345",
-    type="dm_with",         # optional filter
-    direction="outgoing",   # "outgoing" or "incoming"
-)
-```
-
-### Real-World Example: Telegram
-
-The Telegram skill emits five entity types and three relationship types:
-
-| Entity Type         | Examples                             |
-| ------------------- | ------------------------------------ |
-| `telegram.contact`  | Users, bots, the current user (self) |
-| `telegram.dm`       | Private 1-on-1 conversations         |
-| `telegram.group`    | Groups and supergroups               |
-| `telegram.channel`  | Broadcast channels                   |
-| `telegram.summary`  | Activity, unread, mention summaries  |
-
-| Relationship       | Source → Target                                    | Meaning                            |
-| ------------------ | -------------------------------------------------- | ---------------------------------- |
-| `dm_with`          | `telegram.dm` → `telegram.dm`                     | A direct message conversation      |
-| `summarizes`       | `telegram.summary` → `telegram.group/channel`     | Summary covers this group/channel  |
-| `summarizes_dm`    | `telegram.summary` → `telegram.dm`                | Summary covers this DM             |
-
-On load, the skill emits all known chats and contacts. On each tick (every 20 minutes), it refreshes entity metadata (unread counts, participant counts) and emits new summary entities with `summarizes` edges pointing to the chats they reference. This gives the AI a live, traversable view of the user's entire Telegram world.
-
-## Dev Tooling
-
-All tools live in `dev/`. Install once: `pip install -e dev/`
-
-```bash
-python -m dev.validate.validator                    # Validate all skills
-python -m dev.harness.runner skills/my-skill         # Test a specific skill
-python scripts/test-setup.py skills/my-skill           # Test setup flow interactively
-python scripts/test-server.py                        # Interactive server REPL (Telegram)
-python scripts/update-catalog.py                     # Build skills catalog
-python -m dev.security.scan_secrets                  # Security scan all skills
-python -m dev.scaffold.new_skill                     # Scaffold a new skill
-```
-
-Or use CLI entry points: `skill-validate`, `skill-test`, `skill-scan`, `skill-new`, `skill-catalog`.
-
-### Validator
-
-Checks every skill's `skill.py` (exports, types, tool schemas, tick interval, setup hook consistency).
-
-### Test Harness
-
-Loads a skill into a mock context, runs all lifecycle hooks in order, exercises the setup flow if `has_setup=True`, and auto-tests every tool with generated arguments from its JSON Schema.
-
-### Security Scanner
-
-Regex-based scanner that flags hardcoded secrets, `eval()`, direct filesystem access, network requests, and other patterns that don't belong in skills.
 
 ## Repository Structure
 
 ```
 skills/                          # Repo root
-├── skills/                      # Production skills
-│   └── telegram/                # Telegram integration (75+ tools)
-├── dev/                         # Developer tooling (Python)
-│   ├── pyproject.toml           # Dependencies: pydantic>=2.0
-│   ├── types/
-│   │   ├── skill_types.py       # Pydantic v2 type definitions
-│   │   └── setup_types.py       # Setup flow types
-│   ├── runtime/server.py        # asyncio JSON-RPC 2.0 server
-│   ├── harness/                 # Mock context + test runner
-│   ├── validate/                # skill.py validator
-│   ├── scaffold/                # Interactive skill scaffolder
-│   ├── security/                # Secret/pattern scanner
-│   └── catalog/                 # Skills catalog builder
+├── src/                         # TypeScript source
+│   ├── server-ping/             # Server health monitoring skill
+│   ├── notion/                  # Notion integration skill
+│   └── telegram/                # Telegram integration skill
+├── skills/                      # Compiled JavaScript output
+├── types/
+│   └── globals.d.ts             # Ambient type declarations for bridge APIs
+├── dev/
+│   └── js-harness/              # QuickJS test harness (TypeScript)
+│       ├── mock-bridge.ts       # Mock bridge globals
+│       ├── assertions.ts        # Test framework (describe/it/assert)
+│       ├── test-utils.ts        # setupSkillTest(), callTool()
+│       └── runner.ts            # Test runner entry point
+├── scripts/
+│   ├── strip-exports.mjs        # Post-build processing
+│   └── test-js.sh               # Test runner script
 ├── examples/                    # Example skills
-│   └── kitchen-sink/            # Comprehensive example (all capabilities)
-├── prompts/                     # AI prompt templates for non-coders
-│   └── categories/              # Domain-specific generators
-├── docs/                        # Developer documentation
-├── scripts/                     # Developer scripts
-│   ├── test-setup.py            # Interactive setup flow tester
-│   ├── test-server.py           # Interactive server REPL for tools
-│   ├── test-entities.py         # Entity emission tester (live Telegram)
-│   ├── debug-graph.py           # Entity graph inspector / REPL
-│   └── update-catalog.py        # Skills catalog builder
-├── .github/                     # CI workflows + PR template
-├── CONTRIBUTING.md              # How to contribute
+├── skills-py/                   # Legacy Python skills (deprecated)
+├── package.json                 # Build scripts and dependencies
+├── tsconfig.json                # Base TypeScript config
+├── tsconfig.build.json          # Production build config
+├── tsconfig.test.json           # Test build config
 └── CLAUDE.md                    # Guidance for Claude Code
 ```
 
+## Build Process
+
+1. **TypeScript Compilation**: `tsc -p tsconfig.build.json`
+   - Input: `src/*/index.ts`
+   - Output: `skills/*/index.js`
+
+2. **Post-Processing** (`strip-exports.mjs`):
+   - Removes `export {};` module boundaries
+   - Normalizes indentation (4-space → 2-space)
+   - Copies `manifest.json` to output
+
+3. **Output**: Ready-to-run JavaScript in `skills/`
+
+## Creating a New Skill
+
+1. Create directory: `mkdir src/my-skill`
+2. Create `manifest.json` with skill metadata
+3. Create `index.ts` with lifecycle hooks and tools
+4. Build: `yarn build`
+5. Test: `yarn test src/my-skill/__tests__/test-my-skill.ts`
+
+## Key Constraints
+
+- **TypeScript only** — All skills are written in TypeScript, compiled to JavaScript
+- **QuickJS runtime** — Skills run in a sandboxed QuickJS environment
+- **Synchronous execution** — No async/await; `net.fetch()` is synchronous with timeout
+- **JSON string results** — Tools must return JSON strings, not objects
+- **6-field cron** — Cron expressions include seconds: `sec min hour day month dow`
+- **SQL params required** — Always use `?` placeholders, never string interpolation
+- **No underscores in skill names** — Use lowercase-hyphens (e.g., `my-skill`)
+- **Isolated data** — Skills cannot access other skills' databases or data directories
+
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide. The short version:
-
 1. Fork and clone
-2. `pip install -e dev/`
-3. `python -m dev.scaffold.new_skill my-skill`
-4. Write your `skill.py` (and optionally `setup.py`)
-5. `python -m dev.validate.validator`
+2. `yarn install`
+3. Create your skill in `src/`
+4. `yarn build && yarn typecheck`
+5. Add tests and run `yarn test`
 6. Submit a pull request

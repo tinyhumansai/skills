@@ -1,0 +1,266 @@
+{
+  "id": "telegram",
+  "name": "Telegram",
+  "version": "2.0.0",
+  "description": "Telegram integration via Telethon MTProto — 75+ tools for chats, messages, contacts, admin, media, and settings.",
+  "runtime": "python",
+  "entry": "__main__.py",
+  "tick_interval": 1200000,
+  "env": ["TELEGRAM_API_ID", "TELEGRAM_API_HASH"],
+  "dependencies": ["telethon>=1.36.0", "mcp>=1.0.0", "pydantic>=2.0", "aiosqlite>=0.20.0"],
+  "setup": { "required": true, "label": "Connect Telegram" },
+  "entity_schema": {
+    "entity_types": [
+      {
+        "type": "telegram.contact",
+        "label": "Telegram Contact",
+        "description": "A Telegram user (contact, bot, or other participant).",
+        "properties": [
+          { "name": "first_name", "type": "string", "description": "First name" },
+          { "name": "last_name", "type": "string", "description": "Last name", "optional": true },
+          {
+            "name": "username",
+            "type": "string",
+            "description": "Telegram @username",
+            "optional": true
+          },
+          {
+            "name": "phone_number",
+            "type": "string",
+            "description": "Phone number",
+            "optional": true
+          },
+          { "name": "is_bot", "type": "boolean", "description": "Whether this user is a bot" },
+          {
+            "name": "is_premium",
+            "type": "boolean",
+            "description": "Whether this user has Telegram Premium",
+            "optional": true
+          }
+        ]
+      },
+      {
+        "type": "telegram.group",
+        "label": "Telegram Group",
+        "description": "A Telegram group or supergroup chat.",
+        "properties": [
+          { "name": "title", "type": "string", "description": "Group title" },
+          {
+            "name": "username",
+            "type": "string",
+            "description": "Public @username",
+            "optional": true
+          },
+          {
+            "name": "participants_count",
+            "type": "number",
+            "description": "Number of members",
+            "optional": true
+          },
+          {
+            "name": "unread_count",
+            "type": "number",
+            "description": "Current unread message count"
+          },
+          { "name": "is_pinned", "type": "boolean", "description": "Whether this chat is pinned" }
+        ]
+      },
+      {
+        "type": "telegram.channel",
+        "label": "Telegram Channel",
+        "description": "A Telegram broadcast channel.",
+        "properties": [
+          { "name": "title", "type": "string", "description": "Channel title" },
+          {
+            "name": "username",
+            "type": "string",
+            "description": "Public @username",
+            "optional": true
+          },
+          {
+            "name": "participants_count",
+            "type": "number",
+            "description": "Number of subscribers",
+            "optional": true
+          },
+          {
+            "name": "unread_count",
+            "type": "number",
+            "description": "Current unread message count"
+          },
+          { "name": "is_pinned", "type": "boolean", "description": "Whether this chat is pinned" }
+        ]
+      },
+      {
+        "type": "telegram.dm",
+        "label": "Telegram DM",
+        "description": "A private (direct message) conversation with a single contact.",
+        "properties": [
+          { "name": "title", "type": "string", "description": "Display name of the conversation" },
+          {
+            "name": "unread_count",
+            "type": "number",
+            "description": "Current unread message count"
+          },
+          { "name": "is_pinned", "type": "boolean", "description": "Whether this chat is pinned" }
+        ]
+      },
+      {
+        "type": "telegram.summary",
+        "label": "Telegram Summary",
+        "description": "A periodic digest summarizing chat activity, unread counts, top chats, or mentions over a time window.",
+        "properties": [
+          {
+            "name": "summary_type",
+            "type": "string",
+            "description": "One of: activity, unread, top_chats, mentions"
+          },
+          {
+            "name": "start_date",
+            "type": "number",
+            "description": "Period start as Unix timestamp"
+          },
+          { "name": "end_date", "type": "number", "description": "Period end as Unix timestamp" },
+          {
+            "name": "total_messages",
+            "type": "number",
+            "description": "Total messages in period (activity type)",
+            "optional": true
+          },
+          {
+            "name": "active_chat_count",
+            "type": "number",
+            "description": "Number of active chats (activity type)",
+            "optional": true
+          },
+          {
+            "name": "total_unread",
+            "type": "number",
+            "description": "Total unread messages (unread type)",
+            "optional": true
+          },
+          {
+            "name": "mention_count",
+            "type": "number",
+            "description": "Number of mentions (mentions type)",
+            "optional": true
+          }
+        ]
+      },
+      {
+        "type": "telegram.thread",
+        "label": "Telegram Thread",
+        "description": "A message thread (topic) within a group or supergroup.",
+        "properties": [
+          { "name": "title", "type": "string", "description": "Thread title" },
+          {
+            "name": "message_count",
+            "type": "number",
+            "description": "Number of messages in the thread"
+          },
+          {
+            "name": "unread_count",
+            "type": "number",
+            "description": "Unread messages in the thread"
+          },
+          { "name": "is_pinned", "type": "boolean", "description": "Whether the thread is pinned" }
+        ]
+      },
+      {
+        "type": "telegram.topic",
+        "label": "Discussion Topic",
+        "description": "A topic or subject extracted by AI from chat messages.",
+        "properties": [
+          { "name": "name", "type": "string", "description": "Topic name" },
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Topic description",
+            "optional": true
+          }
+        ]
+      },
+      {
+        "type": "telegram.ai_summary",
+        "label": "AI Summary",
+        "description": "An AI-generated natural language summary of chat activity.",
+        "properties": [
+          { "name": "chat_id", "type": "string", "description": "Chat this summary covers" },
+          { "name": "summary", "type": "string", "description": "AI-generated summary text" }
+        ]
+      }
+    ],
+    "relationship_types": [
+      {
+        "type": "member_of",
+        "source_type": "telegram.contact",
+        "target_type": "telegram.group",
+        "description": "Contact is a member of this group.",
+        "cardinality": "many_to_many"
+      },
+      {
+        "type": "admin_of",
+        "source_type": "telegram.contact",
+        "target_type": "telegram.group",
+        "description": "Contact is an admin of this group.",
+        "cardinality": "many_to_many"
+      },
+      {
+        "type": "subscriber_of",
+        "source_type": "telegram.contact",
+        "target_type": "telegram.channel",
+        "description": "Contact subscribes to this channel.",
+        "cardinality": "many_to_many"
+      },
+      {
+        "type": "thread_in",
+        "source_type": "telegram.thread",
+        "target_type": "telegram.group",
+        "description": "Thread exists within this group.",
+        "cardinality": "many_to_one"
+      },
+      {
+        "type": "dm_with",
+        "source_type": "telegram.dm",
+        "target_type": "telegram.contact",
+        "description": "DM conversation is with this contact.",
+        "cardinality": "one_to_one"
+      },
+      {
+        "type": "summarizes",
+        "source_type": "telegram.summary",
+        "target_type": "telegram.group",
+        "description": "Summary covers activity in this group (or channel).",
+        "cardinality": "many_to_many"
+      },
+      {
+        "type": "summarizes_dm",
+        "source_type": "telegram.summary",
+        "target_type": "telegram.dm",
+        "description": "Summary covers activity in this DM.",
+        "cardinality": "many_to_many"
+      },
+      {
+        "type": "discusses",
+        "source_type": "telegram.group",
+        "target_type": "telegram.topic",
+        "description": "Chat is actively discussing this topic.",
+        "cardinality": "many_to_many"
+      },
+      {
+        "type": "interested_in",
+        "source_type": "telegram.contact",
+        "target_type": "telegram.topic",
+        "description": "Contact has shown interest in this topic (based on message activity).",
+        "cardinality": "many_to_many"
+      },
+      {
+        "type": "interacts_with",
+        "source_type": "telegram.contact",
+        "target_type": "telegram.contact",
+        "description": "Two contacts interact frequently across chats.",
+        "cardinality": "many_to_many"
+      }
+    ]
+  }
+}

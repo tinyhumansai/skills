@@ -1,0 +1,13 @@
+node_modules
+skills
+skills-ts-out
+scripts
+examples
+skills-py
+dev
+*.config.js
+*.config.mjs
+*.config.ts
+tsconfig.tsbuildinfo
+yarn.lock
+package-lock.json
