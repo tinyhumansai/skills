@@ -1,12 +1,12 @@
 /**
- * bootstrap.ts - Provides the same globals as Rust's bootstrap.js
+ * bootstrap-node.ts - Provides the same globals as Rust's bootstrap.js (Node.js version)
  *
  * Creates all the bridge APIs (db, store, net, platform, state, data, cron, skills)
  * with mock implementations backed by mock-state.ts.
  */
 
-import { dbAll, dbExec, dbGet, dbKvGet, dbKvSet } from './mock-db.ts';
-import { getMockState, type FetchOptions } from './mock-state.ts';
+import { dbAll, dbExec, dbGet, dbKvGet, dbKvSet } from './mock-db';
+import { getMockState, type FetchOptions } from './mock-state';
 
 /**
  * Create all bridge API globals and inject them into the provided context
@@ -19,7 +19,6 @@ export async function createBridgeAPIs(): Promise<Record<string, unknown>> {
     log: (...args: unknown[]) => {
       const message = args.map(String).join(' ');
       state.consoleOutput.push({ level: 'log', message });
-      // Also print to real console for visibility during script execution
       globalThis.console.log('[skill]', ...args);
     },
     info: (...args: unknown[]) => {
@@ -165,7 +164,6 @@ export async function createBridgeAPIs(): Promise<Record<string, unknown>> {
       return state.peerSkills;
     },
     callTool: (_skillId: string, _toolName: string, _args?: Record<string, unknown>): unknown => {
-      // Mock: would require loading other skills
       return { error: 'Inter-skill calls not supported in test harness' };
     },
   };
@@ -201,7 +199,7 @@ export async function createBridgeAPIs(): Promise<Record<string, unknown>> {
     state.timers.delete(id);
   };
 
-  // Mock window.location for gramjs browser detection
+  // Mock window.location
   const mockLocation = {
     protocol: 'https:',
     host: 'localhost',
@@ -214,10 +212,9 @@ export async function createBridgeAPIs(): Promise<Record<string, unknown>> {
     origin: 'https://localhost',
   };
 
-  // Mock event listeners storage for browser API compatibility (gramjs uses these for offline detection)
+  // Mock event listeners storage
   const mockEventListeners: Map<string, Set<EventListener>> = new Map();
 
-  // Mock window event methods
   const addEventListener = (type: string, listener: EventListener): void => {
     if (!mockEventListeners.has(type)) {
       mockEventListeners.set(type, new Set());
@@ -246,158 +243,29 @@ export async function createBridgeAPIs(): Promise<Record<string, unknown>> {
     return true;
   };
 
-  // Try to use the 'ws' npm package for WebSocket (more compatible with Telegram)
-  // Falls back to Deno's native WebSocket if not available
-  let RealWebSocket: typeof WebSocket;
+  // Try to import ws package for WebSocket
+  let RealWebSocket: unknown;
   try {
-    // Dynamic import of ws package (available via npm in Deno 2+)
-    // @ts-ignore - dynamic npm import
-    const wsModule = await import('npm:ws');
+    const wsModule = await import('ws');
     RealWebSocket = wsModule.default || wsModule.WebSocket;
     globalThis.console.log('[bootstrap] Using ws npm package for WebSocket');
   } catch {
-    // Fallback to Deno's native WebSocket
     RealWebSocket = globalThis.WebSocket;
-    globalThis.console.log('[bootstrap] Using native Deno WebSocket');
+    globalThis.console.log('[bootstrap] Using native WebSocket (ws package not available)');
   }
 
-  // Mock crypto for gramjs cryptography
+  // Mock crypto
+  const { webcrypto } = await import('crypto');
   const mockCrypto = {
     getRandomValues: <T extends ArrayBufferView>(array: T): T => {
-      // Use Deno's crypto for actual randomness
-      if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.getRandomValues) {
-        return globalThis.crypto.getRandomValues(array);
-      }
-      // Fallback: fill with pseudo-random values
-      if (array instanceof Uint8Array) {
-        for (let i = 0; i < array.length; i++) {
-          array[i] = Math.floor(Math.random() * 256);
-        }
-      }
-      return array;
+      return (webcrypto as unknown as Crypto).getRandomValues(array);
     },
-    subtle: typeof globalThis.crypto !== 'undefined' ? globalThis.crypto.subtle : undefined,
-    randomUUID:
-      typeof globalThis.crypto !== 'undefined' && globalThis.crypto.randomUUID
-        ? () => globalThis.crypto.randomUUID()
-        : () => {
-            // Simple UUID v4 fallback
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-              const r = (Math.random() * 16) | 0;
-              const v = c === 'x' ? r : (r & 0x3) | 0x8;
-              return v.toString(16);
-            });
-          },
+    subtle: (webcrypto as unknown as Crypto).subtle,
+    randomUUID: () => (webcrypto as unknown as Crypto).randomUUID(),
   };
 
-  // Mock Buffer class for gramjs (simplified)
-  class MockBuffer extends Uint8Array {
-    static isBuffer(obj: unknown): obj is MockBuffer {
-      return obj instanceof MockBuffer || obj instanceof Uint8Array;
-    }
-
-    static from(
-      data: string | ArrayLike<number> | ArrayBufferLike,
-      encoding?: string
-    ): MockBuffer {
-      if (typeof data === 'string') {
-        if (encoding === 'base64') {
-          const binaryString = atob(data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          return new MockBuffer(bytes);
-        }
-        // Default to utf-8
-        const encoder = new TextEncoder();
-        return new MockBuffer(encoder.encode(data));
-      }
-      if (data instanceof ArrayBuffer) {
-        return new MockBuffer(new Uint8Array(data));
-      }
-      return new MockBuffer(data as ArrayLike<number>);
-    }
-
-    static alloc(size: number, fill?: number): MockBuffer {
-      const buf = new MockBuffer(size);
-      if (fill !== undefined) {
-        buf.fill(fill);
-      }
-      return buf;
-    }
-
-    static allocUnsafe(size: number): MockBuffer {
-      return new MockBuffer(size);
-    }
-
-    static concat(list: Uint8Array[], totalLength?: number): MockBuffer {
-      const length = totalLength ?? list.reduce((acc, arr) => acc + arr.length, 0);
-      const result = new MockBuffer(length);
-      let offset = 0;
-      for (const arr of list) {
-        result.set(arr, offset);
-        offset += arr.length;
-      }
-      return result;
-    }
-
-    toString(encoding?: string): string {
-      if (encoding === 'base64') {
-        let binary = '';
-        for (let i = 0; i < this.length; i++) {
-          binary += String.fromCharCode(this[i]);
-        }
-        return btoa(binary);
-      }
-      if (encoding === 'hex') {
-        return Array.from(this)
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('');
-      }
-      // Default to utf-8
-      const decoder = new TextDecoder();
-      return decoder.decode(this);
-    }
-
-    write(string: string, offset = 0, _length?: number, encoding?: string): number {
-      const bytes = MockBuffer.from(string, encoding);
-      this.set(bytes, offset);
-      return bytes.length;
-    }
-
-    readUInt32BE(offset = 0): number {
-      return (this[offset] << 24) | (this[offset + 1] << 16) | (this[offset + 2] << 8) | this[offset + 3];
-    }
-
-    readUInt32LE(offset = 0): number {
-      return this[offset] | (this[offset + 1] << 8) | (this[offset + 2] << 16) | (this[offset + 3] << 24);
-    }
-
-    writeUInt32BE(value: number, offset = 0): number {
-      this[offset] = (value >>> 24) & 0xff;
-      this[offset + 1] = (value >>> 16) & 0xff;
-      this[offset + 2] = (value >>> 8) & 0xff;
-      this[offset + 3] = value & 0xff;
-      return offset + 4;
-    }
-
-    writeUInt32LE(value: number, offset = 0): number {
-      this[offset] = value & 0xff;
-      this[offset + 1] = (value >>> 8) & 0xff;
-      this[offset + 2] = (value >>> 16) & 0xff;
-      this[offset + 3] = (value >>> 24) & 0xff;
-      return offset + 4;
-    }
-
-    slice(start?: number, end?: number): MockBuffer {
-      return new MockBuffer(super.slice(start, end));
-    }
-
-    subarray(start?: number, end?: number): MockBuffer {
-      return new MockBuffer(super.subarray(start, end));
-    }
-  }
+  // Mock Buffer class
+  const { Buffer: NodeBuffer } = await import('buffer');
 
   return {
     console,
@@ -454,20 +322,20 @@ export async function createBridgeAPIs(): Promise<Record<string, unknown>> {
     TextEncoder,
     TextDecoder,
     // Base64
-    btoa: (str: string): string => btoa(str),
-    atob: (str: string): string => atob(str),
-    // Browser-like globals for gramjs
+    btoa: (str: string): string => NodeBuffer.from(str, 'binary').toString('base64'),
+    atob: (str: string): string => NodeBuffer.from(str, 'base64').toString('binary'),
+    // Browser-like globals
     location: mockLocation,
     WebSocket: RealWebSocket,
     crypto: mockCrypto,
-    Buffer: MockBuffer,
-    // Browser event API mocks (gramjs uses these for offline detection)
+    Buffer: NodeBuffer,
+    // Browser event API mocks
     addEventListener,
     removeEventListener,
     dispatchEvent,
     navigator: {
       onLine: true,
-      userAgent: 'Deno/1.0 (mock harness)',
+      userAgent: 'Node.js/mock (test harness)',
     },
     // Pre-declare skill globals
     tools: [],

@@ -57,9 +57,7 @@ async function performInitialSyncImpl(
     log(`Loaded ${chats.length} chats`);
 
     // 2. Store chats
-    for (const chat of chats) {
-      globalThis.telegramDb.upsertChat(chat);
-    }
+    for (const chat of chats) globalThis.telegramDb.upsertChat(chat);
     log('Stored all chats');
 
     // 3. Load messages for top chats
@@ -82,9 +80,7 @@ async function performInitialSyncImpl(
           ) {
             try {
               const user = await getUser(client, msg.sender_id.user_id);
-              if (user) {
-                globalThis.telegramDb.upsertContact(user);
-              }
+              if (user) globalThis.telegramDb.upsertContact(user);
             } catch {
               // User may not be accessible, ignore
             }

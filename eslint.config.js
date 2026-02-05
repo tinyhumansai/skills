@@ -45,7 +45,7 @@ export default [
         tsconfigRootDir: __dirname,
       },
       globals: {
-        // V8 runtime globals
+        // QuickJS runtime globals
         console: 'readonly',
         setTimeout: 'readonly',
         setInterval: 'readonly',

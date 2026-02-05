@@ -1,0 +1,11 @@
+{
+  "id": "example-skill",
+  "name": "Example Kitchen Sink Skill",
+  "runtime": "quickjs",
+  "entry": "index.js",
+  "version": "1.0.0",
+  "description": "Comprehensive example demonstrating all bridge APIs, lifecycle hooks, setup wizard, options, tools, and patterns.",
+  "auto_start": false,
+  "platforms": ["windows", "macos", "linux"],
+  "setup": { "required": true, "label": "Configure Example Skill" }
+}

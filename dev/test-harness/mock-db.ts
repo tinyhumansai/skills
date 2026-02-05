@@ -1,5 +1,5 @@
 /**
- * mock-db.ts - Simple SQLite mock for V8 skill testing
+ * mock-db.ts - Simple SQLite mock for QuickJS skill testing
  *
  * Provides basic SQL parsing for common operations:
  * - CREATE TABLE IF NOT EXISTS
@@ -9,7 +9,7 @@
  * - DELETE FROM ... WHERE
  */
 
-import { getMockState, type DbTable } from './mock-state.ts';
+import { getMockState, type DbTable } from './mock-state';
 
 interface ParsedSelect {
   columns: string[];

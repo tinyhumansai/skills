@@ -1,5 +1,5 @@
 /**
- * mock-state.ts - Shared mock state for V8 skill testing
+ * mock-state.ts - Shared mock state for QuickJS skill testing
  *
  * Maintains the state that would normally live in the Rust runtime's
  * bridge implementations.

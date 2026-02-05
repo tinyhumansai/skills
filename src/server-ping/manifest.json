@@ -1,7 +1,7 @@
 {
   "id": "server-ping",
   "name": "Server Ping",
-  "runtime": "v8",
+  "runtime": "quickjs",
   "entry": "index.js",
   "version": "2.0.0",
   "description": "Monitors server health with configurable ping intervals. Demos setup flow, DB, state, data, cron, net, platform, skills interop, options, and tools.",

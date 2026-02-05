@@ -1,7 +1,7 @@
 {
   "id": "simple-skill",
   "name": "Simple Test Skill",
-  "runtime": "v8",
+  "runtime": "quickjs",
   "entry": "index.js",
   "version": "1.0.0",
   "description": "A simple skill for testing the harness",

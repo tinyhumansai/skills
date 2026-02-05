@@ -3,14 +3,14 @@ name: Validate Skills
 on:
   pull_request:
     paths:
-      - 'skills/**'
-      - 'TEMPLATE/**'
-      - 'examples/**'
+      - 'src/**'
+      - 'types/**'
+      - 'scripts/**'
       - 'dev/**'
 
 jobs:
   validate:
-    name: Validate & Scan
+    name: Validate, Build & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -21,39 +21,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: dev/package.json
+          cache: 'yarn'
 
-      - name: Install dev dependencies
-        working-directory: dev
-        run: npm install
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
-      - name: Validate all skills
-        working-directory: dev
-        run: npx tsx validate/validate-all.ts
+      - name: Type-check
+        run: yarn typecheck
 
-      - name: Type-check skills
-        working-directory: dev
-        run: npx tsc --noEmit
+      - name: Lint
+        run: yarn lint
 
-      - name: Security scan
-        working-directory: dev
-        run: npx tsx security/scan-secrets.ts
+      - name: Format check
+        run: yarn format:check
 
-      - name: Run test harness on changed skills
-        working-directory: dev
-        run: |
-          # Find skill directories that have a skill.ts
-          for dir in ../skills/*/; do
-            if [ -f "${dir}skill.ts" ]; then
-              echo "Testing ${dir}..."
-              npx tsx harness/runner.ts "${dir}" || exit 1
-            fi
-          done
-          # Also test example skills
-          for dir in ../examples/typescript/*/; do
-            if [ -f "${dir}skill.ts" ]; then
-              echo "Testing ${dir}..."
-              npx tsx harness/runner.ts "${dir}" || exit 1
-            fi
-          done
+      - name: Validate skills
+        run: yarn validate
+
+      - name: Build
+        run: yarn build
+
+      - name: Run tests
+        run: yarn test

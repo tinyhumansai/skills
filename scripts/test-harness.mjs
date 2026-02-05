@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * test-harness.mjs - Simple test harness for V8 skills
+ * test-harness.mjs - Simple test harness for QuickJS skills
  *
- * This harness provides mock implementations of the V8 bridge APIs
+ * This harness provides mock implementations of the QuickJS bridge APIs
  * and runs basic verification tests on bundled skills.
  */
 import { existsSync, readdirSync, readFileSync } from 'fs';
@@ -259,7 +259,7 @@ function testSkill(skillDir, skillName) {
         send() {}
         close() {}
       },
-      navigator: { userAgent: 'V8TestHarness' },
+      navigator: { userAgent: 'QuickJSTestHarness' },
       setTimeout: fn => {
         return 1;
       },
@@ -384,7 +384,7 @@ console.log(
   `${colors.yellow}═══════════════════════════════════════════════════════════════${colors.reset}`
 );
 console.log(
-  `${colors.yellow}                   V8 Skills Test Harness                      ${colors.reset}`
+  `${colors.yellow}                 QuickJS Skills Test Harness                    ${colors.reset}`
 );
 console.log(
   `${colors.yellow}═══════════════════════════════════════════════════════════════${colors.reset}`

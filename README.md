@@ -14,6 +14,8 @@ A plugin system for the [AlphaHuman](https://github.com/bnbpad/alphahuman) platf
 
 - **Cross-platform support.** Skills declare which platforms they support (Windows, macOS, Linux, Android, iOS). The runtime automatically handles platform-specific behaviors.
 
+- **Per-skill dependencies.** Each skill can declare its own npm dependencies via an optional `package.json`. Dependencies are installed automatically during the build and bundled into the single output file.
+
 ## How Skills Work
 
 A skill is a TypeScript directory under `src/` that compiles to JavaScript in `skills/`:
@@ -22,6 +24,7 @@ A skill is a TypeScript directory under `src/` that compiles to JavaScript in `s
 | --------------- | -------- | --------------------------------------------------- |
 | `index.ts`      | Yes      | TypeScript source with lifecycle hooks and tools    |
 | `manifest.json` | Yes      | Metadata (id, name, version, runtime, setup config) |
+| `package.json`  | No       | Per-skill npm dependencies (bundled by esbuild)     |
 | `__tests__/`    | No       | Test files for the skill                            |
 
 Skills register tools the AI can call, react to lifecycle events, persist data, and run scheduled background tasks.
@@ -30,24 +33,26 @@ Skills register tools the AI can call, react to lifecycle events, persist data, 
 src/<skill-name>/
 ├── index.ts          # Main skill code (TypeScript)
 ├── manifest.json     # Metadata (id, runtime, entry, setup config)
+├── package.json      # Optional per-skill dependencies
 └── __tests__/
     └── test-<name>.ts  # Unit tests
 ```
 
 ## Available Skills
 
-| Skill                             | Description                                                    | Setup    |
-| --------------------------------- | -------------------------------------------------------------- | -------- |
-| [`server-ping`](src/server-ping/) | Monitors server health with configurable ping intervals        | Required |
-| [`notion`](src/notion/)           | Notion integration with 22+ tools for pages, databases, blocks | Required |
-| [`telegram`](src/telegram/)       | Telegram integration (in development)                          | Required |
+| Skill                                 | Description                                                    | Setup    |
+| ------------------------------------- | -------------------------------------------------------------- | -------- |
+| [`server-ping`](src/server-ping/)     | Monitors server health with configurable ping intervals        | Required |
+| [`notion`](src/notion/)               | Notion integration with 22+ tools for pages, databases, blocks | Required |
+| [`telegram`](src/telegram/)           | Telegram integration via TDLib with 50+ tools                  | Required |
+| [`gmail`](src/gmail/)                 | Gmail integration with OAuth2 and email management             | Required |
+| [`example-skill`](src/example-skill/) | Kitchen-sink example demonstrating all APIs and patterns       | Required |
 
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
-- [QuickJS](https://bellard.org/quickjs/) CLI for testing: `brew install quickjs`
+- Node.js 22+
 
 ### Install dependencies
 
@@ -58,7 +63,7 @@ yarn install
 ### Build skills
 
 ```bash
-# Full build: clean, compile TypeScript, post-process
+# Full build: clean, install skill deps, compile, bundle, post-process
 yarn build
 
 # Type checking only
@@ -71,11 +76,24 @@ yarn build:watch
 ### Run tests
 
 ```bash
-# Run all tests
+# Run smoke tests on all built skills
 yarn test
 
-# Run a specific test
-yarn test src/server-ping/__tests__/test-server-ping.ts
+# Run a test script against a specific skill
+yarn test:script <skill-id> <script-file>
+
+# Example:
+yarn test:script server-ping scripts/examples/test-ping-flow.js
+```
+
+### Validate skills
+
+```bash
+# Run all validation checks (manifest, secrets, code quality)
+yarn validate
+
+# Secret scanning only
+yarn validate:secrets
 ```
 
 ## Skill Structure
@@ -385,9 +403,29 @@ function onSetupSubmit(args: { stepId: string; values: Record<string, unknown> }
 
 Field types: `text`, `password`, `number`, `select`, `boolean`.
 
+## Per-Skill Dependencies
+
+Skills can declare their own npm dependencies via a `package.json` in their directory:
+
+```json
+// src/my-skill/package.json
+{
+  "name": "@alphahuman/skill-my-skill",
+  "private": true,
+  "dependencies": {
+    "some-library": "^1.0.0"
+  }
+}
+```
+
+- Only `dependencies` are bundled (not `devDependencies`)
+- `node_modules` inside skill directories are gitignored
+- esbuild bundles all imports into the single IIFE output file
+- Dependencies are installed automatically during `yarn build`
+
 ## Testing
 
-Tests use a custom QuickJS harness with mocked bridge APIs.
+Tests use a Node.js test harness (via `tsx`) with mocked bridge APIs.
 
 ### Writing Tests
 
@@ -442,55 +480,92 @@ mockFetchResponse(url: string, status: number, body: string): void;
 mockFetchError(url: string, message?: string): void;
 ```
 
+### Running the Script Runner
+
+```bash
+# Run a test script against a built skill
+yarn test:script <skill-id> <script-file>
+yarn test:script server-ping scripts/examples/test-ping-flow.js
+
+# Live runner with real network connections
+yarn test:live <skill-id> <script-file>
+```
+
+## Validation
+
+Run `yarn validate` to check all skills for:
+
+- **Manifest validation** — required fields, correct runtime, naming conventions
+- **Secret scanning** — API keys, tokens, private keys in source code
+- **Code quality** — no async/await, no eval(), no new Function()
+- **Setup flow completeness** — if setup is required, hooks must be defined
+- **Entry file exists** — `index.ts` must exist
+
+Quick secret scan only: `yarn validate:secrets`
+
 ## Repository Structure
 
 ```
 skills/                          # Repo root
 ├── src/                         # TypeScript source
-│   ├── server-ping/             # Server health monitoring skill
-│   ├── notion/                  # Notion integration skill
-│   └── telegram/                # Telegram integration skill
-├── skills/                      # Compiled JavaScript output
+│   ├── server-ping/             # Server health monitoring
+│   ├── telegram/                # Telegram integration
+│   ├── notion/                  # Notion integration
+│   ├── gmail/                   # Gmail integration
+│   ├── example-skill/           # Kitchen-sink example
+│   └── simple-skill/            # Minimal test skill
+├── skills/                      # Compiled JavaScript output (gitignored)
 ├── types/
 │   └── globals.d.ts             # Ambient type declarations for bridge APIs
 ├── dev/
-│   └── js-harness/              # QuickJS test harness (TypeScript)
-│       ├── mock-bridge.ts       # Mock bridge globals
-│       ├── assertions.ts        # Test framework (describe/it/assert)
-│       ├── test-utils.ts        # setupSkillTest(), callTool()
-│       └── runner.ts            # Test runner entry point
+│   └── test-harness/            # Node.js test harness (tsx)
+│       ├── runner-node.ts       # Script runner
+│       ├── bootstrap-node.ts    # Bridge API mocks
+│       ├── live-runner-node.ts  # Live network runner
+│       ├── mock-state.ts        # Shared mock state
+│       └── mock-db.ts           # SQLite mock
 ├── scripts/
+│   ├── bundle-skills.mjs        # esbuild bundler
 │   ├── strip-exports.mjs        # Post-build processing
-│   └── test-js.sh               # Test runner script
-├── examples/                    # Example skills
+│   ├── install-skill-deps.mjs   # Per-skill dependency installer
+│   ├── validate.mjs             # Skill validator
+│   ├── scan-secrets.mjs         # Secret scanner
+│   ├── test-harness.mjs         # Smoke test runner
+│   ├── test-js.sh               # Test runner script
+│   └── examples/                # Example test scripts
 ├── skills-py/                   # Legacy Python skills (deprecated)
+├── .github/workflows/           # CI pipeline
 ├── package.json                 # Build scripts and dependencies
 ├── tsconfig.json                # Base TypeScript config
 ├── tsconfig.build.json          # Production build config
 ├── tsconfig.test.json           # Test build config
-└── CLAUDE.md                    # Guidance for Claude Code
+├── eslint.config.js             # ESLint configuration
+├── CLAUDE.md                    # Guidance for Claude Code
+├── CONTRIBUTING.md              # Contributor guide
+└── README.md                    # This file
 ```
 
 ## Build Process
 
-1. **TypeScript Compilation**: `tsc -p tsconfig.build.json`
-   - Input: `src/*/index.ts`
-   - Output: `skills/*/index.js`
-
-2. **Post-Processing** (`strip-exports.mjs`):
+1. **Install skill deps**: `node scripts/install-skill-deps.mjs` — installs per-skill `node_modules`
+2. **TypeScript Compilation**: `tsc -p tsconfig.build.json` — compiles `src/*/index.ts`
+3. **esbuild Bundling**: `node scripts/bundle-skills.mjs` — bundles tools into single IIFE
+4. **Post-Processing** (`strip-exports.mjs`):
    - Removes `export {};` module boundaries
    - Normalizes indentation (4-space → 2-space)
    - Copies `manifest.json` to output
 
-3. **Output**: Ready-to-run JavaScript in `skills/`
+Output: Ready-to-run JavaScript in `skills/`
 
 ## Creating a New Skill
 
 1. Create directory: `mkdir src/my-skill`
-2. Create `manifest.json` with skill metadata
+2. Create `manifest.json` with skill metadata (see [`example-skill`](src/example-skill/) for reference)
 3. Create `index.ts` with lifecycle hooks and tools
-4. Build: `yarn build`
-5. Test: `yarn test src/my-skill/__tests__/test-my-skill.ts`
+4. Optionally add `package.json` for npm dependencies
+5. Build: `yarn build`
+6. Validate: `yarn validate`
+7. Test: `yarn test src/my-skill/__tests__/test-my-skill.ts`
 
 ## Key Constraints
 
@@ -507,7 +582,8 @@ skills/                          # Repo root
 
 1. Fork and clone
 2. `yarn install`
-3. Create your skill in `src/`
+3. Create your skill in `src/` (see [`example-skill`](src/example-skill/) for a complete reference)
 4. `yarn build && yarn typecheck`
-5. Add tests and run `yarn test`
-6. Submit a pull request
+5. `yarn validate` (must pass)
+6. Add tests and run `yarn test`
+7. Submit a pull request

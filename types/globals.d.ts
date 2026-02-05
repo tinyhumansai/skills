@@ -1,5 +1,5 @@
-// Ambient type declarations for the AlphaHuman V8 skill runtime.
-// These match the friendly API layer injected by v8_skill_instance.rs.
+// Ambient type declarations for the AlphaHuman QuickJS skill runtime.
+// These match the friendly API layer injected by the Rust host.
 
 // ---------------------------------------------------------------------------
 // Bridge namespaces
@@ -91,10 +91,10 @@ declare const data: {
 declare var tools: ToolDefinition[];
 
 // ---------------------------------------------------------------------------
-// V8 Runtime Globals (available at runtime but not in TypeScript by default)
+// QuickJS Runtime Globals (available at runtime but not in TypeScript by default)
 // ---------------------------------------------------------------------------
 
-/** Console logging (available in V8 runtime) */
+/** Console logging (available in QuickJS runtime) */
 declare const console: {
   log(...args: any[]): void;
   error(...args: any[]): void;
@@ -102,21 +102,21 @@ declare const console: {
   info(...args: any[]): void;
 };
 
-/** Base64 encoding/decoding (available in V8 runtime) */
+/** Base64 encoding/decoding (available in QuickJS runtime) */
 declare function atob(data: string): string;
 declare function btoa(data: string): string;
 
-/** URI encoding (available in V8 runtime) */
+/** URI encoding (available in QuickJS runtime) */
 declare function encodeURIComponent(str: string): string;
 declare function decodeURIComponent(str: string): string;
 
-/** Timer functions (available in V8 runtime) */
+/** Timer functions (available in QuickJS runtime) */
 declare function setTimeout(callback: (...args: any[]) => void, delay: number, ...args: any[]): number;
 declare function clearTimeout(id: number): void;
 declare function setInterval(callback: (...args: any[]) => void, delay: number, ...args: any[]): number;
 declare function clearInterval(id: number): void;
 
-/** AbortController for request cancellation (available in V8 runtime) */
+/** AbortController for request cancellation (available in QuickJS runtime) */
 declare class AbortController {
   readonly signal: AbortSignal;
   abort(): void;

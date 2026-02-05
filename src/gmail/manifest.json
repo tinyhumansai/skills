@@ -1,7 +1,7 @@
 {
   "id": "gmail",
   "name": "Gmail",
-  "runtime": "v8",
+  "runtime": "quickjs",
   "entry": "index.js",
   "version": "1.0.0",
   "description": "Gmail integration via Google API — comprehensive email management with OAuth2 authentication, send/receive, labels, search, and attachments.",

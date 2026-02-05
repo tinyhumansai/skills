@@ -1,13 +1,13 @@
-#!/usr/bin/env -S deno run --allow-read --allow-env
+#!/usr/bin/env tsx
 /**
- * runner.ts - V8 Skill Script Runner
+ * runner-node.ts - QuickJS Skill Script Runner (Node.js)
  *
  * Loads a compiled skill from skills/<skill-id>/index.js and executes
  * a user-written test script against it. Provides the same bridge APIs
- * as the Rust V8 runtime.
+ * as the Rust QuickJS runtime.
  *
  * Usage:
- *   deno run --allow-read --allow-env dev/test-harness/runner.ts <skill-id> <script-file>
+ *   npx tsx dev/test-harness/runner-node.ts <skill-id> <script-file>
  *   yarn test:script <skill-id> <script-file>
  *
  * Example:
@@ -24,12 +24,15 @@
  * Limitations:
  *   - Tools that reference IIFE-scoped state variables (like PING_COUNT, FAIL_COUNT)
  *     may throw ReferenceError because the new Function() sandbox doesn't expose
- *     globalThis properties as variable bindings. The production Rust V8 runtime
+ *     globalThis properties as variable bindings. The production Rust QuickJS runtime
  *     handles this correctly.
  *   - Use simple-skill as a reference for harness-compatible skill structure.
  */
 
-import { createBridgeAPIs } from './bootstrap.ts';
+import { existsSync, readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { createBridgeAPIs } from './bootstrap-node';
 import {
   getMockState,
   initMockState,
@@ -38,7 +41,10 @@ import {
   resetMockState,
   setEnv,
   setPlatformOs,
-} from './mock-state.ts';
+} from './mock-state';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Colors for terminal output
 const colors = {
@@ -53,14 +59,14 @@ const colors = {
 
 function printBanner(): void {
   console.log(`${colors.cyan}═══════════════════════════════════════════════════════════════${colors.reset}`);
-  console.log(`${colors.cyan}              V8 Skill Script Runner (Deno)                    ${colors.reset}`);
+  console.log(`${colors.cyan}            QuickJS Skill Script Runner (Node.js)              ${colors.reset}`);
   console.log(`${colors.cyan}═══════════════════════════════════════════════════════════════${colors.reset}`);
 }
 
 function printUsage(): void {
   console.log(`
 ${colors.yellow}Usage:${colors.reset}
-  deno run --allow-read --allow-env --allow-net dev/test-harness/runner.ts <skill-id> <script-file> [options]
+  npx tsx dev/test-harness/runner-node.ts <skill-id> <script-file> [options]
 
 ${colors.yellow}Arguments:${colors.reset}
   skill-id      The skill directory name (e.g., "server-ping")
@@ -70,7 +76,7 @@ ${colors.yellow}Options:${colors.reset}
   --wait=<ms>   Wait specified milliseconds before cleanup (for async connections)
 
 ${colors.yellow}Examples:${colors.reset}
-  deno run --allow-read --allow-env --allow-net dev/test-harness/runner.ts server-ping scripts/examples/test-ping-flow.js
+  npx tsx dev/test-harness/runner-node.ts server-ping scripts/examples/test-ping-flow.js
   yarn test:script server-ping scripts/examples/test-ping-flow.js
   yarn test:script telegram scripts/examples/test-telegram-setup.js --wait=10000
 
@@ -92,10 +98,10 @@ ${colors.yellow}Script Helpers Available:${colors.reset}
 async function main(): Promise<void> {
   printBanner();
 
-  const args = Deno.args;
+  const args = process.argv.slice(2);
   if (args.length < 2) {
     printUsage();
-    Deno.exit(1);
+    process.exit(1);
   }
 
   // Parse --wait flag for async connection waiting
@@ -114,57 +120,51 @@ async function main(): Promise<void> {
 
   if (filteredArgs.length < 2) {
     printUsage();
-    Deno.exit(1);
+    process.exit(1);
   }
 
   const skillId = filteredArgs[0];
   const scriptFile = filteredArgs[1];
 
   // Resolve paths relative to the skills repo root
-  const scriptDir = new URL('.', import.meta.url).pathname;
-  const rootDir = scriptDir.replace(/\/dev\/test-harness\/?$/, '');
-  const skillDir = `${rootDir}/skills/${skillId}`;
-  const skillIndexPath = `${skillDir}/index.js`;
-  const skillManifestPath = `${skillDir}/manifest.json`;
+  const rootDir = resolve(__dirname, '../..');
+  const skillDir = resolve(rootDir, 'skills', skillId);
+  const skillIndexPath = resolve(skillDir, 'index.js');
+  const skillManifestPath = resolve(skillDir, 'manifest.json');
 
   // Check if skill exists
-  try {
-    await Deno.stat(skillIndexPath);
-  } catch {
+  if (!existsSync(skillIndexPath)) {
     console.error(`${colors.red}Error: Skill "${skillId}" not found at ${skillDir}${colors.reset}`);
     console.error(`${colors.dim}Make sure to run 'yarn build' first.${colors.reset}`);
-    Deno.exit(1);
+    process.exit(1);
   }
 
   // Check if script exists
   let resolvedScriptPath = scriptFile;
   if (!scriptFile.startsWith('/')) {
-    resolvedScriptPath = `${rootDir}/${scriptFile}`;
+    resolvedScriptPath = resolve(rootDir, scriptFile);
   }
 
-  try {
-    await Deno.stat(resolvedScriptPath);
-  } catch {
+  if (!existsSync(resolvedScriptPath)) {
     console.error(`${colors.red}Error: Script file not found: ${resolvedScriptPath}${colors.reset}`);
-    Deno.exit(1);
+    process.exit(1);
   }
 
   // Load manifest
   let manifest: { id: string; name: string; version: string };
   try {
-    const manifestText = await Deno.readTextFile(skillManifestPath);
+    const manifestText = readFileSync(skillManifestPath, 'utf-8');
     manifest = JSON.parse(manifestText);
     console.log(`\n${colors.blue}Loaded skill: ${manifest.name} v${manifest.version} (${manifest.id})${colors.reset}`);
   } catch (e) {
     console.error(`${colors.red}Error loading manifest: ${e}${colors.reset}`);
-    Deno.exit(1);
+    process.exit(1);
   }
 
   // Initialize mock state
   initMockState();
 
-  // Forward environment variables from Deno.env to mock state
-  // This allows .env files loaded via --env flag to be accessible via platform.env()
+  // Forward environment variables to mock state
   const envVarsToForward = [
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_PHONE_NUMBER',
@@ -172,17 +172,16 @@ async function main(): Promise<void> {
     'OPENAI_API_KEY',
   ];
   for (const key of envVarsToForward) {
-    const value = Deno.env.get(key);
+    const value = process.env[key];
     if (value) {
       setEnv(key, value);
     }
   }
 
-  // Create bridge APIs (async to allow dynamic import of ws package)
+  // Create bridge APIs
   const bridgeAPIs = await createBridgeAPIs();
 
   // Build the global context that will be shared by skill and test script
-  // Use a shared object that can be modified and all code sees the changes
   const G: Record<string, unknown> = {
     ...bridgeAPIs,
   };
@@ -203,24 +202,19 @@ async function main(): Promise<void> {
   };
 
   // IMPORTANT: Set WebSocket on globalThis BEFORE loading skill code
-  // because gramjs IIFE captures WebSocket at parse time, not at context setup time
   if (bridgeAPIs.WebSocket) {
     // @ts-ignore - setting global WebSocket
     globalThis.WebSocket = bridgeAPIs.WebSocket;
-    // Also set window-like globals for gramjs platform detection
     // @ts-ignore
     globalThis.window = globalThis;
   }
 
   // Load the skill code
   console.log(`${colors.dim}Loading skill code...${colors.reset}`);
-  const skillCode = await Deno.readTextFile(skillIndexPath);
+  const skillCode = readFileSync(skillIndexPath, 'utf-8');
 
   // Run code with access to shared global G
-  // Uses indirect eval via Function that receives G and destructures it
   const runInContext = (code: string) => {
-    // Build the wrapper that exposes G's properties as local variables
-    // and writes back changes to G
     const fn = new Function('G', `
       "use strict";
       // Destructure globals from G
@@ -286,18 +280,11 @@ async function main(): Promise<void> {
       var location = G.location;
       var WebSocket = G.WebSocket;
       var crypto = G.crypto;
-      // NOTE: Do NOT pre-declare tools, init, start, stop, etc. - the skill code
-      // defines them and we need to let its function declarations work
-      // NOTE: Do NOT inject exports/module - the bundled code creates its own
-      // and the skill code at the end writes to globalThis.__skill
 
       ${code}
 
       // Write back skill exports to G
       G.__skill = (typeof __skill !== 'undefined') ? __skill : ((typeof globalThis !== 'undefined' && globalThis.__skill) ? globalThis.__skill : G.__skill);
-      // Copy lifecycle functions to G (skill may define them directly or via globalThis)
-      // NOTE: Don't write back 'tools' here - bundled skills have fixed tools in __skill.default.tools
-      // and the local 'tools' variable may have broken references due to CommonJS interop issues
       if (typeof init !== 'undefined') G.init = init;
       if (typeof start !== 'undefined') G.start = start;
       if (typeof stop !== 'undefined') G.stop = stop;
@@ -319,7 +306,7 @@ async function main(): Promise<void> {
     console.log(`${colors.green}✓${colors.reset} Skill code loaded`);
   } catch (e) {
     console.error(`${colors.red}Error evaluating skill code: ${e}${colors.reset}`);
-    Deno.exit(1);
+    process.exit(1);
   }
 
   // Extract skill from __skill.default (bundled skills expose this way)
@@ -341,10 +328,6 @@ async function main(): Promise<void> {
   const skill = skillExport?.default;
 
   if (skill) {
-    // Expose skill functions to G for test script access (from __skill.default)
-    // This is in addition to any direct globalThis assignments the skill makes
-    // Always prefer skill.tools over G.tools - bundled skills have fixup code that
-    // repairs the tools array after the CommonJS interop issue
     if (skill.tools) G.tools = skill.tools;
     if (skill.init && !G.init) G.init = skill.init;
     if (skill.start && !G.start) G.start = skill.start;
@@ -366,9 +349,8 @@ async function main(): Promise<void> {
   console.log(`${colors.green}✓${colors.reset} Skill exports extracted`);
 
   // Define helper functions as JavaScript code to inject
-  // These helpers access skill functions via G (the shared global context)
   const helperDefinitions = `
-// Expose skill functions as local vars for helper code (read from G after skill loaded them)
+// Expose skill functions as local vars for helper code
 var tools = G.tools;
 var init = G.init;
 var start = G.start;
@@ -382,10 +364,8 @@ var onSessionEnd = G.onSessionEnd;
 var onListOptions = G.onListOptions;
 var onSetOption = G.onSetOption;
 
-// Tool calling helper
 function callTool(name, args) {
   args = args || {};
-  // Filter out undefined tools (CommonJS interop issue)
   var validTools = tools.filter(function(t) { return t && t.name; });
   var tool = validTools.find(function(t) { return t.name === name; });
   if (!tool) {
@@ -399,7 +379,6 @@ function callTool(name, args) {
   }
 }
 
-// Cron trigger helper
 function triggerCron(scheduleId) {
   if (typeof onCronTrigger === 'function') {
     onCronTrigger(scheduleId);
@@ -408,53 +387,38 @@ function triggerCron(scheduleId) {
   }
 }
 
-// Setup flow helpers
 function triggerSetupStart() {
-  if (typeof onSetupStart === 'function') {
-    return onSetupStart();
-  }
+  if (typeof onSetupStart === 'function') return onSetupStart();
   console.warn('onSetupStart not defined');
   return null;
 }
 
 function triggerSetupSubmit(stepId, values) {
-  if (typeof onSetupSubmit === 'function') {
-    return onSetupSubmit({ stepId: stepId, values: values });
-  }
+  if (typeof onSetupSubmit === 'function') return onSetupSubmit({ stepId: stepId, values: values });
   console.warn('onSetupSubmit not defined');
   return null;
 }
 
-// Session helpers
 function triggerSessionStart(sessionId) {
-  if (typeof onSessionStart === 'function') {
-    onSessionStart({ sessionId: sessionId });
-  }
+  if (typeof onSessionStart === 'function') onSessionStart({ sessionId: sessionId });
 }
 
 function triggerSessionEnd(sessionId) {
-  if (typeof onSessionEnd === 'function') {
-    onSessionEnd({ sessionId: sessionId });
-  }
+  if (typeof onSessionEnd === 'function') onSessionEnd({ sessionId: sessionId });
 }
 
-// Timer helper - uses __helpers to access mock state
 function triggerTimer(timerId) {
   var mockState = __helpers.getMockState();
   var timer = mockState.timers.get(timerId);
   if (timer) {
     timer.callback();
-    if (!timer.isInterval) {
-      mockState.timers.delete(timerId);
-    }
+    if (!timer.isInterval) mockState.timers.delete(timerId);
   } else {
     console.warn('Timer ' + timerId + ' not found');
   }
 }
 
-// List helpers
 function listTools() {
-  // Filter out undefined tools (can happen due to CommonJS interop issues with bundled skills)
   return tools.filter(function(t) { return t && t.name; }).map(function(t) { return t.name; });
 }
 
@@ -467,7 +431,6 @@ function listTimers() {
   return result;
 }
 
-// Mock state helpers
 function __mockFetch(url, response) {
   __helpers.mockFetchResponse(url, response.status, response.body, response.headers);
 }
@@ -521,9 +484,7 @@ function __setPlatformOs(os) {
   console.log(`${colors.yellow}═══════════════════════════════════════════════════════════════${colors.reset}`);
   console.log(`${colors.dim}Script: ${resolvedScriptPath}${colors.reset}\n`);
 
-  const scriptCode = await Deno.readTextFile(resolvedScriptPath);
-
-  // Combine helper definitions with test script
+  const scriptCode = readFileSync(resolvedScriptPath, 'utf-8');
   const fullScript = helperDefinitions + '\n' + scriptCode;
 
   try {
@@ -536,7 +497,7 @@ function __setPlatformOs(os) {
     console.error(`${colors.red}                    Script Error                               ${colors.reset}`);
     console.error(`${colors.red}═══════════════════════════════════════════════════════════════${colors.reset}`);
     console.error(`${colors.red}${e}${colors.reset}`);
-    Deno.exit(1);
+    process.exit(1);
   }
 
   // Wait for async operations if --wait was specified

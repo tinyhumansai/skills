@@ -1,7 +1,7 @@
 {
   "id": "notion",
   "name": "Notion",
-  "runtime": "v8",
+  "runtime": "quickjs",
   "entry": "index.js",
   "version": "1.0.0",
   "description": "Notion workspace integration — 22 tools for pages, databases, blocks, users, comments, and search.",
