@@ -184,24 +184,13 @@ function onSetupStart(): SetupStartResult {
       step: {
         id: 'oauth',
         title: 'Connect to Notion',
-        description:
-          'Click the button below to connect your Notion workspace. ' +
-          "You'll be redirected to Notion to grant access.",
+        description: 'Connect your Notion workspace to get started.',
         fields: [
           {
             name: 'startOAuth',
             type: 'boolean',
-            label: 'Connect with Notion',
-            description: 'Opens Notion in your browser to authorize access',
+            label: 'Login with Notion',
             default: false,
-          },
-          {
-            name: 'workspaceLabel',
-            type: 'text',
-            label: 'Workspace Label (optional)',
-            description: 'A friendly name to identify this connection',
-            required: false,
-            placeholder: 'My Workspace',
           },
         ],
       },
@@ -275,24 +264,13 @@ function onSetupSubmit(args: {
       nextStep: {
         id: 'oauth',
         title: 'Connect to Notion',
-        description:
-          'Click the button below to connect your Notion workspace. ' +
-          "You'll be redirected to Notion to grant access.",
+        description: 'Connect your Notion workspace to get started.',
         fields: [
           {
             name: 'startOAuth',
             type: 'boolean',
-            label: 'Connect with Notion',
-            description: 'Opens Notion in your browser to authorize access',
+            label: 'Login with Notion',
             default: false,
-          },
-          {
-            name: 'workspaceLabel',
-            type: 'text',
-            label: 'Workspace Label (optional)',
-            description: 'A friendly name to identify this connection',
-            required: false,
-            placeholder: 'My Workspace',
           },
         ],
       },
@@ -302,7 +280,6 @@ function onSetupSubmit(args: {
   // Handle OAuth step
   if (stepId === 'oauth') {
     const startOAuth = values.startOAuth as boolean;
-    const workspaceLabel = ((values.workspaceLabel as string) ?? '').trim();
 
     // Check if OAuth was triggered
     if (startOAuth && isOAuthAvailable()) {
@@ -328,12 +305,6 @@ function onSetupSubmit(args: {
                 label: 'Flow ID',
                 default: flowHandle.flowId,
               },
-              {
-                name: 'workspaceLabel',
-                type: 'text',
-                label: 'Workspace Label',
-                default: workspaceLabel,
-              },
             ],
           },
         };
@@ -348,7 +319,7 @@ function onSetupSubmit(args: {
     // Check if OAuth is already complete (user returned from browser)
     if (hasOAuthCredentials()) {
       const creds = oauth.getCredentials(OAUTH_CONFIG.provider);
-      CONFIG.workspaceName = workspaceLabel || creds?.workspaceName || '';
+      CONFIG.workspaceName = creds?.workspaceName || '';
       CONFIG.workspaceId = creds?.workspaceId || '';
       CONFIG.authMethod = 'oauth';
       CONFIG.token = ''; // Clear any legacy token
@@ -368,14 +339,13 @@ function onSetupSubmit(args: {
   // Handle OAuth pending step (polling for completion)
   if (stepId === 'oauth-pending') {
     const flowId = values.flowId as string;
-    const workspaceLabel = ((values.workspaceLabel as string) ?? '').trim();
 
     if (isOAuthAvailable() && flowId) {
       const flowStatus = oauth.checkFlow(flowId);
 
       if (flowStatus.status === 'complete') {
         const creds = oauth.getCredentials(OAUTH_CONFIG.provider);
-        CONFIG.workspaceName = workspaceLabel || creds?.workspaceName || '';
+        CONFIG.workspaceName = creds?.workspaceName || '';
         CONFIG.workspaceId = creds?.workspaceId || '';
         CONFIG.authMethod = 'oauth';
         CONFIG.token = '';
