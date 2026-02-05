@@ -358,6 +358,26 @@ function testSkill(skillDir, skillName) {
       }
     }
 
+    // Fix tools array: esbuild CommonJS interop can leave tool references undefined
+    // when __esm wrappers create isolated module scopes. Tools end up on the outer
+    // 'exports' object instead. Rebuild from exports if tools has undefined entries.
+    if (Array.isArray(sandbox.globalThis.tools)) {
+      const hasUndefined = sandbox.globalThis.tools.length > 0 &&
+        sandbox.globalThis.tools.some(t => !t);
+      if (hasUndefined && sandbox.globalThis.exports) {
+        const fixedTools = [];
+        for (const key of Object.keys(sandbox.globalThis.exports)) {
+          const val = sandbox.globalThis.exports[key];
+          if (val && typeof val === 'object' && typeof val.name === 'string' && typeof val.execute === 'function') {
+            fixedTools.push(val);
+          }
+        }
+        if (fixedTools.length > 0) {
+          sandbox.globalThis.tools = fixedTools;
+        }
+      }
+    }
+
     // Check tools
     if (Array.isArray(sandbox.globalThis.tools)) {
       console.log(

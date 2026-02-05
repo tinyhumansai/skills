@@ -137,18 +137,44 @@ function runInContext(G: G, code: string): void {
 }
 
 function extractSkillExports(G: G): void {
+  // Pattern 1: skill uses export default { tools, init, ... } → stored in __skill.default
   const skillExport = G.__skill as { default?: Record<string, unknown> } | undefined;
   const skill = skillExport?.default;
-  if (!skill) return;
-  if (skill.tools) G.tools = skill.tools;
   const hooks = [
     'init', 'start', 'stop', 'onCronTrigger', 'onSetupStart',
     'onSetupSubmit', 'onSetupCancel', 'onDisconnect',
     'onSessionStart', 'onSessionEnd', 'onListOptions', 'onSetOption',
     'onOAuthComplete', 'onOAuthRevoked',
   ];
-  for (const hook of hooks) {
-    if (skill[hook] && !G[hook]) G[hook] = skill[hook];
+  if (skill) {
+    if (skill.tools) G.tools = skill.tools;
+    for (const hook of hooks) {
+      if (skill[hook] && !G[hook]) G[hook] = skill[hook];
+    }
+  }
+
+  // Pattern 2: skill puts hooks on globalThis via _g.init = init etc.
+  // (already on G since G is the vm context — no extra work needed for hooks)
+
+  // Fix tools array: esbuild CommonJS interop can leave tool references undefined
+  // when __esm wrappers create isolated module scopes. Tools end up on the outer
+  // 'exports' object instead. Rebuild from exports if tools has undefined entries.
+  const tools = G.tools as Array<{ name?: string; execute?: unknown } | undefined> | undefined;
+  const hasUndefined = tools && tools.length > 0 && tools.some(t => !t);
+  if (hasUndefined || (tools && tools.length === 0 && !skill)) {
+    const exports = G.exports as Record<string, { name?: string; execute?: (...args: unknown[]) => string }> | undefined;
+    if (exports) {
+      const fixedTools: unknown[] = [];
+      for (const key of Object.keys(exports)) {
+        const val = exports[key];
+        if (val && typeof val === 'object' && typeof val.name === 'string' && typeof val.execute === 'function') {
+          fixedTools.push(val);
+        }
+      }
+      if (fixedTools.length > 0) {
+        G.tools = fixedTools;
+      }
+    }
   }
 }
 
@@ -1014,6 +1040,25 @@ async function main(): Promise<void> {
   console.log(`${c.green}Loaded${c.reset} ${c.bold}${ctx.manifest.name}${c.reset} v${ctx.manifest.version}`);
   if (toolCount > 0) console.log(`${c.dim}  ${toolCount} tools available${c.reset}`);
 
+  // Restore OAuth credential on the bridge from persisted config (survives REPL restarts)
+  if (ctx.manifest.setup?.oauth) {
+    const storeApi = ctx.G.store as { get?: (key: string) => unknown } | undefined;
+    const savedConfig = storeApi?.get?.('config') as { credentialId?: string } | null;
+    if (savedConfig?.credentialId) {
+      const oauthApi = ctx.G.oauth as { __setCredential?: (cred: unknown) => void } | undefined;
+      if (oauthApi?.__setCredential) {
+        oauthApi.__setCredential({
+          credentialId: savedConfig.credentialId,
+          provider: ctx.manifest.setup.oauth.provider,
+          scopes: ctx.manifest.setup.oauth.scopes,
+          isValid: true,
+          createdAt: Date.now(),
+        });
+        console.log(`${c.green}OAuth credential restored${c.reset} ${c.dim}(${savedConfig.credentialId.substring(0, 8)}...)${c.reset}`);
+      }
+    }
+  }
+
   // Call init + start
   if (typeof ctx.G.init === 'function') {
     try {
@@ -1173,6 +1218,23 @@ async function main(): Promise<void> {
             const newToolCount = getTools(ctx.G).length;
             console.log(`${c.green}Reloaded${c.reset} ${c.bold}${ctx.manifest.name}${c.reset} v${ctx.manifest.version}`);
             if (newToolCount > 0) console.log(`${c.dim}  ${newToolCount} tools available${c.reset}`);
+
+            // Restore OAuth credential on the bridge
+            if (ctx.manifest.setup?.oauth) {
+              const storeApi = ctx.G.store as { get?: (key: string) => unknown } | undefined;
+              const savedConfig = storeApi?.get?.('config') as { credentialId?: string } | null;
+              if (savedConfig?.credentialId) {
+                const oauthApi = ctx.G.oauth as { __setCredential?: (cred: unknown) => void } | undefined;
+                oauthApi?.__setCredential?.({
+                  credentialId: savedConfig.credentialId,
+                  provider: ctx.manifest.setup.oauth.provider,
+                  scopes: ctx.manifest.setup.oauth.scopes,
+                  isValid: true,
+                  createdAt: Date.now(),
+                });
+                console.log(`${c.green}OAuth credential restored${c.reset}`);
+              }
+            }
 
             if (typeof ctx.G.init === 'function') {
               (ctx.G.init as () => void)();
