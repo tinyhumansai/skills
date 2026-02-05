@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // notion/index.ts
 // Notion integration skill exposing 22 tools for the Notion API.
 // Supports pages, databases, blocks, users, and comments.

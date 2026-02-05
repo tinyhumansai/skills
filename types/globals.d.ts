@@ -11,6 +11,50 @@ declare const console: {
 };
 
 // ---------------------------------------------------------------------------
+// Timer functions (provided by V8 runtime)
+// ---------------------------------------------------------------------------
+
+/** Schedule a function to run after a delay */
+declare function setTimeout<TArgs extends unknown[]>(
+  callback: (...args: TArgs) => void,
+  ms?: number,
+  ...args: TArgs
+): number;
+
+/** Cancel a scheduled timeout */
+declare function clearTimeout(id: number | undefined): void;
+
+/** Schedule a function to run repeatedly at an interval */
+declare function setInterval<TArgs extends unknown[]>(
+  callback: (...args: TArgs) => void,
+  ms?: number,
+  ...args: TArgs
+): number;
+
+/** Cancel a scheduled interval */
+declare function clearInterval(id: number | undefined): void;
+
+// ---------------------------------------------------------------------------
+// AbortController (provided by V8 runtime)
+// ---------------------------------------------------------------------------
+
+/** Signal used to abort operations */
+interface AbortSignal {
+  readonly aborted: boolean;
+  readonly reason: unknown;
+  addEventListener(type: 'abort', listener: () => void): void;
+  removeEventListener(type: 'abort', listener: () => void): void;
+  throwIfAborted(): void;
+}
+
+/** Controller to abort one or more operations */
+declare class AbortController {
+  constructor();
+  readonly signal: AbortSignal;
+  abort(reason?: unknown): void;
+}
+
+// ---------------------------------------------------------------------------
 // Bridge namespaces
 // ---------------------------------------------------------------------------
 
@@ -97,7 +141,7 @@ declare const data: {
 // ---------------------------------------------------------------------------
 
 /** Tool definitions exposed to the AI and other skills. */
-declare var tools: ToolDefinition[];
+declare let tools: ToolDefinition[];
 
 // ---------------------------------------------------------------------------
 // Supporting interfaces
