@@ -29,7 +29,7 @@
  *   - Use simple-skill as a reference for harness-compatible skill structure.
  */
 
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, rmSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createBridgeAPIs } from './bootstrap-node';
@@ -76,10 +76,12 @@ ${colors.yellow}Arguments:${colors.reset}
 
 ${colors.yellow}Options:${colors.reset}
   --wait=<ms>   Wait specified milliseconds before cleanup (for async connections)
+  --clean       Wipe the skill's data directory before running (removes db, store, state, files)
 
 ${colors.yellow}Examples:${colors.reset}
   npx tsx dev/test-harness/runner-node.ts server-ping scripts/examples/test-ping-flow.js
   yarn test:script server-ping scripts/examples/test-ping-flow.js
+  yarn test:script server-ping scripts/examples/test-ping-flow.js --clean
   yarn test:script telegram scripts/examples/test-telegram-setup.js --wait=10000
 
 ${colors.yellow}Script Helpers Available:${colors.reset}
@@ -110,8 +112,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Parse --wait flag for async connection waiting
+  // Parse flags
   let waitMs = 0;
+  let cleanFlag = false;
   const filteredArgs: string[] = [];
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--wait' && args[i + 1]) {
@@ -119,6 +122,8 @@ async function main(): Promise<void> {
       i++; // Skip the value
     } else if (args[i].startsWith('--wait=')) {
       waitMs = parseInt(args[i].split('=')[1], 10);
+    } else if (args[i] === '--clean') {
+      cleanFlag = true;
     } else {
       filteredArgs.push(args[i]);
     }
@@ -167,6 +172,18 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Compute persistent data directory
+  const dataDir = resolve(rootDir, 'skills', skillId, 'data');
+
+  if (cleanFlag) {
+    if (existsSync(dataDir)) {
+      rmSync(dataDir, { recursive: true, force: true });
+      console.log(`${colors.yellow}Cleaned data directory: ${dataDir}${colors.reset}`);
+    }
+  }
+
+  console.log(`${colors.dim}Data directory: ${dataDir}${colors.reset}`);
+
   // Initialize mock state
   initMockState();
 
@@ -184,8 +201,8 @@ async function main(): Promise<void> {
     }
   }
 
-  // Create bridge APIs
-  const bridgeAPIs = await createBridgeAPIs();
+  // Create bridge APIs (with persistent file-backed storage)
+  const bridgeAPIs = await createBridgeAPIs({ dataDir });
 
   // Build the global context that will be shared by skill and test script
   const G: Record<string, unknown> = {
@@ -542,6 +559,13 @@ function __clearSummaries() {
       console.error(`${colors.red}stop() error: ${e}${colors.reset}`);
     }
   }
+
+  // Close persistent DB if open
+  if (typeof bridgeAPIs.__cleanup === 'function') {
+    (bridgeAPIs.__cleanup as () => void)();
+  }
+
+  console.log(`\n${colors.dim}Data persisted to: ${dataDir}${colors.reset}`);
 }
 
 main();

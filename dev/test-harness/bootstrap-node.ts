@@ -5,14 +5,27 @@
  * with mock implementations backed by mock-state.ts.
  */
 
+import { join } from 'path';
 import { dbAll, dbExec, dbGet, dbKvGet, dbKvSet } from './mock-db';
 import { getMockState, type FetchOptions } from './mock-state';
+import { createPersistentData } from './persistent-data';
+import { createPersistentDb, type PersistentDb } from './persistent-db';
+import { createPersistentState } from './persistent-state';
+import { createPersistentStore } from './persistent-store';
+
+export interface BridgeOptions {
+  /** When set, db/store/state/data use file-backed storage in this directory */
+  dataDir?: string;
+}
 
 /**
- * Create all bridge API globals and inject them into the provided context
+ * Create all bridge API globals and inject them into the provided context.
+ * When options.dataDir is set, db/store/state/data use persistent file-backed storage.
  */
-export async function createBridgeAPIs(): Promise<Record<string, unknown>> {
+export async function createBridgeAPIs(options?: BridgeOptions): Promise<Record<string, unknown>> {
   const state = getMockState();
+  const dataDir = options?.dataDir;
+  let persistentDb: PersistentDb | null = null;
 
   // Console - logs to mock state for inspection
   const console = {
@@ -44,39 +57,45 @@ export async function createBridgeAPIs(): Promise<Record<string, unknown>> {
   };
 
   // Store API - persistent key-value store
-  const store = {
-    get: (key: string): unknown => {
-      return state.store[key] ?? null;
-    },
-    set: (key: string, value: unknown): void => {
-      state.store[key] = value;
-    },
-    delete: (key: string): void => {
-      delete state.store[key];
-    },
-    keys: (): string[] => {
-      return Object.keys(state.store);
-    },
-  };
+  let store;
+  if (dataDir) {
+    const pStore = createPersistentStore(join(dataDir, 'store.json'));
+    store = {
+      get: (key: string): unknown => pStore.get(key),
+      set: (key: string, value: unknown): void => pStore.set(key, value),
+      delete: (key: string): void => pStore.delete(key),
+      keys: (): string[] => pStore.keys(),
+    };
+  } else {
+    store = {
+      get: (key: string): unknown => state.store[key] ?? null,
+      set: (key: string, value: unknown): void => { state.store[key] = value; },
+      delete: (key: string): void => { delete state.store[key]; },
+      keys: (): string[] => Object.keys(state.store),
+    };
+  }
 
-  // Database API - SQLite mock
-  const db = {
-    exec: (sql: string, params?: unknown[]): void => {
-      dbExec(sql, params ?? []);
-    },
-    get: (sql: string, params?: unknown[]): Record<string, unknown> | null => {
-      return dbGet(sql, params ?? []);
-    },
-    all: (sql: string, params?: unknown[]): Array<Record<string, unknown>> => {
-      return dbAll(sql, params ?? []);
-    },
-    kvGet: (key: string): unknown => {
-      return dbKvGet(key);
-    },
-    kvSet: (key: string, value: unknown): void => {
-      dbKvSet(key, value);
-    },
-  };
+  // Database API - SQLite (real or mock)
+  let db;
+  if (dataDir) {
+    persistentDb = createPersistentDb(join(dataDir, 'skill.db'));
+    const pDb = persistentDb;
+    db = {
+      exec: (sql: string, params?: unknown[]): void => pDb.exec(sql, params ?? []),
+      get: (sql: string, params?: unknown[]): Record<string, unknown> | null => pDb.get(sql, params ?? []),
+      all: (sql: string, params?: unknown[]): Array<Record<string, unknown>> => pDb.all(sql, params ?? []),
+      kvGet: (key: string): unknown => pDb.kvGet(key),
+      kvSet: (key: string, value: unknown): void => pDb.kvSet(key, value),
+    };
+  } else {
+    db = {
+      exec: (sql: string, params?: unknown[]): void => dbExec(sql, params ?? []),
+      get: (sql: string, params?: unknown[]): Record<string, unknown> | null => dbGet(sql, params ?? []),
+      all: (sql: string, params?: unknown[]): Array<Record<string, unknown>> => dbAll(sql, params ?? []),
+      kvGet: (key: string): unknown => dbKvGet(key),
+      kvSet: (key: string, value: unknown): void => dbKvSet(key, value),
+    };
+  }
 
   // Network API - HTTP mock
   const net = {
@@ -123,27 +142,36 @@ export async function createBridgeAPIs(): Promise<Record<string, unknown>> {
   };
 
   // State API - frontend state publishing
-  const stateApi = {
-    get: (key: string): unknown => {
-      return state.state[key];
-    },
-    set: (key: string, value: unknown): void => {
-      state.state[key] = value;
-    },
-    setPartial: (partial: Record<string, unknown>): void => {
-      Object.assign(state.state, partial);
-    },
-  };
+  let stateApi;
+  if (dataDir) {
+    const pState = createPersistentState(join(dataDir, 'state.json'));
+    stateApi = {
+      get: (key: string): unknown => pState.get(key),
+      set: (key: string, value: unknown): void => pState.set(key, value),
+      setPartial: (partial: Record<string, unknown>): void => pState.setPartial(partial),
+    };
+  } else {
+    stateApi = {
+      get: (key: string): unknown => state.state[key],
+      set: (key: string, value: unknown): void => { state.state[key] = value; },
+      setPartial: (partial: Record<string, unknown>): void => { Object.assign(state.state, partial); },
+    };
+  }
 
-  // Data API - file I/O mock
-  const data = {
-    read: (filename: string): string | null => {
-      return state.dataFiles[filename] ?? null;
-    },
-    write: (filename: string, content: string): void => {
-      state.dataFiles[filename] = content;
-    },
-  };
+  // Data API - file I/O
+  let data;
+  if (dataDir) {
+    const pData = createPersistentData(join(dataDir, 'files'));
+    data = {
+      read: (filename: string): string | null => pData.read(filename),
+      write: (filename: string, content: string): void => pData.write(filename, content),
+    };
+  } else {
+    data = {
+      read: (filename: string): string | null => state.dataFiles[filename] ?? null,
+      write: (filename: string, content: string): void => { state.dataFiles[filename] = content; },
+    };
+  }
 
   // Cron API
   const cron = {
@@ -412,5 +440,12 @@ export async function createBridgeAPIs(): Promise<Record<string, unknown>> {
     onDisconnect: undefined,
     onListOptions: undefined,
     onSetOption: undefined,
+    // Cleanup hook for persistent DB
+    __cleanup: () => {
+      if (persistentDb) {
+        persistentDb.close();
+        persistentDb = null;
+      }
+    },
   };
 }
