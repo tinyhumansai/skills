@@ -15,11 +15,7 @@ export interface ExampleSkillState {
   isRunning: boolean;
 }
 
-declare global {
-  function getSkillState(): ExampleSkillState;
-  // eslint-disable-next-line no-var
-  var __skillState: ExampleSkillState;
-}
+const _g = globalThis as Record<string, unknown>;
 
 const state: ExampleSkillState = {
   config: { ...DEFAULT_CONFIG },
@@ -28,8 +24,13 @@ const state: ExampleSkillState = {
   lastFetchTime: null,
   isRunning: false,
 };
-globalThis.__skillState = state;
+_g.__skillState = state;
 
-globalThis.getSkillState = function (): ExampleSkillState {
-  return globalThis.__skillState;
+_g.getSkillState = function (): ExampleSkillState {
+  return _g.__skillState as ExampleSkillState;
 };
+
+/** Typed accessor for use within this skill's source files */
+export function getState(): ExampleSkillState {
+  return _g.__skillState as ExampleSkillState;
+}

@@ -1,8 +1,7 @@
 // Tool: get-ping-stats
 // Get current ping statistics including uptime, total pings, failures, and latest latency.
 
-// Import type for TypeScript, but call globalThis.getSkillState() as global at runtime
-import '../skill-state'; // Ensures state is initialized
+import { getSkillState } from '../skill-state';
 
 export const getPingStatsTool: ToolDefinition = {
   name: 'get-ping-stats',
@@ -10,7 +9,7 @@ export const getPingStatsTool: ToolDefinition = {
     'Get current ping statistics including uptime, total pings, failures, and latest latency.',
   input_schema: { type: 'object', properties: {} },
   execute(): string {
-    const s = globalThis.getSkillState();
+    const s = getSkillState();
 
     const uptimePct =
       s.pingCount > 0

@@ -1,6 +1,6 @@
 // Shared skill state module
 // Tools and lifecycle functions access state through globalThis.getSkillState()
-// This pattern works in both production V8 runtime and test harness sandbox.
+// This pattern works in both production QuickJS runtime and test harness sandbox.
 
 import type { SkillConfig } from './types';
 
@@ -17,18 +17,13 @@ export interface ServerPingState {
   pingIntervalId: number | null;
 }
 
-// Extend globalThis type
-declare global {
-  function getSkillState(): ServerPingState;
-  // eslint-disable-next-line no-var
-  var __skillState: ServerPingState;
-}
+const _g = globalThis as Record<string, unknown>;
 
 /**
  * Initialize the skill state. Called once at module load.
  */
 function initSkillState(): ServerPingState {
-  const state: ServerPingState = {
+  const stateObj: ServerPingState = {
     config: {
       serverUrl: '',
       pingIntervalSec: 10,
@@ -44,23 +39,23 @@ function initSkillState(): ServerPingState {
     pingIntervalId: null,
   };
 
-  globalThis.__skillState = state;
-  return state;
+  _g.__skillState = stateObj;
+  return stateObj;
 }
 
 // Initialize on module load
 initSkillState();
 
 // Expose getSkillState as a global function
-globalThis.getSkillState = function getSkillState(): ServerPingState {
-  const state = globalThis.__skillState;
-  if (!state) {
+_g.getSkillState = function getSkillState(): ServerPingState {
+  const s = _g.__skillState as ServerPingState;
+  if (!s) {
     throw new Error('[server-ping] Skill state not initialized');
   }
-  return state;
+  return s;
 };
 
-// Re-export for TypeScript imports (won't be used at runtime, but satisfies compiler)
+/** Typed accessor for use within this skill's source files */
 export function getSkillState(): ServerPingState {
-  return globalThis.getSkillState();
+  return _g.__skillState as ServerPingState;
 }

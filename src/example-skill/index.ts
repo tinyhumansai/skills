@@ -6,10 +6,10 @@
  */
 
 // ─── State & Types ───────────────────────────────────────────────────
-import './skill-state';
+import { getState } from './skill-state';
 import type { ExampleConfig } from './types';
 import { DEFAULT_CONFIG } from './types';
-import { getStatusTool, fetchDataTool, queryLogsTool, listPeersTool } from './tools';
+import { getStatusTool, fetchDataTool, queryLogsTool, listPeersTool } from './tools/index';
 
 // ─── Tools ───────────────────────────────────────────────────────────
 // Tools are exposed to the AI and other skills.
@@ -20,7 +20,7 @@ tools = [getStatusTool, fetchDataTool, queryLogsTool, listPeersTool];
 // Called once when the skill is first loaded.
 // Use this to create database tables and load persisted config.
 function init(): void {
-  const s = globalThis.getSkillState();
+  const s = getState();
 
   // Create database table for logs
   db.exec(
@@ -48,7 +48,7 @@ function init(): void {
 // Called when the skill should begin active work.
 // Register cron schedules and publish initial state.
 function start(): void {
-  const s = globalThis.getSkillState();
+  const s = getState();
   s.isRunning = true;
 
   // Register a cron schedule for periodic data fetching
@@ -65,7 +65,7 @@ function start(): void {
 // ─── Lifecycle: stop() ──────────────────────────────────────────────
 // Called on shutdown. Unregister cron schedules and persist state.
 function stop(): void {
-  const s = globalThis.getSkillState();
+  const s = getState();
   s.isRunning = false;
 
   // Unregister all cron schedules
@@ -91,7 +91,7 @@ function stop(): void {
 function onCronTrigger(scheduleId: string): void {
   if (scheduleId !== 'refresh') return;
 
-  const s = globalThis.getSkillState();
+  const s = getState();
   if (!s.config.serverUrl) return;
 
   try {
@@ -135,13 +135,13 @@ function onCronTrigger(scheduleId: string): void {
 // ─── Lifecycle: onSessionStart / onSessionEnd ───────────────────────
 // Called when the user starts or ends an AI conversation.
 function onSessionStart(_args: { sessionId: string }): void {
-  const s = globalThis.getSkillState();
+  const s = getState();
   if (s.config.verbose)
     console.log('[example-skill] Session started');
 }
 
 function onSessionEnd(_args: { sessionId: string }): void {
-  const s = globalThis.getSkillState();
+  const s = getState();
   if (s.config.verbose)
     console.log('[example-skill] Session ended');
 }
@@ -180,7 +180,7 @@ function onSetupSubmit(args: {
   stepId: string;
   values: Record<string, unknown>;
 }): SetupSubmitResult {
-  const s = globalThis.getSkillState();
+  const s = getState();
 
   // Step 1: Credentials
   if (args.stepId === 'credentials') {
@@ -266,7 +266,7 @@ function onSetupSubmit(args: {
 
 function onSetupCancel(): void {
   // Reset config to defaults if setup is cancelled
-  const s = globalThis.getSkillState();
+  const s = getState();
   s.config = { ...DEFAULT_CONFIG };
 }
 
@@ -274,7 +274,7 @@ function onSetupCancel(): void {
 function onDisconnect(): void {
   // Clean up credentials when user disconnects the skill
   store.delete('config');
-  const s = globalThis.getSkillState();
+  const s = getState();
   s.config = { ...DEFAULT_CONFIG };
 }
 
@@ -282,7 +282,7 @@ function onDisconnect(): void {
 // Runtime-configurable settings the user can change without re-running setup.
 
 function onListOptions(): { options: SkillOption[] } {
-  const s = globalThis.getSkillState();
+  const s = getState();
   return {
     options: [
       {
@@ -317,7 +317,7 @@ function onListOptions(): { options: SkillOption[] } {
 }
 
 function onSetOption(args: { name: string; value: unknown }): void {
-  const s = globalThis.getSkillState();
+  const s = getState();
 
   if (args.name === 'refreshInterval') {
     s.config.refreshInterval = parseInt(String(args.value), 10);
@@ -337,7 +337,7 @@ function onSetOption(args: { name: string; value: unknown }): void {
 
 /** Publish current state to the frontend for real-time display */
 function publishState(): void {
-  const s = globalThis.getSkillState();
+  const s = getState();
   state.setPartial({
     status: s.isRunning ? 'running' : 'stopped',
     fetchCount: s.fetchCount,
@@ -351,3 +351,17 @@ function publishState(): void {
 // Expose helpers on globalThis so tools and tests can call them
 const _g = globalThis as Record<string, unknown>;
 _g.publishState = publishState;
+
+// Runtime lifecycle hooks (called by QuickJS host, not within this module)
+void init;
+void start;
+void stop;
+void onCronTrigger;
+void onSetupStart;
+void onSetupSubmit;
+void onSetupCancel;
+void onListOptions;
+void onSetOption;
+void onSessionStart;
+void onSessionEnd;
+void onDisconnect;

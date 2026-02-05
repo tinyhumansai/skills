@@ -1,5 +1,5 @@
 /** get-status tool — returns current skill status, config summary, and error count */
-import '../skill-state';
+import { getState } from '../skill-state';
 
 export const getStatusTool: ToolDefinition = {
   name: 'get-status',
@@ -15,7 +15,7 @@ export const getStatusTool: ToolDefinition = {
     },
   },
   execute(args: Record<string, unknown>): string {
-    const s = globalThis.getSkillState();
+    const s = getState();
     const verbose = args.verbose === 'true';
 
     const result: Record<string, unknown> = {

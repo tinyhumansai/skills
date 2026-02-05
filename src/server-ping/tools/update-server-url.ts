@@ -1,8 +1,7 @@
 // Tool: update-server-url
 // Change the monitored server URL at runtime.
 
-// Import ensures state is initialized
-import '../skill-state';
+import { getSkillState } from '../skill-state';
 
 export const updateServerUrlTool: ToolDefinition = {
   name: 'update-server-url',
@@ -18,7 +17,7 @@ export const updateServerUrlTool: ToolDefinition = {
       return JSON.stringify({ error: 'Invalid URL — must start with http:// or https://' });
     }
 
-    const s = globalThis.getSkillState();
+    const s = getSkillState();
     const oldUrl = s.config.serverUrl;
     s.config.serverUrl = url;
     store.set('config', s.config);

@@ -6,8 +6,8 @@ import { pingNowTool } from './tools/ping-now';
 import { readConfigTool } from './tools/read-config';
 import { updateServerUrlTool } from './tools/update-server-url';
 
-// Import to initialize state; globalThis.getSkillState() is called as global at runtime
-import './skill-state';
+// Import to initialize state
+import { getSkillState } from './skill-state';
 import type { SkillConfig } from './types';
 
 // server-ping/index.ts
@@ -22,7 +22,7 @@ import type { SkillConfig } from './types';
 
 function init(): void {
   console.log(`[server-ping] Initializing on ${platform.os()}`);
-  const s = globalThis.globalThis.getSkillState();
+  const s = getSkillState();
 
   // Create DB table for ping history
   db.exec(
@@ -69,7 +69,7 @@ function init(): void {
 }
 
 function start(): void {
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
 
   if (!s.config.serverUrl) {
     console.warn('[server-ping] No server URL configured — waiting for setup');
@@ -98,7 +98,7 @@ function start(): void {
 
 function stop(): void {
   console.log('[server-ping] Stopping');
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
 
   // Clear the ping interval
   if (s.pingIntervalId !== null) {
@@ -163,7 +163,7 @@ function onSetupSubmit(args: {
   values: Record<string, unknown>;
 }): SetupSubmitResult {
   const { stepId, values } = args;
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
 
   if (stepId === 'server-config') {
     // Validate URL
@@ -240,7 +240,7 @@ function onSetupCancel(): void {
 // ---------------------------------------------------------------------------
 
 function onListOptions(): { options: SkillOption[] } {
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
   return {
     options: [
       {
@@ -283,7 +283,7 @@ function onListOptions(): { options: SkillOption[] } {
 
 function onSetOption(args: { name: string; value: unknown }): void {
   const { name, value } = args;
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
 
   if (name === 'pingIntervalSec') {
     const newInterval = parseInt(value as string) || 10;
@@ -318,14 +318,14 @@ function onSetOption(args: { name: string; value: unknown }): void {
 
 function onSessionStart(args: { sessionId: string }): void {
   const { sessionId } = args;
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
   s.activeSessions.push(sessionId);
   console.log(`[server-ping] Session started: ${sessionId} (active: ${s.activeSessions.length})`);
 }
 
 function onSessionEnd(args: { sessionId: string }): void {
   const { sessionId } = args;
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
   s.activeSessions = s.activeSessions.filter(sid => sid !== sessionId);
   console.log(`[server-ping] Session ended: ${sessionId} (active: ${s.activeSessions.length})`);
 }
@@ -340,7 +340,7 @@ function onCronTrigger(_scheduleId: string): void {
 }
 
 function doPing(): void {
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
   s.pingCount++;
   const timestamp = new Date().toISOString();
   const startTime = Date.now();
@@ -415,7 +415,7 @@ function doPing(): void {
 // ---------------------------------------------------------------------------
 
 function publishState(): void {
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
 
   const uptimePct =
     s.pingCount > 0
