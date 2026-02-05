@@ -24,4 +24,5 @@ interface Skill {
   onTick?: () => void;
   onRpc?: (args: { method: string; params: unknown }) => unknown;
   onServerEvent?: (event: string, data: unknown) => void;
+  onDisconnect?: () => void;
 }

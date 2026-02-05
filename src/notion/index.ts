@@ -1,20 +1,80 @@
 // notion/index.ts
 // Notion integration skill exposing 22 tools for the Notion API.
 // Supports pages, databases, blocks, users, and comments.
+// Supports both OAuth (preferred) and manual token authentication.
+
+// ---------------------------------------------------------------------------
+// OAuth Configuration (Public Integration)
+// ---------------------------------------------------------------------------
+
+const OAUTH_CONFIG = {
+  provider: 'notion',
+  clientId: '2fed872b-594c-8064-b8b2-0037ae321507',
+  // Note: clientSecret is stored securely in the Rust backend, not here
+  authorizeUrl: 'https://api.notion.com/v1/oauth/authorize',
+  tokenUrl: 'https://api.notion.com/v1/oauth/token',
+  redirectUri: 'alphahuman://oauth/notion/callback',
+};
 
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 
 interface NotionConfig {
-  token: string;
+  token: string; // Legacy manual token (fallback)
   workspaceName: string;
+  workspaceId: string;
+  authMethod: 'oauth' | 'token' | '';
 }
 
-const CONFIG: NotionConfig = { token: '', workspaceName: '' };
+const CONFIG: NotionConfig = {
+  token: '',
+  workspaceName: '',
+  workspaceId: '',
+  authMethod: '',
+};
 
 const NOTION_VERSION = '2022-06-28';
 const NOTION_BASE_URL = 'https://api.notion.com/v1';
+
+// ---------------------------------------------------------------------------
+// OAuth Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if OAuth bridge is available in the runtime.
+ */
+function isOAuthAvailable(): boolean {
+  return typeof oauth !== 'undefined' && typeof oauth.isAvailable === 'function' && oauth.isAvailable();
+}
+
+/**
+ * Check if we have valid OAuth credentials.
+ */
+function hasOAuthCredentials(): boolean {
+  if (!isOAuthAvailable()) return false;
+  return oauth.hasCredentials(OAUTH_CONFIG.provider);
+}
+
+/**
+ * Get the current access token (from OAuth or legacy config).
+ */
+function getAccessToken(): string | null {
+  // Prefer OAuth credentials
+  if (hasOAuthCredentials()) {
+    const creds = oauth.getCredentials(OAUTH_CONFIG.provider);
+    return creds?.accessToken || null;
+  }
+  // Fall back to legacy manual token
+  return CONFIG.token || null;
+}
+
+/**
+ * Check if we're connected (have valid credentials).
+ */
+function isConnected(): boolean {
+  return !!getAccessToken();
+}
 
 // ---------------------------------------------------------------------------
 // Lifecycle hooks
@@ -28,12 +88,22 @@ function init(): void {
   if (saved) {
     CONFIG.token = saved.token ?? '';
     CONFIG.workspaceName = saved.workspaceName ?? '';
+    CONFIG.workspaceId = saved.workspaceId ?? '';
+    CONFIG.authMethod = saved.authMethod ?? '';
   }
 
-  if (CONFIG.token) {
-    console.log(`[notion] Connected to workspace: ${CONFIG.workspaceName || '(unnamed)'}`);
+  // Determine connection status
+  if (hasOAuthCredentials()) {
+    const creds = oauth.getCredentials(OAUTH_CONFIG.provider);
+    const wsName = creds?.workspaceName || CONFIG.workspaceName || '(unnamed)';
+    console.log(`[notion] Connected via OAuth to workspace: ${wsName}`);
+    CONFIG.authMethod = 'oauth';
+  } else if (CONFIG.token) {
+    console.log(`[notion] Connected via token to workspace: ${CONFIG.workspaceName || '(unnamed)'}`);
+    CONFIG.authMethod = 'token';
   } else {
-    console.log('[notion] No token configured — waiting for setup');
+    console.log('[notion] No credentials configured — waiting for setup');
+    CONFIG.authMethod = '';
   }
 
   // Publish initial state
@@ -41,8 +111,8 @@ function init(): void {
 }
 
 function start(): void {
-  if (!CONFIG.token) {
-    console.log('[notion] No token — skill inactive until setup completes');
+  if (!isConnected()) {
+    console.log('[notion] No credentials — skill inactive until setup completes');
     return;
   }
 
@@ -56,10 +126,88 @@ function stop(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Setup flow (single step)
+// Setup flow (OAuth preferred, manual token fallback)
 // ---------------------------------------------------------------------------
 
 function onSetupStart(): SetupStartResult {
+  // Check if already connected via OAuth
+  if (hasOAuthCredentials()) {
+    const creds = oauth.getCredentials(OAUTH_CONFIG.provider);
+    return {
+      step: {
+        id: 'already-connected',
+        title: 'Already Connected',
+        description: `Connected to Notion workspace: ${creds?.workspaceName || CONFIG.workspaceName || 'Unknown'}`,
+        fields: [
+          {
+            name: 'action',
+            type: 'select',
+            label: 'What would you like to do?',
+            options: [
+              { label: 'Keep current connection', value: 'keep' },
+              { label: 'Connect different workspace', value: 'reconnect' },
+            ],
+          },
+        ],
+      },
+    };
+  }
+
+  // Check if already connected via legacy token
+  if (CONFIG.token) {
+    return {
+      step: {
+        id: 'migrate',
+        title: 'Upgrade to OAuth',
+        description:
+          'Your Notion is connected using a manual token. ' +
+          'We recommend upgrading to OAuth for better security and easier management.',
+        fields: [
+          {
+            name: 'action',
+            type: 'select',
+            label: 'What would you like to do?',
+            options: [
+              { label: 'Upgrade to OAuth (recommended)', value: 'oauth' },
+              { label: 'Keep using manual token', value: 'keep' },
+            ],
+          },
+        ],
+      },
+    };
+  }
+
+  // Fresh setup - prefer OAuth if available
+  if (isOAuthAvailable()) {
+    return {
+      step: {
+        id: 'oauth',
+        title: 'Connect to Notion',
+        description:
+          'Click the button below to connect your Notion workspace. ' +
+          "You'll be redirected to Notion to grant access.",
+        fields: [
+          {
+            name: 'startOAuth',
+            type: 'boolean',
+            label: 'Connect with Notion',
+            description: 'Opens Notion in your browser to authorize access',
+            default: false,
+          },
+          {
+            name: 'workspaceLabel',
+            type: 'text',
+            label: 'Workspace Label (optional)',
+            description: 'A friendly name to identify this connection',
+            required: false,
+            placeholder: 'My Workspace',
+          },
+        ],
+      },
+    };
+  }
+
+  // OAuth not available - use manual token entry
   return {
     step: {
       id: 'token',
@@ -95,73 +243,244 @@ function onSetupSubmit(args: {
 }): SetupSubmitResult {
   const { stepId, values } = args;
 
-  if (stepId !== 'token') {
-    return { status: 'error', errors: [{ field: '', message: `Unknown setup step: ${stepId}` }] };
-  }
-
-  const token = ((values.token as string) ?? '').trim();
-  const workspaceName = ((values.workspaceName as string) ?? '').trim();
-
-  // Validate token format
-  if (!token) {
+  // Handle "already connected" step
+  if (stepId === 'already-connected') {
+    if (values.action === 'keep') {
+      return { status: 'complete' };
+    }
+    // Reconnect - revoke current credentials and restart
+    if (hasOAuthCredentials()) {
+      oauth.revokeCredentials(OAUTH_CONFIG.provider);
+    }
+    CONFIG.token = '';
+    CONFIG.authMethod = '';
+    store.delete('config');
     return {
-      status: 'error',
-      errors: [{ field: 'token', message: 'Integration token is required' }],
+      status: 'next',
+      nextStep: onSetupStart().step,
     };
   }
 
-  if (!token.startsWith('ntn_') && !token.startsWith('secret_')) {
+  // Handle migration step
+  if (stepId === 'migrate') {
+    if (values.action === 'keep') {
+      return { status: 'complete' };
+    }
+    // Clear legacy token and proceed to OAuth
+    CONFIG.token = '';
+    store.set('config', CONFIG);
     return {
-      status: 'error',
-      errors: [{ field: 'token', message: 'Token should start with ntn_ or secret_' }],
-    };
-  }
-
-  // Validate token by calling users/me
-  try {
-    const response = net.fetch(`${NOTION_BASE_URL}/users/me`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Notion-Version': NOTION_VERSION,
-        'Content-Type': 'application/json',
+      status: 'next',
+      nextStep: {
+        id: 'oauth',
+        title: 'Connect to Notion',
+        description:
+          'Click the button below to connect your Notion workspace. ' +
+          "You'll be redirected to Notion to grant access.",
+        fields: [
+          {
+            name: 'startOAuth',
+            type: 'boolean',
+            label: 'Connect with Notion',
+            description: 'Opens Notion in your browser to authorize access',
+            default: false,
+          },
+          {
+            name: 'workspaceLabel',
+            type: 'text',
+            label: 'Workspace Label (optional)',
+            description: 'A friendly name to identify this connection',
+            required: false,
+            placeholder: 'My Workspace',
+          },
+        ],
       },
-      timeout: 15,
-    });
-
-    if (response.status === 401) {
-      return {
-        status: 'error',
-        errors: [{ field: 'token', message: 'Invalid token — unauthorized' }],
-      };
-    }
-
-    if (response.status >= 400) {
-      return {
-        status: 'error',
-        errors: [{ field: 'token', message: `Notion API error: ${response.status}` }],
-      };
-    }
-
-    const user = JSON.parse(response.body);
-    console.log(`[notion] Authenticated as: ${user.name || user.id}`);
-  } catch (e) {
-    return {
-      status: 'error',
-      errors: [{ field: 'token', message: `Failed to connect: ${formatApiError(e)}` }],
     };
   }
 
-  // Store config
-  CONFIG.token = token;
-  CONFIG.workspaceName = workspaceName;
-  store.set('config', CONFIG);
-  data.write('config.json', JSON.stringify({ workspaceName }, null, 2));
+  // Handle OAuth step
+  if (stepId === 'oauth') {
+    const startOAuth = values.startOAuth as boolean;
+    const workspaceLabel = ((values.workspaceLabel as string) ?? '').trim();
 
-  console.log(`[notion] Setup complete — connected to ${workspaceName || 'workspace'}`);
-  publishState();
+    // Check if OAuth was triggered
+    if (startOAuth && isOAuthAvailable()) {
+      // Start OAuth flow
+      try {
+        const flowHandle = oauth.startFlow(OAUTH_CONFIG.provider, {
+          redirectUri: OAUTH_CONFIG.redirectUri,
+        });
 
-  return { status: 'complete' };
+        // Return a "waiting" step that polls for completion
+        return {
+          status: 'next',
+          nextStep: {
+            id: 'oauth-pending',
+            title: 'Waiting for Authorization',
+            description:
+              'Please complete the authorization in your browser. ' +
+              'This page will update automatically when complete.',
+            fields: [
+              {
+                name: 'flowId',
+                type: 'text',
+                label: 'Flow ID',
+                default: flowHandle.flowId,
+              },
+              {
+                name: 'workspaceLabel',
+                type: 'text',
+                label: 'Workspace Label',
+                default: workspaceLabel,
+              },
+            ],
+          },
+        };
+      } catch (e) {
+        return {
+          status: 'error',
+          errors: [{ field: 'startOAuth', message: `Failed to start OAuth: ${e}` }],
+        };
+      }
+    }
+
+    // Check if OAuth is already complete (user returned from browser)
+    if (hasOAuthCredentials()) {
+      const creds = oauth.getCredentials(OAUTH_CONFIG.provider);
+      CONFIG.workspaceName = workspaceLabel || creds?.workspaceName || '';
+      CONFIG.workspaceId = creds?.workspaceId || '';
+      CONFIG.authMethod = 'oauth';
+      CONFIG.token = ''; // Clear any legacy token
+      store.set('config', CONFIG);
+
+      console.log(`[notion] OAuth complete — connected to ${CONFIG.workspaceName || 'workspace'}`);
+      publishState();
+      return { status: 'complete' };
+    }
+
+    return {
+      status: 'error',
+      errors: [{ field: 'startOAuth', message: 'Please click to connect your Notion account' }],
+    };
+  }
+
+  // Handle OAuth pending step (polling for completion)
+  if (stepId === 'oauth-pending') {
+    const flowId = values.flowId as string;
+    const workspaceLabel = ((values.workspaceLabel as string) ?? '').trim();
+
+    if (isOAuthAvailable() && flowId) {
+      const flowStatus = oauth.checkFlow(flowId);
+
+      if (flowStatus.status === 'complete') {
+        const creds = oauth.getCredentials(OAUTH_CONFIG.provider);
+        CONFIG.workspaceName = workspaceLabel || creds?.workspaceName || '';
+        CONFIG.workspaceId = creds?.workspaceId || '';
+        CONFIG.authMethod = 'oauth';
+        CONFIG.token = '';
+        store.set('config', CONFIG);
+
+        console.log(`[notion] OAuth complete — connected to ${CONFIG.workspaceName || 'workspace'}`);
+        publishState();
+        return { status: 'complete' };
+      }
+
+      if (flowStatus.status === 'failed') {
+        return {
+          status: 'error',
+          errors: [{ field: '', message: flowStatus.error || 'OAuth authorization failed' }],
+        };
+      }
+
+      if (flowStatus.status === 'expired') {
+        return {
+          status: 'error',
+          errors: [{ field: '', message: 'Authorization timed out. Please try again.' }],
+        };
+      }
+
+      // Still pending - this shouldn't normally happen in submit, but handle it
+      return {
+        status: 'error',
+        errors: [{ field: '', message: 'Authorization still pending. Please complete it in your browser.' }],
+      };
+    }
+
+    return {
+      status: 'error',
+      errors: [{ field: '', message: 'OAuth flow not found' }],
+    };
+  }
+
+  // Handle manual token step (legacy fallback)
+  if (stepId === 'token') {
+    const token = ((values.token as string) ?? '').trim();
+    const workspaceName = ((values.workspaceName as string) ?? '').trim();
+
+    // Validate token format
+    if (!token) {
+      return {
+        status: 'error',
+        errors: [{ field: 'token', message: 'Integration token is required' }],
+      };
+    }
+
+    if (!token.startsWith('ntn_') && !token.startsWith('secret_')) {
+      return {
+        status: 'error',
+        errors: [{ field: 'token', message: 'Token should start with ntn_ or secret_' }],
+      };
+    }
+
+    // Validate token by calling users/me
+    try {
+      const response = net.fetch(`${NOTION_BASE_URL}/users/me`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Notion-Version': NOTION_VERSION,
+          'Content-Type': 'application/json',
+        },
+        timeout: 15,
+      });
+
+      if (response.status === 401) {
+        return {
+          status: 'error',
+          errors: [{ field: 'token', message: 'Invalid token — unauthorized' }],
+        };
+      }
+
+      if (response.status >= 400) {
+        return {
+          status: 'error',
+          errors: [{ field: 'token', message: `Notion API error: ${response.status}` }],
+        };
+      }
+
+      const user = JSON.parse(response.body);
+      console.log(`[notion] Authenticated as: ${user.name || user.id}`);
+    } catch (e) {
+      return {
+        status: 'error',
+        errors: [{ field: 'token', message: `Failed to connect: ${formatApiError(e)}` }],
+      };
+    }
+
+    // Store config
+    CONFIG.token = token;
+    CONFIG.workspaceName = workspaceName;
+    CONFIG.authMethod = 'token';
+    store.set('config', CONFIG);
+    data.write('config.json', JSON.stringify({ workspaceName }, null, 2));
+
+    console.log(`[notion] Setup complete — connected to ${workspaceName || 'workspace'}`);
+    publishState();
+
+    return { status: 'complete' };
+  }
+
+  return { status: 'error', errors: [{ field: '', message: `Unknown setup step: ${stepId}` }] };
 }
 
 function onSetupCancel(): void {
@@ -172,14 +491,48 @@ function onSetupCancel(): void {
 // Disconnect
 // ---------------------------------------------------------------------------
 
+function onDisconnect(): void {
+  console.log('[notion] Disconnecting');
 
+  // Revoke OAuth credentials if present
+  if (hasOAuthCredentials()) {
+    oauth.revokeCredentials(OAUTH_CONFIG.provider);
+  }
+
+  // Clear config
+  CONFIG.token = '';
+  CONFIG.workspaceName = '';
+  CONFIG.workspaceId = '';
+  CONFIG.authMethod = '';
+
+  store.delete('config');
+
+  publishState();
+  console.log('[notion] Disconnected');
+}
 
 // ---------------------------------------------------------------------------
 // State publishing
 // ---------------------------------------------------------------------------
 
 function publishState(): void {
-  state.setPartial({ connected: !!CONFIG.token, workspaceName: CONFIG.workspaceName || null });
+  const connected = isConnected();
+  let workspaceName: string | null = CONFIG.workspaceName || null;
+  let workspaceId: string | null = CONFIG.workspaceId || null;
+
+  // Get workspace info from OAuth credentials if available
+  if (hasOAuthCredentials()) {
+    const creds = oauth.getCredentials(OAUTH_CONFIG.provider);
+    workspaceName = workspaceName || creds?.workspaceName || null;
+    workspaceId = workspaceId || creds?.workspaceId || null;
+  }
+
+  state.setPartial({
+    connected,
+    workspaceName,
+    workspaceId,
+    authMethod: CONFIG.authMethod || null,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -187,20 +540,35 @@ function publishState(): void {
 // ---------------------------------------------------------------------------
 
 function notionFetch(endpoint: string, options: { method?: string; body?: unknown } = {}): unknown {
-  if (!CONFIG.token) {
+  const token = getAccessToken();
+
+  if (!token) {
     throw new Error('Notion not connected. Please complete setup first.');
   }
 
   const response = net.fetch(`${NOTION_BASE_URL}${endpoint}`, {
     method: options.method || 'GET',
     headers: {
-      Authorization: `Bearer ${CONFIG.token}`,
+      Authorization: `Bearer ${token}`,
       'Notion-Version': NOTION_VERSION,
       'Content-Type': 'application/json',
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
     timeout: 30,
   });
+
+  // Handle token revocation
+  if (response.status === 401) {
+    // Token may have been revoked by user in Notion
+    if (hasOAuthCredentials()) {
+      console.log('[notion] Access token rejected — revoking credentials');
+      oauth.revokeCredentials(OAUTH_CONFIG.provider);
+    }
+    CONFIG.token = '';
+    CONFIG.authMethod = '';
+    publishState();
+    throw new Error('Notion access revoked. Please reconnect in settings.');
+  }
 
   if (response.status >= 400) {
     const errorBody = response.body;
@@ -1355,6 +1723,7 @@ const skill: Skill = {
   onSetupStart,
   onSetupSubmit,
   onSetupCancel,
+  onDisconnect,
 };
 
 export default skill;

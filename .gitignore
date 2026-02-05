@@ -36,3 +36,6 @@ src/**/*.js
 
 # Compiled JavaScript from test harness
 dev/js-harness/**/*.js
+
+# Documentation (auto-generated)
+docs/
