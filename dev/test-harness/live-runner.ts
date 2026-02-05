@@ -11,8 +11,6 @@
  *   yarn test:live <skill-id> <script-file>
  *
  * Environment Variables (for Telegram):
- *   TELEGRAM_API_ID     - Your Telegram API ID from my.telegram.org
- *   TELEGRAM_API_HASH   - Your Telegram API Hash
  *   TELEGRAM_SESSION    - (Optional) Saved session string for auth
  *
  * Example:

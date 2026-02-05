@@ -9,8 +9,6 @@ import type { TdLibClient } from './tdlib-client';
 // ---------------------------------------------------------------------------
 
 export interface SkillConfig {
-  apiId: number;
-  apiHash: string;
   phoneNumber: string;
   isAuthenticated: boolean;
   dataDir: string; // TDLib data directory path
@@ -116,8 +114,6 @@ declare global {
 function initSkillState(): TelegramState {
   const state: TelegramState = {
     config: {
-      apiId: 0,
-      apiHash: '',
       phoneNumber: '',
       isAuthenticated: false,
       dataDir: '',

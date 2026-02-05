@@ -138,17 +138,11 @@ async function initClient(): Promise<void> {
     return;
   }
 
-  // Need API credentials to initialize
-  if (!s.config.apiId || !s.config.apiHash) {
-    console.log('[telegram] No API credentials configured, skipping client init');
-    return;
-  }
-
   s.clientConnecting = true;
   s.clientError = null;
   publishState();
 
-  console.log('[telegram] Creating TDLib client with apiId:', s.config.apiId);
+  console.log('[telegram] Creating TDLib client with apiId:', 28685916);
 
   try {
     // Create TDLib client
@@ -167,11 +161,14 @@ async function initClient(): Promise<void> {
     // Start update loop
     client.startUpdateLoop(handleUpdate);
 
+    const apiId = 28685916
+    const apiHash = 'd540ab21dece5404af298c44f4f6386d'
+
     // Set TDLib parameters (this triggers the auth flow)
     console.log('[telegram] Setting TDLib parameters...');
     await client.setTdlibParameters({
-      api_id: s.config.apiId,
-      api_hash: s.config.apiHash,
+      api_id: apiId,
+      api_hash: apiHash,
       database_directory: dataDir,
       files_directory: dataDir + '/files',
       use_message_database: true,
@@ -380,28 +377,12 @@ function init(): void {
   const s = globalThis.getTelegramSkillState();
   const saved = store.get('config') as Partial<typeof s.config> | null;
   if (saved) {
-    s.config.apiId = saved.apiId || 0;
-    s.config.apiHash = saved.apiHash || '';
     s.config.phoneNumber = saved.phoneNumber || '';
     s.config.isAuthenticated = saved.isAuthenticated || false;
     s.config.dataDir = saved.dataDir || '';
     s.config.pendingCode = saved.pendingCode || false;
   }
 
-  // Load from environment if not in store
-  if (!s.config.apiId) {
-    const envApiId = platform.env('TELEGRAM_API_ID');
-    if (envApiId) {
-      s.config.apiId = parseInt(envApiId, 10);
-    }
-  }
-  if (!s.config.apiHash) {
-    s.config.apiHash = platform.env('TELEGRAM_API_HASH') || '';
-  }
-
-  console.log(
-    `[telegram] Config loaded — apiId: ${s.config.apiId ? 'set' : 'not set'}, apiHash: ${s.config.apiHash ? 'set' : 'not set'}`
-  );
   console.log(`[telegram] Authenticated: ${s.config.isAuthenticated}`);
 
   // Load sync state from database
@@ -413,12 +394,10 @@ function init(): void {
     updateStorageStats();
   }
 
-  // Initialize client if we have credentials
-  if (s.config.apiId && s.config.apiHash) {
-    initClient().catch((err) => {
-      console.error('[telegram] Init client failed:', err);
-    });
-  }
+  // Initialize client
+  initClient().catch((err) => {
+    console.error('[telegram] Init client failed:', err);
+  });
 
   publishState();
 }
@@ -458,16 +437,7 @@ function onCronTrigger(_scheduleId: string): void {
 // ---------------------------------------------------------------------------
 
 function onSetupStart(): SetupStartResult {
-  const envApiId = platform.env('TELEGRAM_API_ID');
-  const envApiHash = platform.env('TELEGRAM_API_HASH');
-  console.log(`[telegram] onSetupStart: envApiId: ${envApiId ? 'set' : 'not set'}`);
-
-  // If API credentials are in environment, skip to phone step
-  if (envApiId && envApiHash) {
-    const s = globalThis.getTelegramSkillState();
-    s.config.apiId = parseInt(envApiId, 10);
-    s.config.apiHash = envApiHash;
-    store.set('config', s.config);
+  const s = globalThis.getTelegramSkillState();
 
     // Start client initialization in background
     if (!s.client && !s.clientConnecting) {
@@ -493,35 +463,6 @@ function onSetupStart(): SetupStartResult {
         ],
       },
     };
-  }
-
-  return {
-    step: {
-      id: 'credentials',
-      title: 'Telegram API Credentials',
-      description:
-        'Enter your Telegram API credentials from my.telegram.org. ' +
-        'Then you will enter your phone number.',
-      fields: [
-        {
-          name: 'apiId',
-          type: 'text',
-          label: 'API ID',
-          description: 'Your Telegram API ID (numeric)',
-          required: true,
-          placeholder: '12345678',
-        },
-        {
-          name: 'apiHash',
-          type: 'password',
-          label: 'API Hash',
-          description: 'Your Telegram API Hash',
-          required: true,
-          placeholder: 'abc123...',
-        },
-      ],
-    },
-  };
 }
 
 function onSetupSubmit(args: SetupSubmitArgs): SetupSubmitResult {
@@ -535,17 +476,6 @@ function onSetupSubmit(args: SetupSubmitArgs): SetupSubmitResult {
     console.log(
       `[telegram] Setup: credentials step - apiId: ${apiId}, apiHash: ${apiHash ? '[set]' : '[empty]'}`
     );
-
-    if (!apiId || isNaN(apiId)) {
-      return { status: 'error', errors: [{ field: 'apiId', message: 'Valid API ID is required' }] };
-    }
-    if (!apiHash) {
-      return { status: 'error', errors: [{ field: 'apiHash', message: 'API Hash is required' }] };
-    }
-
-    s.config.apiId = apiId;
-    s.config.apiHash = apiHash;
-    store.set('config', s.config);
 
     // Start client initialization in background
     initClient().catch((err) => {
@@ -741,7 +671,6 @@ function publishState(): void {
     authState: s.authState,
     pendingCode: s.config.pendingCode,
     phoneNumber: s.config.phoneNumber ? s.config.phoneNumber.slice(0, 4) + '****' : null,
-    hasCredentials: !!(s.config.apiId && s.config.apiHash),
     me: s.cache.me,
     dialogCount: s.cache.dialogs.length,
     lastSync: s.cache.lastSync,
@@ -832,7 +761,6 @@ const telegramPingTool: ToolDefinition = {
           ? `Telegram is reachable (${successCount}/${endpoints.length} endpoints)`
           : 'Unable to reach Telegram servers',
       avg_latency_ms: avgLatency,
-      has_credentials: !!(s.config.apiId && s.config.apiHash),
       is_authenticated: s.config.isAuthenticated,
       endpoints: results,
     });
@@ -857,7 +785,6 @@ const telegramStatusTool: ToolDefinition = {
       connecting: s.clientConnecting,
       authenticated: s.config.isAuthenticated,
       authState: s.authState,
-      hasCredentials: !!(s.config.apiId && s.config.apiHash),
       phoneNumber: s.config.phoneNumber ? s.config.phoneNumber.slice(0, 4) + '****' : null,
       me: s.cache.me,
       syncInProgress: s.sync.inProgress,

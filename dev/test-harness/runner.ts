@@ -166,8 +166,6 @@ async function main(): Promise<void> {
   // Forward environment variables from Deno.env to mock state
   // This allows .env files loaded via --env flag to be accessible via platform.env()
   const envVarsToForward = [
-    'TELEGRAM_API_ID',
-    'TELEGRAM_API_HASH',
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_PHONE_NUMBER',
     'NOTION_API_KEY',
