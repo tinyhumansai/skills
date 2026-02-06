@@ -511,13 +511,36 @@ function onSetupSubmit(args: SetupSubmitArgs): SetupSubmitResult {
       `[telegram] Setup: client connected: ${s.client !== null}, connecting: ${s.clientConnecting}, authState: ${s.authState}`
     );
 
-    if (!phoneNumber || !phoneNumber.startsWith('+')) {
+    // Enhanced phone number validation
+    if (!phoneNumber) {
+      return {
+        status: 'error',
+        errors: [{ field: 'phoneNumber', message: 'Phone number is required' }],
+      };
+    }
+
+    if (!phoneNumber.startsWith('+')) {
       return {
         status: 'error',
         errors: [
           {
             field: 'phoneNumber',
             message: 'Phone number must start with + (international format)',
+          },
+        ],
+      };
+    }
+
+    // Check if phone number contains only valid characters (+, digits, spaces, dashes)
+    const phoneRegex = /^\+[1-9]\d{1,14}$/;
+    const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, ''); // Remove formatting characters
+    if (!phoneRegex.test(cleanPhone)) {
+      return {
+        status: 'error',
+        errors: [
+          {
+            field: 'phoneNumber',
+            message: 'Invalid phone number format. Use international format: +1234567890',
           },
         ],
       };
@@ -547,8 +570,9 @@ function onSetupSubmit(args: SetupSubmitArgs): SetupSubmitResult {
       console.log(`[telegram] Unexpected auth state for phone step: ${s.authState}`);
     }
 
-    // Send phone number (async - errors will be caught by update handler)
-    sendPhoneNumber(phoneNumber).catch(err => {
+    // Send phone number (use cleaned format, async - errors will be caught by update handler)
+    const cleanPhoneNumber = phoneNumber.replace(/[\s\-\(\)]/g, ''); // Remove formatting characters
+    sendPhoneNumber(cleanPhoneNumber).catch(err => {
       console.error('[telegram] Failed to send phone number:', err);
       s.clientError = err instanceof Error ? err.message : String(err);
       publishState();

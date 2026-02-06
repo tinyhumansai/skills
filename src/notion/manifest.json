@@ -3,8 +3,8 @@
   "name": "Notion",
   "runtime": "quickjs",
   "entry": "index.js",
-  "version": "1.0.0",
-  "description": "Notion workspace integration — 22 tools for pages, databases, blocks, users, comments, and search.",
+  "version": "1.1.0",
+  "description": "Notion workspace integration — 25 tools for pages, databases, blocks, users, comments, search, and local sync with periodic background updates.",
   "auto_start": false,
   "platforms": ["windows", "macos", "linux", "android", "ios"],
   "setup": {
