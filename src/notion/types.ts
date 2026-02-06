@@ -12,6 +12,15 @@ export interface NotionGlobals {
   formatUserSummary(user: Record<string, unknown>): Record<string, unknown>;
   buildRichText(text: string): unknown[];
   buildParagraphBlock(text: string): Record<string, unknown>;
+  fetchBlockTreeText(blockId: string, maxDepth?: number): string;
+  getLocalPages(options?: { query?: string; limit?: number; includeArchived?: boolean }): unknown[];
+  getLocalDatabases(options?: { query?: string; limit?: number }): unknown[];
+  getLocalUsers(): unknown[];
+  getPageById(pageId: string): unknown | null;
+  getNotionSyncState(key: string): string | null;
+  setNotionSyncState(key: string, value: string): void;
+  getEntityCounts(): { pages: number; databases: number; users: number; pagesWithContent: number };
+  performSync(): void;
 }
 
 // Access helpers at runtime (call inside execute(), not at module scope).

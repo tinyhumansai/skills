@@ -1,11 +1,17 @@
 // notion/index.ts
-// Notion integration skill exposing 22 tools for the Notion API.
-// Supports pages, databases, blocks, users, and comments.
+// Notion integration skill exposing 25 tools for the Notion API + local sync.
+// Supports pages, databases, blocks, users, comments, and local search.
 // Authentication is handled via the platform OAuth bridge.
+// Import modules to initialize state and expose functions on globalThis
+import './db-helpers';
+import './db-schema';
+import './skill-state';
+import './sync';
 // Import helpers
 import {
   buildParagraphBlock,
   buildRichText,
+  fetchBlockTreeText,
   formatApiError,
   formatBlockContent,
   formatBlockSummary,
@@ -16,6 +22,7 @@ import {
   formatUserSummary,
   notionFetch,
 } from './helpers';
+import type { NotionSkillConfig } from './skill-state';
 import { appendBlocksTool } from './tools/append-blocks';
 import { appendTextTool } from './tools/append-text';
 import { createCommentTool } from './tools/create-comment';
@@ -36,6 +43,9 @@ import { listUsersTool } from './tools/list-users';
 import { queryDatabaseTool } from './tools/query-database';
 // Import tools
 import { searchTool } from './tools/search';
+import { searchLocalTool } from './tools/search-local';
+import { syncNowTool } from './tools/sync-now';
+import { syncStatusTool } from './tools/sync-status';
 import { updateBlockTool } from './tools/update-block';
 import { updateDatabaseTool } from './tools/update-database';
 import { updatePageTool } from './tools/update-page';
@@ -56,13 +66,7 @@ _g.formatBlockSummary = formatBlockSummary;
 _g.formatUserSummary = formatUserSummary;
 _g.buildRichText = buildRichText;
 _g.buildParagraphBlock = buildParagraphBlock;
-
-// ---------------------------------------------------------------------------
-// Configuration
-// ---------------------------------------------------------------------------
-
-let credentialId = '';
-let workspaceName = '';
+_g.fetchBlockTreeText = fetchBlockTreeText;
 
 // ---------------------------------------------------------------------------
 // Lifecycle hooks
@@ -70,17 +74,57 @@ let workspaceName = '';
 
 function init(): void {
   console.log('[notion] Initializing');
+  const s = globalThis.getNotionSkillState();
 
-  const saved = store.get('config') as { credentialId?: string; workspaceName?: string } | null;
+  // Initialize database schema
+  const initSchema = (globalThis as { initializeNotionSchema?: () => void })
+    .initializeNotionSchema;
+  if (initSchema) {
+    initSchema();
+  }
+
+  // Load persisted config from store
+  const saved = store.get('config') as Partial<NotionSkillConfig> | null;
   if (saved) {
-    credentialId = saved.credentialId ?? '';
-    workspaceName = saved.workspaceName ?? '';
+    s.config.credentialId = saved.credentialId || s.config.credentialId;
+    s.config.workspaceName = saved.workspaceName || s.config.workspaceName;
+    s.config.syncIntervalMinutes = saved.syncIntervalMinutes || s.config.syncIntervalMinutes;
+    s.config.contentSyncEnabled = saved.contentSyncEnabled ?? s.config.contentSyncEnabled;
+    s.config.maxPagesPerContentSync =
+      saved.maxPagesPerContentSync || s.config.maxPagesPerContentSync;
+  }
+
+  // Load sync state from database
+  const getNotionSyncState = (globalThis as { getNotionSyncState?: (key: string) => string | null })
+    .getNotionSyncState;
+  if (getNotionSyncState) {
+    const lastSync = getNotionSyncState('last_sync_time');
+    if (lastSync) s.syncStatus.lastSyncTime = parseInt(lastSync, 10);
+  }
+
+  // Load entity counts
+  const getEntityCounts = (
+    globalThis as {
+      getEntityCounts?: () => {
+        pages: number;
+        databases: number;
+        users: number;
+        pagesWithContent: number;
+      };
+    }
+  ).getEntityCounts;
+  if (getEntityCounts) {
+    const counts = getEntityCounts();
+    s.syncStatus.totalPages = counts.pages;
+    s.syncStatus.totalDatabases = counts.databases;
+    s.syncStatus.totalUsers = counts.users;
+    s.syncStatus.pagesWithContent = counts.pagesWithContent;
   }
 
   const cred = oauth.getCredential();
   if (cred) {
-    credentialId = cred.credentialId;
-    console.log(`[notion] Connected to workspace: ${workspaceName || '(unnamed)'}`);
+    s.config.credentialId = cred.credentialId;
+    console.log(`[notion] Connected to workspace: ${s.config.workspaceName || '(unnamed)'}`);
   } else {
     console.log('[notion] No OAuth credential — waiting for setup');
   }
@@ -89,9 +133,22 @@ function init(): void {
 }
 
 function start(): void {
+  const s = globalThis.getNotionSkillState();
+
   if (!oauth.getCredential()) {
     console.log('[notion] No credential — skill inactive until OAuth completes');
     return;
+  }
+
+  // Register sync cron schedule
+  const cronExpr = `0 */${s.config.syncIntervalMinutes} * * * *`;
+  cron.register('notion-sync', cronExpr);
+  console.log(`[notion] Scheduled sync every ${s.config.syncIntervalMinutes} minutes`);
+
+  // Perform initial sync
+  const doSync = (globalThis as { performSync?: () => void }).performSync;
+  if (doSync) {
+    doSync();
   }
 
   console.log('[notion] Started');
@@ -99,8 +156,53 @@ function start(): void {
 }
 
 function stop(): void {
-  console.log('[notion] Stopped');
+  console.log('[notion] Stopping');
+  const s = globalThis.getNotionSkillState();
+
+  // Unregister cron
+  cron.unregister('notion-sync');
+
+  // Persist config
+  store.set('config', s.config);
+
+  // Persist sync state
+  const setNotionSyncState = (
+    globalThis as { setNotionSyncState?: (key: string, value: string) => void }
+  ).setNotionSyncState;
+  if (setNotionSyncState) {
+    setNotionSyncState('last_sync_time', s.syncStatus.lastSyncTime.toString());
+  }
+
   state.set('status', 'stopped');
+  console.log('[notion] Stopped');
+}
+
+function onCronTrigger(scheduleId: string): void {
+  console.log(`[notion] Cron triggered: ${scheduleId}`);
+
+  if (scheduleId === 'notion-sync') {
+    const doSync = (globalThis as { performSync?: () => void }).performSync;
+    if (doSync) {
+      doSync();
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Session lifecycle
+// ---------------------------------------------------------------------------
+
+function onSessionStart(args: { sessionId: string }): void {
+  const s = globalThis.getNotionSkillState();
+  s.activeSessions.push(args.sessionId);
+}
+
+function onSessionEnd(args: { sessionId: string }): void {
+  const s = globalThis.getNotionSkillState();
+  const index = s.activeSessions.indexOf(args.sessionId);
+  if (index > -1) {
+    s.activeSessions.splice(index, 1);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -108,33 +210,119 @@ function stop(): void {
 // ---------------------------------------------------------------------------
 
 function onOAuthComplete(args: OAuthCompleteArgs): OAuthCompleteResult | void {
-  credentialId = args.credentialId;
+  const s = globalThis.getNotionSkillState();
+  s.config.credentialId = args.credentialId;
   console.log(
     `[notion] OAuth complete — credential: ${args.credentialId}, account: ${args.accountLabel || '(unknown)'}`
   );
 
   if (args.accountLabel) {
-    workspaceName = args.accountLabel;
+    s.config.workspaceName = args.accountLabel;
   }
 
-  store.set('config', { credentialId, workspaceName });
+  store.set('config', s.config);
+
+  // Start sync schedule and trigger initial sync
+  const cronExpr = `0 */${s.config.syncIntervalMinutes} * * * *`;
+  cron.register('notion-sync', cronExpr);
+
+  const doSync = (globalThis as { performSync?: () => void }).performSync;
+  if (doSync) {
+    doSync();
+  }
+
   publishState();
 }
 
 function onOAuthRevoked(args: OAuthRevokedArgs): void {
   console.log(`[notion] OAuth revoked — reason: ${args.reason}`);
-  credentialId = '';
-  workspaceName = '';
+  const s = globalThis.getNotionSkillState();
+
+  s.config.credentialId = '';
+  s.config.workspaceName = '';
   store.delete('config');
+  cron.unregister('notion-sync');
   publishState();
 }
 
 function onDisconnect(): void {
   console.log('[notion] Disconnecting');
+  const s = globalThis.getNotionSkillState();
+
   oauth.revoke();
-  credentialId = '';
-  workspaceName = '';
+  s.config.credentialId = '';
+  s.config.workspaceName = '';
   store.delete('config');
+  cron.unregister('notion-sync');
+  publishState();
+}
+
+// ---------------------------------------------------------------------------
+// Options system
+// ---------------------------------------------------------------------------
+
+function onListOptions(): { options: SkillOption[] } {
+  const s = globalThis.getNotionSkillState();
+
+  return {
+    options: [
+      {
+        name: 'syncInterval',
+        type: 'select',
+        label: 'Sync Interval',
+        value: s.config.syncIntervalMinutes.toString(),
+        options: [
+          { label: 'Every 10 minutes', value: '10' },
+          { label: 'Every 20 minutes', value: '20' },
+          { label: 'Every 30 minutes', value: '30' },
+          { label: 'Every hour', value: '60' },
+        ],
+      },
+      {
+        name: 'contentSyncEnabled',
+        type: 'boolean',
+        label: 'Sync Page Content',
+        value: s.config.contentSyncEnabled,
+      },
+      {
+        name: 'maxPagesPerContentSync',
+        type: 'select',
+        label: 'Pages Per Content Sync',
+        value: s.config.maxPagesPerContentSync.toString(),
+        options: [
+          { label: '25 pages', value: '25' },
+          { label: '50 pages', value: '50' },
+          { label: '100 pages', value: '100' },
+        ],
+      },
+    ],
+  };
+}
+
+function onSetOption(args: { name: string; value: unknown }): void {
+  const s = globalThis.getNotionSkillState();
+  const credential = oauth.getCredential();
+
+  switch (args.name) {
+    case 'syncInterval':
+      s.config.syncIntervalMinutes = parseInt(args.value as string, 10);
+      if (credential) {
+        cron.unregister('notion-sync');
+        const cronExpr = `0 */${s.config.syncIntervalMinutes} * * * *`;
+        cron.register('notion-sync', cronExpr);
+      }
+      break;
+
+    case 'contentSyncEnabled':
+      s.config.contentSyncEnabled = Boolean(args.value);
+      break;
+
+    case 'maxPagesPerContentSync':
+      s.config.maxPagesPerContentSync = parseInt(args.value as string, 10);
+      break;
+  }
+
+  store.set('config', s.config);
   publishState();
 }
 
@@ -143,7 +331,21 @@ function onDisconnect(): void {
 // ---------------------------------------------------------------------------
 
 function publishState(): void {
-  state.setPartial({ connected: !!oauth.getCredential(), workspaceName: workspaceName || null });
+  const s = globalThis.getNotionSkillState();
+
+  state.setPartial({
+    connected: !!oauth.getCredential(),
+    workspaceName: s.config.workspaceName || null,
+    syncInProgress: s.syncStatus.syncInProgress,
+    lastSyncTime: s.syncStatus.lastSyncTime
+      ? new Date(s.syncStatus.lastSyncTime).toISOString()
+      : null,
+    totalPages: s.syncStatus.totalPages,
+    totalDatabases: s.syncStatus.totalDatabases,
+    totalUsers: s.syncStatus.totalUsers,
+    pagesWithContent: s.syncStatus.pagesWithContent,
+    lastSyncError: s.syncStatus.lastSyncError,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -178,6 +380,10 @@ tools = [
   // Comments
   createCommentTool,
   listCommentsTool,
+  // Local sync tools
+  searchLocalTool,
+  syncStatusTool,
+  syncNowTool,
 ];
 
 // ---------------------------------------------------------------------------
@@ -189,9 +395,12 @@ tools = [
 _g.init = init;
 _g.start = start;
 _g.stop = stop;
+_g.onCronTrigger = onCronTrigger;
+_g.onSessionStart = onSessionStart;
+_g.onSessionEnd = onSessionEnd;
 _g.onOAuthComplete = onOAuthComplete;
 _g.onOAuthRevoked = onOAuthRevoked;
 _g.onDisconnect = onDisconnect;
-
-// Suppress noUnusedLocals
-void credentialId;
+_g.onListOptions = onListOptions;
+_g.onSetOption = onSetOption;
+_g.publishState = publishState;
