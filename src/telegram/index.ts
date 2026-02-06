@@ -43,7 +43,7 @@ const getTdLibClientClass = (): typeof TdLibClientType => {
 function parseAuthState(update: TdUpdate): AuthorizationState {
   const stateType = (update as { authorization_state?: { '@type': string } }).authorization_state?.[
     '@type'
-    ];
+  ];
   switch (stateType) {
     case 'authorizationStateWaitTdlibParameters':
       return 'waitTdlibParameters';
@@ -515,12 +515,7 @@ function onSetupSubmit(args: SetupSubmitArgs): SetupSubmitResult {
     if (!phoneNumber) {
       return {
         status: 'error',
-        errors: [
-          {
-            field: 'phoneNumber',
-            message: 'Phone number is required',
-          },
-        ],
+        errors: [{ field: 'phoneNumber', message: 'Phone number is required' }],
       };
     }
 
@@ -766,10 +761,10 @@ const telegramPingTool: ToolDefinition = {
     const avgLatency =
       successCount > 0
         ? Math.round(
-          results
-            .filter(r => r.success && r.latency_ms !== null)
-            .reduce((sum, r) => sum + (r.latency_ms || 0), 0) / successCount
-        )
+            results
+              .filter(r => r.success && r.latency_ms !== null)
+              .reduce((sum, r) => sum + (r.latency_ms || 0), 0) / successCount
+          )
         : null;
 
     return JSON.stringify({
