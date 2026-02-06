@@ -23,7 +23,7 @@ export interface TdRequest {
 interface TdLibOps {
   isAvailable: () => boolean;
   createClient: (dataDir: string) => Promise<number>;
-  send: <T>(request: TdRequest) => Promise<T>;
+  send: (requestJson: string) => Promise<string>;
   receive: (timeoutMs: number) => Promise<TdUpdate | null>;
   destroy: () => Promise<void>;
 }
@@ -219,8 +219,10 @@ export class TdLibClient {
     let response: T;
 
     if (isTdLibOpsAvailable() && globalThis.tdlib) {
-      // Desktop: use V8 ops
-      response = await globalThis.tdlib.send<T>(request);
+      // Desktop: use V8 ops - serialize to JSON string as expected by Rust bridge
+      const requestJson = JSON.stringify(request);
+      const responseJson = await globalThis.tdlib.send(requestJson);
+      response = JSON.parse(responseJson) as T;
     } else if (isTauriInvokeAvailable() && globalThis.__TAURI_INTERNALS__) {
       // Android: use Tauri invoke
       response = await globalThis.__TAURI_INTERNALS__.invoke<T>('tdlib_send', { request });
