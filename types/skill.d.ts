@@ -22,6 +22,8 @@ interface Skill {
   onSessionStart?: (args: { sessionId: string }) => void;
   onSessionEnd?: (args: { sessionId: string }) => void;
   onTick?: () => void;
+  /** Called when the frontend sends load params (e.g. wallet address for wallet skill). */
+  onLoad?: (params: Record<string, unknown>) => void;
   onRpc?: (args: { method: string; params: unknown }) => unknown;
   onServerEvent?: (event: string, data: unknown) => void;
   onDisconnect?: () => void;

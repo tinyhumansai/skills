@@ -1,6 +1,6 @@
 // Import all tools
 // Import to initialize state
-import { getSkillState } from './skill-state';
+import './skill-state';
 import { getPingHistoryTool } from './tools/get-ping-history';
 import { getPingStatsTool } from './tools/get-ping-stats';
 import { listPeerSkillsTool } from './tools/list-peer-skills';
@@ -18,6 +18,10 @@ import type { SkillConfig } from './types';
 // ---------------------------------------------------------------------------
 // Lifecycle hooks
 // ---------------------------------------------------------------------------
+
+function getSkillState(): import('./skill-state').ServerPingState {
+  return (globalThis as any).getSkillState();
+}
 
 function init(): void {
   console.log(`[server-ping] Initializing on ${platform.os()}`);

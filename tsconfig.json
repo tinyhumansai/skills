@@ -15,6 +15,6 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true
   },
-  "include": ["types/**/*.d.ts", "src/*/index.ts", "examples/*/index.ts"],
+  "include": ["types/**/*.d.ts", "src/types.d.ts", "src/*/index.ts", "examples/*/index.ts"],
   "exclude": ["node_modules", ".venv", "dev"]
 }

@@ -217,7 +217,7 @@ interface SetupStep {
 
 interface SetupField {
   name: string;
-  type: 'text' | 'select' | 'boolean' | 'number' | 'password';
+  type: 'text' | 'select' | 'multiselect' | 'boolean' | 'number' | 'password';
   label: string;
   description?: string;
   required?: boolean;

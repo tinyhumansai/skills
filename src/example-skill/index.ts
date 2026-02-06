@@ -5,8 +5,13 @@
  * Use this as a reference when building your own skill.
  */
 // ─── State & Types ───────────────────────────────────────────────────
-import { getState } from './skill-state';
+import './skill-state';
+import type { ExampleSkillState } from './skill-state';
 import { DEFAULT_CONFIG, type ExampleConfig } from './types';
+
+function getState(): ExampleSkillState {
+  return (globalThis as any).getSkillState();
+}
 
 // ─── Tools ───────────────────────────────────────────────────────────
 // Tools are exposed to the AI and other skills.

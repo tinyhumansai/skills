@@ -54,7 +54,7 @@ _g.getSkillState = function getSkillState(): ServerPingState {
   return s;
 };
 
-/** Typed accessor for use within this skill's source files */
+/** Typed accessor for use within this skill's source files. Delegates to globalThis so bundle works. */
 export function getSkillState(): ServerPingState {
-  return _g.__skillState as ServerPingState;
+  return (_g.getSkillState as () => ServerPingState)();
 }
