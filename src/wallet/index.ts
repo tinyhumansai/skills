@@ -28,6 +28,14 @@ function init(): void {
   if (saved?.networks?.length) {
     s.config.networks = saved.networks;
   }
+  // Ensure at least Ethereum Mainnet is always available
+  if (s.config.networks.length === 0) {
+    const networks = Array.isArray(DEFAULT_NETWORKS) ? DEFAULT_NETWORKS : [];
+    const eth = networks.find(n => n.chain_id === '1');
+    if (eth) {
+      s.config.networks = [eth];
+    }
+  }
 }
 
 function start(): void {
