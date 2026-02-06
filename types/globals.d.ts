@@ -1,58 +1,5 @@
-// Ambient type declarations for the AlphaHuman V8 skill runtime.
-// These match the friendly API layer injected by v8_skill_instance.rs.
-
-/** Console logging (provided by V8 runtime) */
-declare const console: {
-  log(...args: unknown[]): void;
-  error(...args: unknown[]): void;
-  warn(...args: unknown[]): void;
-  info(...args: unknown[]): void;
-  debug(...args: unknown[]): void;
-};
-
-// ---------------------------------------------------------------------------
-// Timer functions (provided by V8 runtime)
-// ---------------------------------------------------------------------------
-
-/** Schedule a function to run after a delay */
-declare function setTimeout<TArgs extends unknown[]>(
-  callback: (...args: TArgs) => void,
-  ms?: number,
-  ...args: TArgs
-): number;
-
-/** Cancel a scheduled timeout */
-declare function clearTimeout(id: number | undefined): void;
-
-/** Schedule a function to run repeatedly at an interval */
-declare function setInterval<TArgs extends unknown[]>(
-  callback: (...args: TArgs) => void,
-  ms?: number,
-  ...args: TArgs
-): number;
-
-/** Cancel a scheduled interval */
-declare function clearInterval(id: number | undefined): void;
-
-// ---------------------------------------------------------------------------
-// AbortController (provided by V8 runtime)
-// ---------------------------------------------------------------------------
-
-/** Signal used to abort operations */
-interface AbortSignal {
-  readonly aborted: boolean;
-  readonly reason: unknown;
-  addEventListener(type: 'abort', listener: () => void): void;
-  removeEventListener(type: 'abort', listener: () => void): void;
-  throwIfAborted(): void;
-}
-
-/** Controller to abort one or more operations */
-declare class AbortController {
-  constructor();
-  readonly signal: AbortSignal;
-  abort(reason?: unknown): void;
-}
+// Ambient type declarations for the AlphaHuman QuickJS skill runtime.
+// These match the friendly API layer injected by the Rust host.
 
 // ---------------------------------------------------------------------------
 // Bridge namespaces
@@ -136,12 +83,87 @@ declare const data: {
   write(filename: string, content: string): void;
 };
 
+/** OAuth credential management and authenticated API proxy. */
+declare const oauth: {
+  /** Get the OAuth credential for this skill, or null if not connected. */
+  getCredential(): OAuthCredential | null;
+
+  /**
+   * Make an authenticated API request proxied through the server.
+   * Server attaches the OAuth access_token and forwards to the provider API.
+   * Path is relative to manifest's apiBaseUrl.
+   */
+  fetch(path: string, options?: OAuthFetchOptions): OAuthFetchResponse;
+
+  /** Revoke the current OAuth credential server-side. */
+  revoke(): boolean;
+};
+
+/** Local LLM inference. */
+declare const model: {
+  /** Check if a local model is available for inference. */
+  isAvailable(): boolean;
+  /** Get detailed model status (loaded, downloading, error, etc.). */
+  getStatus(): ModelStatus;
+  /** Generate text from a prompt. Returns the generated text. */
+  generate(prompt: string, options?: ModelGenerateOptions): string;
+  /** Summarize a block of text. Returns the summary. */
+  summarize(text: string, options?: ModelSummarizeOptions): string;
+  /** Submit a summary to the server via socket.io. Fire-and-forget. */
+  submitSummary(submission: SummarySubmission): void;
+};
+
 // ---------------------------------------------------------------------------
 // Tools (assigned by skills on globalThis)
 // ---------------------------------------------------------------------------
 
 /** Tool definitions exposed to the AI and other skills. */
 declare let tools: ToolDefinition[];
+
+// ---------------------------------------------------------------------------
+// QuickJS Runtime Globals (available at runtime but not in TypeScript by default)
+// ---------------------------------------------------------------------------
+
+/** Console logging (available in QuickJS runtime) */
+declare const console: {
+  log(...args: any[]): void;
+  error(...args: any[]): void;
+  warn(...args: any[]): void;
+  info(...args: any[]): void;
+};
+
+/** Base64 encoding/decoding (available in QuickJS runtime) */
+declare function atob(data: string): string;
+declare function btoa(data: string): string;
+
+/** URI encoding (available in QuickJS runtime) */
+declare function encodeURIComponent(str: string): string;
+declare function decodeURIComponent(str: string): string;
+
+/** Timer functions (available in QuickJS runtime) */
+declare function setTimeout(
+  callback: (...args: any[]) => void,
+  delay: number,
+  ...args: any[]
+): number;
+declare function clearTimeout(id: number): void;
+declare function setInterval(
+  callback: (...args: any[]) => void,
+  delay: number,
+  ...args: any[]
+): number;
+declare function clearInterval(id: number): void;
+
+/** AbortController for request cancellation (available in QuickJS runtime) */
+declare class AbortController {
+  readonly signal: AbortSignal;
+  abort(): void;
+}
+
+declare class AbortSignal {
+  readonly aborted: boolean;
+  onabort: ((this: AbortSignal, ev: any) => any) | null;
+}
 
 // ---------------------------------------------------------------------------
 // Supporting interfaces
@@ -165,7 +187,12 @@ interface ToolPropertySchema {
   description?: string;
   enum?: string[];
   default?: unknown;
-  items?: { type: string };
+  items?: { type: string; properties?: Record<string, any>; required?: string[] };
+  properties?: Record<string, any>;
+  required?: string[];
+  minimum?: number;
+  maximum?: number;
+  format?: string;
 }
 
 interface NetFetchOptions {
@@ -235,96 +262,104 @@ interface SkillInfo {
   status?: string;
 }
 
-// ---------------------------------------------------------------------------
-// OAuth Bridge API (for external service authentication)
-// ---------------------------------------------------------------------------
-
-/** OAuth authentication for external services. */
-declare const oauth: {
-  /**
-   * Check if the OAuth bridge is available.
-   * Use this to detect if OAuth is supported before attempting OAuth flows.
-   */
-  isAvailable(): boolean;
-
-  /**
-   * Start OAuth authorization flow.
-   * Opens system browser with authorization URL.
-   * Returns a flow handle with the flow ID and auth URL.
-   */
-  startFlow(provider: string, options?: OAuthFlowOptions): OAuthFlowHandle;
-
-  /**
-   * Check if OAuth flow is complete.
-   * Call this periodically or in response to events.
-   */
-  checkFlow(flowId: string): OAuthFlowStatus;
-
-  /**
-   * Get stored OAuth credentials for a provider.
-   * Returns null if not authenticated.
-   */
-  getCredentials(provider: string): OAuthCredentials | null;
-
-  /**
-   * Revoke and delete stored OAuth credentials.
-   */
-  revokeCredentials(provider: string): void;
-
-  /**
-   * Check if credentials exist for a provider.
-   */
-  hasCredentials(provider: string): boolean;
-
-  /**
-   * Exchange authorization code for access token.
-   * Used when handling OAuth callback manually.
-   */
-  exchangeCode(provider: string, code: string, state: string): OAuthCredentials;
-};
-
-interface OAuthFlowOptions {
-  /** Custom redirect URI (optional, uses default if not specified) */
-  redirectUri?: string;
-  /** Additional scopes to request */
-  scopes?: string[];
-  /** Custom state parameter (generated if not specified) */
-  state?: string;
-}
-
-interface OAuthFlowHandle {
-  /** Unique flow ID for checking status */
-  flowId: string;
-  /** Authorization URL to open in browser */
-  authUrl: string;
-  /** State parameter for CSRF validation */
-  state: string;
-}
-
-interface OAuthFlowStatus {
-  /** Flow status */
-  status: 'pending' | 'complete' | 'failed' | 'expired';
-  /** Error message if failed */
+interface ModelStatus {
+  available: boolean;
+  loaded: boolean;
+  loading: boolean;
+  downloaded: boolean;
+  downloadProgress?: number;
   error?: string;
-  /** Credentials if complete */
-  credentials?: OAuthCredentials;
+  modelPath?: string;
 }
 
-interface OAuthCredentials {
-  /** Access token for API calls */
-  accessToken: string;
-  /** Token type (usually "bearer") */
-  tokenType?: string;
-  /** Workspace/organization ID (provider-specific) */
-  workspaceId?: string;
-  /** Workspace/organization name (provider-specific) */
-  workspaceName?: string;
-  /** User ID associated with the token */
-  userId?: string;
-  /** Bot/app ID (for Notion) */
-  botId?: string;
-  /** Token expiration timestamp (Unix ms), if applicable */
-  expiresAt?: number;
-  /** Refresh token, if applicable */
-  refreshToken?: string;
+interface ModelGenerateOptions {
+  maxTokens?: number;
+  temperature?: number;
+  topP?: number;
 }
+
+interface ModelSummarizeOptions {
+  maxTokens?: number;
+}
+
+interface SummarySubmission {
+  /** Main text summary. Must be non-empty. */
+  summary: string;
+  /** Key insights or bullet points. */
+  keyPoints?: string[];
+  /** Category (e.g. "market_update", "alert", "digest", "research", "activity"). */
+  category?: string;
+  /** Sentiment analysis result. */
+  sentiment?: 'positive' | 'neutral' | 'negative' | 'mixed';
+  /** Data source identifier (e.g. "telegram", "email", "on-chain", "api"). */
+  dataSource?: string;
+  /** Time range covered, in epoch milliseconds. */
+  timeRange?: { start: number; end: number };
+  /** Entities and relationships extracted from the data. */
+  entities?: SummaryEntity[];
+  /** Free-form metadata for skill-specific data. */
+  metadata?: Record<string, unknown>;
+}
+
+interface SummaryEntity {
+  /** Entity identifier (username, email, wallet address, channel ID, etc.) */
+  id: string;
+  /** Entity type. */
+  type: 'person' | 'wallet' | 'channel' | 'group' | 'organization' | 'token' | 'other';
+  /** Display name. */
+  name?: string;
+  /** Role/relationship in context (e.g. "sender", "recipient", "cc", "mentioned", "author"). */
+  role?: string;
+  /** Additional entity metadata. */
+  metadata?: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// OAuth interfaces
+// ---------------------------------------------------------------------------
+
+interface OAuthCredential {
+  credentialId: string;
+  provider: string;
+  scopes: string[];
+  isValid: boolean;
+  createdAt: number;
+  accountLabel?: string;
+}
+
+interface OAuthFetchOptions {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+  timeout?: number;
+  baseUrl?: string;
+}
+
+interface OAuthFetchResponse {
+  status: number;
+  headers: Record<string, string>;
+  body: string;
+}
+
+interface OAuthCompleteArgs {
+  credentialId: string;
+  provider: string;
+  grantedScopes: string[];
+  accountLabel?: string;
+}
+
+interface OAuthCompleteResult {
+  nextStep?: SetupStep;
+}
+
+interface OAuthRevokedArgs {
+  credentialId: string;
+  reason: 'user_disconnected' | 'token_expired' | 'provider_revoked' | 'server_error';
+}
+
+// ---------------------------------------------------------------------------
+// OAuth lifecycle hooks
+// ---------------------------------------------------------------------------
+
+declare function onOAuthComplete(args: OAuthCompleteArgs): OAuthCompleteResult | void;
+declare function onOAuthRevoked(args: OAuthRevokedArgs): void;

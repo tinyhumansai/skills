@@ -1,44 +1,42 @@
-#!/usr/bin/env -S deno run --allow-read --allow-env
+#!/usr/bin/env tsx
 /**
- * runner.ts - V8 Skill Script Runner
+ * runner-node.ts - Skill Script Runner with live APIs (Node.js)
  *
  * Loads a compiled skill from skills/<skill-id>/index.js and executes
- * a user-written test script against it. Provides the same bridge APIs
- * as the Rust V8 runtime.
+ * a user-written test script against it. Uses real HTTP (via curl),
+ * persistent SQLite database, and real platform APIs.
+ *
+ * For unit testing with mocked APIs, use the test harness (yarn test) instead.
  *
  * Usage:
- *   deno run --allow-read --allow-env dev/test-harness/runner.ts <skill-id> <script-file>
+ *   npx tsx dev/test-harness/runner-node.ts <skill-id> <script-file>
  *   yarn test:script <skill-id> <script-file>
  *
  * Example:
  *   yarn test:script simple-skill scripts/examples/test-simple-skill.js
+ *   yarn test:script notion scripts/examples/test-notion.js --clean
  *
  * Supported Features:
- *   - Bridge APIs: db, store, net, platform, state, data, cron, skills
+ *   - Bridge APIs: db, store, net (real HTTP), platform (real), state, data, cron, skills
  *   - Lifecycle hooks: init, start, stop
  *   - Setup flow: onSetupStart, onSetupSubmit
  *   - Options: onListOptions, onSetOption
  *   - Session events: onSessionStart, onSessionEnd
- *   - Timer mocking: setTimeout, setInterval
- *
- * Limitations:
- *   - Tools that reference IIFE-scoped state variables (like PING_COUNT, FAIL_COUNT)
- *     may throw ReferenceError because the new Function() sandbox doesn't expose
- *     globalThis properties as variable bindings. The production Rust V8 runtime
- *     handles this correctly.
- *   - Use simple-skill as a reference for harness-compatible skill structure.
+ *   - Timer tracking: setTimeout, setInterval
  */
 
-import { createBridgeAPIs } from './bootstrap.ts';
-import {
-  getMockState,
-  initMockState,
-  mockFetchError,
-  mockFetchResponse,
-  resetMockState,
-  setEnv,
-  setPlatformOs,
-} from './mock-state.ts';
+import { existsSync, readFileSync, rmSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { config as loadDotenv } from 'dotenv';
+import { createBridgeAPIs, getLiveState, resetLiveState } from './bootstrap-live';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const rootDir = resolve(__dirname, '../..');
+
+// Load .env from the repo root
+loadDotenv({ path: resolve(rootDir, '.env') });
 
 // Colors for terminal output
 const colors = {
@@ -53,14 +51,14 @@ const colors = {
 
 function printBanner(): void {
   console.log(`${colors.cyan}═══════════════════════════════════════════════════════════════${colors.reset}`);
-  console.log(`${colors.cyan}              V8 Skill Script Runner (Deno)                    ${colors.reset}`);
+  console.log(`${colors.cyan}          Skill Script Runner (Live Mode · Node.js)            ${colors.reset}`);
   console.log(`${colors.cyan}═══════════════════════════════════════════════════════════════${colors.reset}`);
 }
 
 function printUsage(): void {
   console.log(`
 ${colors.yellow}Usage:${colors.reset}
-  deno run --allow-read --allow-env --allow-net dev/test-harness/runner.ts <skill-id> <script-file> [options]
+  npx tsx dev/test-harness/runner-node.ts <skill-id> <script-file> [options]
 
 ${colors.yellow}Arguments:${colors.reset}
   skill-id      The skill directory name (e.g., "server-ping")
@@ -68,10 +66,12 @@ ${colors.yellow}Arguments:${colors.reset}
 
 ${colors.yellow}Options:${colors.reset}
   --wait=<ms>   Wait specified milliseconds before cleanup (for async connections)
+  --clean       Wipe the skill's data directory before running (removes db, store, state, files)
 
 ${colors.yellow}Examples:${colors.reset}
-  deno run --allow-read --allow-env --allow-net dev/test-harness/runner.ts server-ping scripts/examples/test-ping-flow.js
+  npx tsx dev/test-harness/runner-node.ts server-ping scripts/examples/test-ping-flow.js
   yarn test:script server-ping scripts/examples/test-ping-flow.js
+  yarn test:script server-ping scripts/examples/test-ping-flow.js --clean
   yarn test:script telegram scripts/examples/test-telegram-setup.js --wait=10000
 
 ${colors.yellow}Script Helpers Available:${colors.reset}
@@ -80,26 +80,30 @@ ${colors.yellow}Script Helpers Available:${colors.reset}
   triggerSetupStart()            - Call onSetupStart, returns step definition
   triggerSetupSubmit(stepId, values) - Call onSetupSubmit
   triggerTimer(timerId)          - Fire a specific timer callback
-  __mockFetch(url, response)     - Set up mock HTTP response
-  __mockFetchError(url, message) - Set up mock HTTP error
-  __getMockState()               - Get full mock state for inspection
-  __resetMockState()             - Reset all mocks to initial state
+  listTools()                    - List available tool names
+  listTimers()                   - List registered timers
   __setEnv(key, value)           - Set environment variable
-  __setPlatformOs(os)            - Set platform.os() return value
+  __getLiveState()               - Get tracking state (console, fetch calls, timers, etc.)
+  __resetLiveState()             - Reset tracking state
+
+${colors.yellow}Note:${colors.reset}
+  This runner uses ${colors.green}real HTTP${colors.reset} (via curl) and ${colors.green}persistent storage${colors.reset}.
+  For unit tests with mocked APIs, use: yarn test
 `);
 }
 
 async function main(): Promise<void> {
   printBanner();
 
-  const args = Deno.args;
+  const args = process.argv.slice(2);
   if (args.length < 2) {
     printUsage();
-    Deno.exit(1);
+    process.exit(1);
   }
 
-  // Parse --wait flag for async connection waiting
+  // Parse flags
   let waitMs = 0;
+  let cleanFlag = false;
   const filteredArgs: string[] = [];
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--wait' && args[i + 1]) {
@@ -107,6 +111,8 @@ async function main(): Promise<void> {
       i++; // Skip the value
     } else if (args[i].startsWith('--wait=')) {
       waitMs = parseInt(args[i].split('=')[1], 10);
+    } else if (args[i] === '--clean') {
+      cleanFlag = true;
     } else {
       filteredArgs.push(args[i]);
     }
@@ -114,77 +120,68 @@ async function main(): Promise<void> {
 
   if (filteredArgs.length < 2) {
     printUsage();
-    Deno.exit(1);
+    process.exit(1);
   }
 
   const skillId = filteredArgs[0];
   const scriptFile = filteredArgs[1];
 
   // Resolve paths relative to the skills repo root
-  const scriptDir = new URL('.', import.meta.url).pathname;
-  const rootDir = scriptDir.replace(/\/dev\/test-harness\/?$/, '');
-  const skillDir = `${rootDir}/skills/${skillId}`;
-  const skillIndexPath = `${skillDir}/index.js`;
-  const skillManifestPath = `${skillDir}/manifest.json`;
+  const skillDir = resolve(rootDir, 'skills', skillId);
+  const skillIndexPath = resolve(skillDir, 'index.js');
+  const skillManifestPath = resolve(skillDir, 'manifest.json');
 
   // Check if skill exists
-  try {
-    await Deno.stat(skillIndexPath);
-  } catch {
+  if (!existsSync(skillIndexPath)) {
     console.error(`${colors.red}Error: Skill "${skillId}" not found at ${skillDir}${colors.reset}`);
     console.error(`${colors.dim}Make sure to run 'yarn build' first.${colors.reset}`);
-    Deno.exit(1);
+    process.exit(1);
   }
 
   // Check if script exists
   let resolvedScriptPath = scriptFile;
   if (!scriptFile.startsWith('/')) {
-    resolvedScriptPath = `${rootDir}/${scriptFile}`;
+    resolvedScriptPath = resolve(rootDir, scriptFile);
   }
 
-  try {
-    await Deno.stat(resolvedScriptPath);
-  } catch {
+  if (!existsSync(resolvedScriptPath)) {
     console.error(`${colors.red}Error: Script file not found: ${resolvedScriptPath}${colors.reset}`);
-    Deno.exit(1);
+    process.exit(1);
   }
 
   // Load manifest
   let manifest: { id: string; name: string; version: string };
   try {
-    const manifestText = await Deno.readTextFile(skillManifestPath);
+    const manifestText = readFileSync(skillManifestPath, 'utf-8');
     manifest = JSON.parse(manifestText);
     console.log(`\n${colors.blue}Loaded skill: ${manifest.name} v${manifest.version} (${manifest.id})${colors.reset}`);
   } catch (e) {
     console.error(`${colors.red}Error loading manifest: ${e}${colors.reset}`);
-    Deno.exit(1);
+    process.exit(1);
   }
 
-  // Initialize mock state
-  initMockState();
+  // Compute persistent data directory
+  const dataDir = resolve(rootDir, 'skills', skillId, 'data');
 
-  // Forward environment variables from Deno.env to mock state
-  // This allows .env files loaded via --env flag to be accessible via platform.env()
-  const envVarsToForward = [
-    'TELEGRAM_API_ID',
-    'TELEGRAM_API_HASH',
-    'TELEGRAM_BOT_TOKEN',
-    'TELEGRAM_PHONE_NUMBER',
-    'NOTION_API_KEY',
-    'OPENAI_API_KEY',
-  ];
-  for (const key of envVarsToForward) {
-    const value = Deno.env.get(key);
-    if (value) {
-      setEnv(key, value);
+  if (cleanFlag) {
+    if (existsSync(dataDir)) {
+      rmSync(dataDir, { recursive: true, force: true });
+      console.log(`${colors.yellow}Cleaned data directory: ${dataDir}${colors.reset}`);
     }
   }
 
-  // Create bridge APIs (async to allow dynamic import of ws package)
-  const bridgeAPIs = await createBridgeAPIs();
+  // Resolve backend connection from env
+  const backendUrl = process.env.BACKEND_URL || process.env.VITE_BACKEND_URL || 'https://api.alphahuman.xyz';
+  const jwtToken = process.env.JWT_TOKEN || process.env.VITE_DEV_JWT_TOKEN || '';
+
+  console.log(`${colors.dim}Data directory: ${dataDir}${colors.reset}`);
+  console.log(`${colors.dim}Backend: ${backendUrl}${colors.reset}`);
+  console.log(`${colors.dim}Mode: live (real HTTP, persistent storage, socket.io)${colors.reset}`);
+
+  // Create live bridge APIs (real HTTP, persistent storage, real platform APIs)
+  const bridgeAPIs = await createBridgeAPIs({ dataDir, jwtToken, backendUrl });
 
   // Build the global context that will be shared by skill and test script
-  // Use a shared object that can be modified and all code sees the changes
   const G: Record<string, unknown> = {
     ...bridgeAPIs,
   };
@@ -194,35 +191,31 @@ async function main(): Promise<void> {
   G.self = G;
   G.window = G;
 
-  // Add __helpers for mock state access
+  // Add __helpers for state access from test scripts
   G.__helpers = {
-    getMockState,
-    mockFetchResponse,
-    mockFetchError,
-    resetMockState,
-    setEnv,
-    setPlatformOs,
+    getLiveState,
+    resetLiveState,
+    // Alias for compatibility with triggerTimer/listTimers helpers
+    getMockState: getLiveState,
+    setEnv: (key: string, value: string) => {
+      process.env[key] = value;
+    },
   };
 
   // IMPORTANT: Set WebSocket on globalThis BEFORE loading skill code
-  // because gramjs IIFE captures WebSocket at parse time, not at context setup time
   if (bridgeAPIs.WebSocket) {
     // @ts-ignore - setting global WebSocket
     globalThis.WebSocket = bridgeAPIs.WebSocket;
-    // Also set window-like globals for gramjs platform detection
     // @ts-ignore
     globalThis.window = globalThis;
   }
 
   // Load the skill code
   console.log(`${colors.dim}Loading skill code...${colors.reset}`);
-  const skillCode = await Deno.readTextFile(skillIndexPath);
+  const skillCode = readFileSync(skillIndexPath, 'utf-8');
 
   // Run code with access to shared global G
-  // Uses indirect eval via Function that receives G and destructures it
   const runInContext = (code: string) => {
-    // Build the wrapper that exposes G's properties as local variables
-    // and writes back changes to G
     const fn = new Function('G', `
       "use strict";
       // Destructure globals from G
@@ -231,10 +224,14 @@ async function main(): Promise<void> {
       var db = G.db;
       var net = G.net;
       var platform = G.platform;
+      var backend = G.backend;
+      var socket = G.socket;
       var state = G.state;
       var data = G.data;
       var cron = G.cron;
       var skills = G.skills;
+      var model = G.model;
+      var oauth = G.oauth;
       var setTimeout = G.setTimeout;
       var setInterval = G.setInterval;
       var clearTimeout = G.clearTimeout;
@@ -288,18 +285,11 @@ async function main(): Promise<void> {
       var location = G.location;
       var WebSocket = G.WebSocket;
       var crypto = G.crypto;
-      // NOTE: Do NOT pre-declare tools, init, start, stop, etc. - the skill code
-      // defines them and we need to let its function declarations work
-      // NOTE: Do NOT inject exports/module - the bundled code creates its own
-      // and the skill code at the end writes to globalThis.__skill
 
       ${code}
 
       // Write back skill exports to G
       G.__skill = (typeof __skill !== 'undefined') ? __skill : ((typeof globalThis !== 'undefined' && globalThis.__skill) ? globalThis.__skill : G.__skill);
-      // Copy lifecycle functions to G (skill may define them directly or via globalThis)
-      // NOTE: Don't write back 'tools' here - bundled skills have fixed tools in __skill.default.tools
-      // and the local 'tools' variable may have broken references due to CommonJS interop issues
       if (typeof init !== 'undefined') G.init = init;
       if (typeof start !== 'undefined') G.start = start;
       if (typeof stop !== 'undefined') G.stop = stop;
@@ -311,6 +301,8 @@ async function main(): Promise<void> {
       if (typeof onSessionEnd !== 'undefined') G.onSessionEnd = onSessionEnd;
       if (typeof onListOptions !== 'undefined') G.onListOptions = onListOptions;
       if (typeof onSetOption !== 'undefined') G.onSetOption = onSetOption;
+      if (typeof onOAuthComplete !== 'undefined') G.onOAuthComplete = onOAuthComplete;
+      if (typeof onOAuthRevoked !== 'undefined') G.onOAuthRevoked = onOAuthRevoked;
     `);
     fn(G);
   };
@@ -321,7 +313,7 @@ async function main(): Promise<void> {
     console.log(`${colors.green}✓${colors.reset} Skill code loaded`);
   } catch (e) {
     console.error(`${colors.red}Error evaluating skill code: ${e}${colors.reset}`);
-    Deno.exit(1);
+    process.exit(1);
   }
 
   // Extract skill from __skill.default (bundled skills expose this way)
@@ -337,16 +329,14 @@ async function main(): Promise<void> {
     onSessionEnd?: (args: { sessionId: string }) => void;
     onListOptions?: () => { options: unknown[] };
     onSetOption?: (args: { name: string; value: unknown }) => void;
+    onOAuthComplete?: (args: { credentialId: string; provider: string; grantedScopes: string[]; accountLabel?: string }) => unknown;
+    onOAuthRevoked?: (args: { credentialId: string; reason: string }) => void;
   }
 
   const skillExport = G.__skill as { default?: SkillExport } | undefined;
   const skill = skillExport?.default;
 
   if (skill) {
-    // Expose skill functions to G for test script access (from __skill.default)
-    // This is in addition to any direct globalThis assignments the skill makes
-    // Always prefer skill.tools over G.tools - bundled skills have fixup code that
-    // repairs the tools array after the CommonJS interop issue
     if (skill.tools) G.tools = skill.tools;
     if (skill.init && !G.init) G.init = skill.init;
     if (skill.start && !G.start) G.start = skill.start;
@@ -358,6 +348,8 @@ async function main(): Promise<void> {
     if (skill.onSessionEnd && !G.onSessionEnd) G.onSessionEnd = skill.onSessionEnd;
     if (skill.onListOptions && !G.onListOptions) G.onListOptions = skill.onListOptions;
     if (skill.onSetOption && !G.onSetOption) G.onSetOption = skill.onSetOption;
+    if (skill.onOAuthComplete && !G.onOAuthComplete) G.onOAuthComplete = skill.onOAuthComplete;
+    if (skill.onOAuthRevoked && !G.onOAuthRevoked) G.onOAuthRevoked = skill.onOAuthRevoked;
   }
 
   // Report what was found
@@ -368,9 +360,8 @@ async function main(): Promise<void> {
   console.log(`${colors.green}✓${colors.reset} Skill exports extracted`);
 
   // Define helper functions as JavaScript code to inject
-  // These helpers access skill functions via G (the shared global context)
   const helperDefinitions = `
-// Expose skill functions as local vars for helper code (read from G after skill loaded them)
+// Expose skill functions as local vars for helper code
 var tools = G.tools;
 var init = G.init;
 var start = G.start;
@@ -383,11 +374,11 @@ var onSessionStart = G.onSessionStart;
 var onSessionEnd = G.onSessionEnd;
 var onListOptions = G.onListOptions;
 var onSetOption = G.onSetOption;
+var onOAuthComplete = G.onOAuthComplete;
+var onOAuthRevoked = G.onOAuthRevoked;
 
-// Tool calling helper
 function callTool(name, args) {
   args = args || {};
-  // Filter out undefined tools (CommonJS interop issue)
   var validTools = tools.filter(function(t) { return t && t.name; });
   var tool = validTools.find(function(t) { return t.name === name; });
   if (!tool) {
@@ -401,7 +392,6 @@ function callTool(name, args) {
   }
 }
 
-// Cron trigger helper
 function triggerCron(scheduleId) {
   if (typeof onCronTrigger === 'function') {
     onCronTrigger(scheduleId);
@@ -410,53 +400,38 @@ function triggerCron(scheduleId) {
   }
 }
 
-// Setup flow helpers
 function triggerSetupStart() {
-  if (typeof onSetupStart === 'function') {
-    return onSetupStart();
-  }
+  if (typeof onSetupStart === 'function') return onSetupStart();
   console.warn('onSetupStart not defined');
   return null;
 }
 
 function triggerSetupSubmit(stepId, values) {
-  if (typeof onSetupSubmit === 'function') {
-    return onSetupSubmit({ stepId: stepId, values: values });
-  }
+  if (typeof onSetupSubmit === 'function') return onSetupSubmit({ stepId: stepId, values: values });
   console.warn('onSetupSubmit not defined');
   return null;
 }
 
-// Session helpers
 function triggerSessionStart(sessionId) {
-  if (typeof onSessionStart === 'function') {
-    onSessionStart({ sessionId: sessionId });
-  }
+  if (typeof onSessionStart === 'function') onSessionStart({ sessionId: sessionId });
 }
 
 function triggerSessionEnd(sessionId) {
-  if (typeof onSessionEnd === 'function') {
-    onSessionEnd({ sessionId: sessionId });
-  }
+  if (typeof onSessionEnd === 'function') onSessionEnd({ sessionId: sessionId });
 }
 
-// Timer helper - uses __helpers to access mock state
 function triggerTimer(timerId) {
-  var mockState = __helpers.getMockState();
-  var timer = mockState.timers.get(timerId);
+  var state = __helpers.getMockState();
+  var timer = state.timers.get(timerId);
   if (timer) {
     timer.callback();
-    if (!timer.isInterval) {
-      mockState.timers.delete(timerId);
-    }
+    if (!timer.isInterval) state.timers.delete(timerId);
   } else {
     console.warn('Timer ' + timerId + ' not found');
   }
 }
 
-// List helpers
 function listTools() {
-  // Filter out undefined tools (can happen due to CommonJS interop issues with bundled skills)
   return tools.filter(function(t) { return t && t.name; }).map(function(t) { return t.name; });
 }
 
@@ -469,29 +444,27 @@ function listTimers() {
   return result;
 }
 
-// Mock state helpers
-function __mockFetch(url, response) {
-  __helpers.mockFetchResponse(url, response.status, response.body, response.headers);
-}
-
-function __mockFetchError(url, message) {
-  __helpers.mockFetchError(url, message);
-}
-
-function __getMockState() {
-  return __helpers.getMockState();
-}
-
-function __resetMockState() {
-  __helpers.resetMockState();
-}
-
 function __setEnv(key, value) {
   __helpers.setEnv(key, value);
 }
 
-function __setPlatformOs(os) {
-  __helpers.setPlatformOs(os);
+function __getLiveState() {
+  return __helpers.getLiveState();
+}
+
+function __resetLiveState() {
+  __helpers.resetLiveState();
+}
+
+function triggerOAuthComplete(args) {
+  if (typeof onOAuthComplete === 'function') return onOAuthComplete(args);
+  console.warn('onOAuthComplete not defined');
+  return null;
+}
+
+function triggerOAuthRevoked(args) {
+  if (typeof onOAuthRevoked === 'function') return onOAuthRevoked(args);
+  console.warn('onOAuthRevoked not defined');
 }
 `;
 
@@ -523,9 +496,7 @@ function __setPlatformOs(os) {
   console.log(`${colors.yellow}═══════════════════════════════════════════════════════════════${colors.reset}`);
   console.log(`${colors.dim}Script: ${resolvedScriptPath}${colors.reset}\n`);
 
-  const scriptCode = await Deno.readTextFile(resolvedScriptPath);
-
-  // Combine helper definitions with test script
+  const scriptCode = readFileSync(resolvedScriptPath, 'utf-8');
   const fullScript = helperDefinitions + '\n' + scriptCode;
 
   try {
@@ -538,7 +509,7 @@ function __setPlatformOs(os) {
     console.error(`${colors.red}                    Script Error                               ${colors.reset}`);
     console.error(`${colors.red}═══════════════════════════════════════════════════════════════${colors.reset}`);
     console.error(`${colors.red}${e}${colors.reset}`);
-    Deno.exit(1);
+    process.exit(1);
   }
 
   // Wait for async operations if --wait was specified
@@ -558,6 +529,13 @@ function __setPlatformOs(os) {
       console.error(`${colors.red}stop() error: ${e}${colors.reset}`);
     }
   }
+
+  // Close persistent DB if open
+  if (typeof bridgeAPIs.__cleanup === 'function') {
+    (bridgeAPIs.__cleanup as () => void)();
+  }
+
+  console.log(`\n${colors.dim}Data persisted to: ${dataDir}${colors.reset}`);
 }
 
 main();

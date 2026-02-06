@@ -1,5 +1,5 @@
 /**
- * mock-state.ts - Shared mock state for V8 skill testing
+ * mock-state.ts - Shared mock state for QuickJS skill testing
  *
  * Maintains the state that would normally live in the Rust runtime's
  * bridge implementations.
@@ -51,6 +51,33 @@ export interface MockState {
   /** Timer tracking */
   timers: Map<number, TimerEntry>;
   nextTimerId: number;
+
+  /** model.generate/summarize call log */
+  modelCalls: Array<{ method: string; prompt: string; options?: unknown }>;
+
+  /** Prompt-substring → response mapping for model mock */
+  modelResponses: Record<string, string>;
+
+  /** Whether the mock model is available */
+  modelAvailable: boolean;
+
+  /** model.submitSummary() recorded submissions */
+  summarySubmissions: Array<SummarySubmissionRecord>;
+
+  /** OAuth mock credential */
+  oauthCredential: OAuthCredentialMock | null;
+
+  /** Recorded oauth.fetch calls */
+  oauthFetchCalls: Array<{ path: string; options?: OAuthFetchOptionsMock }>;
+
+  /** Path -> mock response for oauth.fetch */
+  oauthFetchResponses: Record<string, { status: number; body: string; headers?: Record<string, string> }>;
+
+  /** Path -> error message for oauth.fetch */
+  oauthFetchErrors: Record<string, string>;
+
+  /** Whether oauth.revoke() was called */
+  oauthRevoked: boolean;
 }
 
 export interface DbTable {
@@ -79,6 +106,42 @@ export interface TimerEntry {
   scheduledAt: number;
 }
 
+export interface OAuthCredentialMock {
+  credentialId: string;
+  provider: string;
+  scopes: string[];
+  isValid: boolean;
+  createdAt: number;
+  accountLabel?: string;
+}
+
+export interface OAuthFetchOptionsMock {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+  timeout?: number;
+  baseUrl?: string;
+}
+
+export interface SummarySubmissionRecord {
+  summary: string;
+  keyPoints?: string[];
+  category?: string;
+  sentiment?: 'positive' | 'neutral' | 'negative' | 'mixed';
+  dataSource?: string;
+  timeRange?: { start: number; end: number };
+  entities?: Array<{
+    id: string;
+    type: string;
+    name?: string;
+    role?: string;
+    metadata?: Record<string, unknown>;
+  }>;
+  metadata?: Record<string, unknown>;
+  /** Timestamp when the mock recorded the submission */
+  submittedAt: number;
+}
+
 /** Global mock state instance */
 let mockState: MockState = createFreshState();
 
@@ -102,6 +165,15 @@ function createFreshState(): MockState {
     consoleOutput: [],
     timers: new Map(),
     nextTimerId: 1,
+    modelCalls: [],
+    modelResponses: {},
+    modelAvailable: true,
+    summarySubmissions: [],
+    oauthCredential: null,
+    oauthFetchCalls: [],
+    oauthFetchResponses: {},
+    oauthFetchErrors: {},
+    oauthRevoked: false,
   };
 }
 
@@ -124,6 +196,10 @@ export function initMockState(options?: {
   platformOs?: string;
   peerSkills?: SkillInfo[];
   dataFiles?: Record<string, string>;
+  modelResponses?: Record<string, string>;
+  modelAvailable?: boolean;
+  oauthCredential?: OAuthCredentialMock;
+  oauthFetchResponses?: Record<string, { status: number; body: string; headers?: Record<string, string> }>;
 }): void {
   resetMockState();
 
@@ -147,6 +223,18 @@ export function initMockState(options?: {
   }
   if (options?.dataFiles) {
     mockState.dataFiles = { ...options.dataFiles };
+  }
+  if (options?.modelResponses) {
+    mockState.modelResponses = { ...options.modelResponses };
+  }
+  if (options?.modelAvailable !== undefined) {
+    mockState.modelAvailable = options.modelAvailable;
+  }
+  if (options?.oauthCredential) {
+    mockState.oauthCredential = { ...options.oauthCredential };
+  }
+  if (options?.oauthFetchResponses) {
+    mockState.oauthFetchResponses = { ...options.oauthFetchResponses };
   }
 }
 
@@ -175,4 +263,37 @@ export function setEnv(key: string, value: string): void {
 /** Set platform OS */
 export function setPlatformOs(os: string): void {
   mockState.platformOs = os;
+}
+
+/** Set up a mock model response for prompts containing a substring */
+export function mockModelResponse(promptSubstring: string, response: string): void {
+  mockState.modelResponses[promptSubstring] = response;
+}
+
+/** Set whether the mock model is available */
+export function setModelAvailable(available: boolean): void {
+  mockState.modelAvailable = available;
+}
+
+/** Set up a mock OAuth credential */
+export function mockOAuthCredential(credential: OAuthCredentialMock): void {
+  mockState.oauthCredential = { ...credential };
+  mockState.oauthRevoked = false;
+}
+
+/** Set up a mock OAuth fetch response for a path */
+export function mockOAuthFetchResponse(
+  path: string,
+  status: number,
+  body: string,
+  headers?: Record<string, string>
+): void {
+  mockState.oauthFetchResponses[path] = { status, body, headers };
+  delete mockState.oauthFetchErrors[path];
+}
+
+/** Set up a mock OAuth fetch error for a path */
+export function mockOAuthFetchError(path: string, message = 'OAuth proxy error'): void {
+  mockState.oauthFetchErrors[path] = message;
+  delete mockState.oauthFetchResponses[path];
 }

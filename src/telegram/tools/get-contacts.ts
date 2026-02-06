@@ -1,6 +1,5 @@
 // Tool: telegram-get-contacts
 // Get contacts/users with optional filtering.
-
 import { getContacts } from '../db-helpers';
 
 /**
@@ -19,18 +18,12 @@ export const getContactsToolDefinition: ToolDefinition = {
         description: 'Only return users who are saved contacts (true/false)',
         enum: ['true', 'false'],
       },
-      search: {
-        type: 'string',
-        description: 'Search term to filter by name or username',
-      },
+      search: { type: 'string', description: 'Search term to filter by name or username' },
       limit: {
         type: 'string',
         description: 'Maximum number of contacts to return (default: 50, max: 100)',
       },
-      offset: {
-        type: 'string',
-        description: 'Number of contacts to skip for pagination',
-      },
+      offset: { type: 'string', description: 'Number of contacts to skip for pagination' },
     },
     required: [],
   },
@@ -41,15 +34,10 @@ export const getContactsToolDefinition: ToolDefinition = {
       const limit = Math.min(parseInt((args.limit as string) || '50', 10), 100);
       const offset = parseInt((args.offset as string) || '0', 10);
 
-      const contacts = getContacts({
-        contactsOnly,
-        search,
-        limit,
-        offset,
-      });
+      const contacts = getContacts({ contactsOnly, search, limit, offset });
 
       // Format for readability
-      const formattedContacts = contacts.map((contact) => {
+      const formattedContacts = contacts.map(contact => {
         const name = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || 'Unknown';
 
         return {

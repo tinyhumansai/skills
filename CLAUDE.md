@@ -8,29 +8,36 @@ This is the **AlphaHuman Skills** repository — a plugin/extension system for t
 
 ## Architecture
 
-Skills are written in **TypeScript** and compiled to **JavaScript** for execution in a sandboxed **V8** runtime embedded in the Rust host application.
+Skills are written in **TypeScript** and compiled to **JavaScript** for execution in a sandboxed **QuickJS** runtime embedded in the Rust host application.
 
 ### Directory Structure
 
 ```
 skills/                          # Repo root
 ├── src/                         # TypeScript source files
+│   ├── example-skill/           # Comprehensive example (kitchen sink)
 │   ├── server-ping/             # Server health monitoring skill
-│   │   ├── index.ts             # Main skill code
-│   │   ├── manifest.json        # Skill metadata
-│   │   └── __tests__/           # Unit tests
+│   ├── simple-skill/            # Minimal skill template
+│   ├── gmail/                   # Gmail integration
 │   ├── notion/                  # Notion API integration
 │   └── telegram/                # Telegram integration
 ├── skills/                      # Compiled JavaScript output (git-ignored)
 ├── types/
 │   └── globals.d.ts             # Ambient type declarations for bridge APIs
 ├── dev/
-│   └── js-harness/              # V8 test harness
+│   └── test-harness/            # Node.js test harness (tsx)
+│       ├── runner-node.ts       # Test runner
+│       ├── bootstrap-node.ts    # Mock bridge APIs
+│       ├── live-runner-node.ts  # Live test runner
+│       ├── mock-state.ts        # Mock state management
+│       └── mock-db.ts           # Mock SQLite database
 ├── scripts/
+│   ├── build-bundle.mjs         # esbuild bundler
 │   ├── strip-exports.mjs        # Post-build processing
-│   └── test-js.sh               # Test runner
-├── examples/                    # Example skills
-├── skills-py/                   # Legacy Python skills (deprecated)
+│   ├── validate.mjs             # Skill validation checks
+│   ├── scan-secrets.mjs         # Secret scanner
+│   ├── install-skill-deps.mjs   # Per-skill dependency installer
+│   └── test-harness.mjs         # Test orchestrator
 ├── package.json                 # Build scripts
 ├── tsconfig.json                # Base TypeScript config
 ├── tsconfig.build.json          # Production build config
@@ -51,7 +58,7 @@ Each skill is a directory under `src/` containing:
 {
   "id": "my-skill",
   "name": "My Skill",
-  "runtime": "v8",
+  "runtime": "quickjs",
   "entry": "index.js",
   "version": "1.0.0",
   "description": "What this skill does",
@@ -67,7 +74,7 @@ Each skill is a directory under `src/` containing:
 # Install dependencies
 yarn install
 
-# Full build: clean, compile TypeScript, post-process
+# Full build: clean, install skill deps, compile TypeScript, bundle, post-process
 yarn build
 
 # Type checking only (no emit)
@@ -76,27 +83,44 @@ yarn typecheck
 # Watch mode for development
 yarn build:watch
 
+# Validate skills (manifest, secrets, code quality)
+yarn validate
+
+# Secret scanning only
+yarn validate:secrets
+
 # Run all tests
 yarn test
 
 # Run specific test
 yarn test src/server-ping/__tests__/test-server-ping.ts
+
+# Lint and format
+yarn lint
+yarn format:check
+
+# Download local model for inference testing
+yarn model:download
+
+# Run test script with real local model
+yarn test:model <skill-id> <script-file>
 ```
 
 ## Bridge APIs
 
 Skills have access to these global namespaces (defined in `types/globals.d.ts`):
 
-| Namespace  | Purpose                             |
-| ---------- | ----------------------------------- |
-| `db`       | SQLite database scoped to skill     |
-| `store`    | Persistent key-value store          |
-| `net`      | HTTP networking (synchronous)       |
-| `cron`     | Cron scheduling (6-field syntax)    |
-| `skills`   | Inter-skill communication           |
-| `platform` | OS info, env vars, notifications    |
-| `state`    | Real-time frontend state publishing |
-| `data`     | File I/O in skill's data directory  |
+| Namespace  | Purpose                                   |
+| ---------- | ----------------------------------------- |
+| `db`       | SQLite database scoped to skill           |
+| `store`    | Persistent key-value store                |
+| `net`      | HTTP networking (synchronous)             |
+| `cron`     | Cron scheduling (6-field syntax)          |
+| `skills`   | Inter-skill communication                 |
+| `platform` | OS info, env vars, notifications          |
+| `state`    | Real-time frontend state publishing       |
+| `data`     | File I/O in skill's data directory        |
+| `model`    | Local LLM inference (generate, summarize) |
 
 ### Database (`db`)
 
@@ -152,6 +176,24 @@ const status = state.get('status');
 ```typescript
 data.write('config.json', JSON.stringify(config, null, 2));
 const content = data.read('config.json'); // null if not found
+```
+
+### Model (`model`)
+
+```typescript
+// Check if a local model is available
+const available = model.isAvailable();
+const status = model.getStatus(); // { available, loaded, loading, downloaded, error? }
+
+// Generate text from a prompt
+const response = model.generate('What is Bitcoin?', {
+  maxTokens: 200, // default: 2048
+  temperature: 0.7, // default: 0.7
+  topP: 0.9, // default: 0.9
+});
+
+// Summarize a block of text
+const summary = model.summarize(longText, { maxTokens: 100 });
 ```
 
 ### Platform (`platform`)
@@ -296,7 +338,7 @@ function onSetOption(args: { name: string; value: unknown }): void {
 
 ## Testing
 
-Tests use a V8 harness with mocked bridge APIs.
+Tests use a Node.js harness (tsx) with mocked bridge APIs.
 
 ### Test Structure
 
@@ -365,7 +407,7 @@ npx tsc -p tsconfig.test.json
 {
   "id": "my-skill",
   "name": "My Skill",
-  "runtime": "v8",
+  "runtime": "quickjs",
   "entry": "index.js",
   "version": "1.0.0",
   "description": "What this skill does",
@@ -375,18 +417,33 @@ npx tsc -p tsconfig.test.json
 
 3. Create `index.ts` with lifecycle hooks and tools
 
-4. Build and test:
+4. (Optional) Add per-skill dependencies by creating a `package.json` in your skill directory:
+
+```json
+{
+  "name": "@alphahuman/skill-my-skill",
+  "private": true,
+  "dependencies": { "some-library": "^1.0.0" }
+}
+```
+
+Only `dependencies` are bundled — esbuild inlines them into the single output file.
+
+5. Build, validate, and test:
 
 ```bash
 yarn build
 yarn typecheck
+yarn validate
 yarn test src/my-skill/__tests__/test-my-skill.ts
 ```
+
+See [`src/example-skill/`](src/example-skill/) for a complete working example demonstrating all bridge APIs, lifecycle hooks, setup wizard, options, and tools.
 
 ## Key Constraints
 
 - **TypeScript only** — Skills are TypeScript compiled to JavaScript
-- **V8 runtime** — Sandboxed JS environment with bridge APIs
+- **QuickJS runtime** — Sandboxed JS environment with bridge APIs
 - **Synchronous execution** — No async/await; `net.fetch()` is sync with timeout
 - **JSON string results** — Tool execute functions must return JSON strings
 - **6-field cron** — Cron includes seconds: `sec min hour day month dow`
@@ -397,22 +454,28 @@ yarn test src/my-skill/__tests__/test-my-skill.ts
 
 ## Build Process
 
-1. **TypeScript Compilation**: `tsc -p tsconfig.build.json`
+1. **Install skill dependencies**: `node scripts/install-skill-deps.mjs`
+   - Runs `yarn install` in each `src/<skill>/` that has a `package.json`
+
+2. **TypeScript Compilation**: `tsc -p tsconfig.build.json`
    - Input: `src/*/index.ts`
    - Output: `skills/*/index.js`
 
-2. **Post-Processing** (`strip-exports.mjs`):
+3. **esbuild Bundling**: `node scripts/build-bundle.mjs`
+   - Bundles each skill into a single IIFE file with all dependencies inlined
+
+4. **Post-Processing** (`strip-exports.mjs`):
    - Removes `export {};` module boundaries
    - Normalizes indentation (4-space → 2-space)
    - Copies `manifest.json` to output
 
-3. **Output**: Ready-to-run JavaScript in `skills/`
+5. **Output**: Ready-to-run JavaScript in `skills/`
 
 ## Common Patterns
 
 ### Skill State Management (Recommended Pattern)
 
-For skills with tools that need to access mutable state, use the **globalThis state pattern**. This ensures state is accessible in both the production V8 runtime and the test harness.
+For skills with tools that need to access mutable state, use the **globalThis state pattern**. This ensures state is accessible in both the production QuickJS runtime and the test harness.
 
 **1. Create a `skill-state.ts` module:**
 
@@ -441,7 +504,7 @@ const state: MySkillState = {
 globalThis.__skillState = state;
 
 // Expose getter function globally
-globalThis.getSkillState = function(): MySkillState {
+globalThis.getSkillState = function (): MySkillState {
   return globalThis.__skillState;
 };
 ```
@@ -450,7 +513,9 @@ globalThis.getSkillState = function(): MySkillState {
 
 ```typescript
 // In index.ts
-import './skill-state'; // Initializes state
+import './skill-state';
+
+// Initializes state
 
 function init(): void {
   const s = globalThis.getSkillState();
@@ -469,7 +534,9 @@ function doPing(): void {
 
 ```typescript
 // In tools/get-stats.ts
-import '../skill-state'; // Ensures initialization
+import '../skill-state';
+
+// Ensures initialization
 
 export const getStatsTool: ToolDefinition = {
   name: 'get-stats',
@@ -493,10 +560,11 @@ _g.publishState = publishState;
 ```
 
 **Why this pattern?**
+
 - Bundled skills use esbuild IIFE format, which creates module-local scopes
 - The test harness uses `new Function()` which has its own scope limitations
 - Accessing state via `globalThis.getSkillState()` works in both environments
-- The production Rust V8 runtime handles this correctly via `execute_script`
+- The production Rust QuickJS runtime handles this correctly via `execute_script`
 
 ### Config Persistence (Simple Pattern)
 

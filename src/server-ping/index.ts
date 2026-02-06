@@ -1,13 +1,12 @@
 // Import all tools
+// Import to initialize state
+import { getSkillState } from './skill-state';
 import { getPingHistoryTool } from './tools/get-ping-history';
 import { getPingStatsTool } from './tools/get-ping-stats';
 import { listPeerSkillsTool } from './tools/list-peer-skills';
 import { pingNowTool } from './tools/ping-now';
 import { readConfigTool } from './tools/read-config';
 import { updateServerUrlTool } from './tools/update-server-url';
-
-// Import to initialize state; globalThis.getSkillState() is called as global at runtime
-import './skill-state';
 import type { SkillConfig } from './types';
 
 // server-ping/index.ts
@@ -22,7 +21,7 @@ import type { SkillConfig } from './types';
 
 function init(): void {
   console.log(`[server-ping] Initializing on ${platform.os()}`);
-  const s = globalThis.globalThis.getSkillState();
+  const s = getSkillState();
 
   // Create DB table for ping history
   db.exec(
@@ -69,7 +68,7 @@ function init(): void {
 }
 
 function start(): void {
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
 
   if (!s.config.serverUrl) {
     console.warn('[server-ping] No server URL configured — waiting for setup');
@@ -77,7 +76,9 @@ function start(): void {
   }
 
   const intervalMs = s.config.pingIntervalSec * 1000;
-  console.log(`[server-ping] Starting — ping every ${s.config.pingIntervalSec}s (using setInterval)`);
+  console.log(
+    `[server-ping] Starting — ping every ${s.config.pingIntervalSec}s (using setInterval)`
+  );
 
   // Clear any existing interval
   if (s.pingIntervalId !== null) {
@@ -98,7 +99,7 @@ function start(): void {
 
 function stop(): void {
   console.log('[server-ping] Stopping');
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
 
   // Clear the ping interval
   if (s.pingIntervalId !== null) {
@@ -107,10 +108,7 @@ function stop(): void {
   }
 
   // Persist counters
-  store.set('counters', {
-    pingCount: s.pingCount,
-    failCount: s.failCount,
-  });
+  store.set('counters', { pingCount: s.pingCount, failCount: s.failCount });
 
   state.set('status', 'stopped');
 }
@@ -163,7 +161,7 @@ function onSetupSubmit(args: {
   values: Record<string, unknown>;
 }): SetupSubmitResult {
   const { stepId, values } = args;
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
 
   if (stepId === 'server-config') {
     // Validate URL
@@ -240,7 +238,7 @@ function onSetupCancel(): void {
 // ---------------------------------------------------------------------------
 
 function onListOptions(): { options: SkillOption[] } {
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
   return {
     options: [
       {
@@ -283,7 +281,7 @@ function onListOptions(): { options: SkillOption[] } {
 
 function onSetOption(args: { name: string; value: unknown }): void {
   const { name, value } = args;
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
 
   if (name === 'pingIntervalSec') {
     const newInterval = parseInt(value as string) || 10;
@@ -318,14 +316,14 @@ function onSetOption(args: { name: string; value: unknown }): void {
 
 function onSessionStart(args: { sessionId: string }): void {
   const { sessionId } = args;
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
   s.activeSessions.push(sessionId);
   console.log(`[server-ping] Session started: ${sessionId} (active: ${s.activeSessions.length})`);
 }
 
 function onSessionEnd(args: { sessionId: string }): void {
   const { sessionId } = args;
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
   s.activeSessions = s.activeSessions.filter(sid => sid !== sessionId);
   console.log(`[server-ping] Session ended: ${sessionId} (active: ${s.activeSessions.length})`);
 }
@@ -340,7 +338,7 @@ function onCronTrigger(_scheduleId: string): void {
 }
 
 function doPing(): void {
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
   s.pingCount++;
   const timestamp = new Date().toISOString();
   const startTime = Date.now();
@@ -397,10 +395,7 @@ function doPing(): void {
 
   // Persist counters periodically (every 10 pings)
   if (s.pingCount % 10 === 0) {
-    store.set('counters', {
-      pingCount: s.pingCount,
-      failCount: s.failCount,
-    });
+    store.set('counters', { pingCount: s.pingCount, failCount: s.failCount });
   }
 
   // Publish state to frontend
@@ -415,12 +410,10 @@ function doPing(): void {
 // ---------------------------------------------------------------------------
 
 function publishState(): void {
-  const s = globalThis.getSkillState();
+  const s = getSkillState();
 
   const uptimePct =
-    s.pingCount > 0
-      ? Math.round(((s.pingCount - s.failCount) / s.pingCount) * 10000) / 100
-      : 100;
+    s.pingCount > 0 ? Math.round(((s.pingCount - s.failCount) / s.pingCount) * 10000) / 100 : 100;
 
   // Get latest latency from DB
   const latest = db.get(
@@ -494,18 +487,19 @@ function sendNotification(title: string, body: string): void {
 // Tools (callable by AI and other skills)
 // ---------------------------------------------------------------------------
 
-// Runtime lifecycle hooks (called by V8 host, not within this module)
-void init;
-void start;
-void stop;
-void onCronTrigger;
-void onSetupStart;
-void onSetupSubmit;
-void onSetupCancel;
-void onListOptions;
-void onSetOption;
-void onSessionStart;
-void onSessionEnd;
+// Expose lifecycle hooks on globalThis so the REPL/runtime can call them.
+// esbuild IIFE bundling traps function declarations in the closure scope.
+_g.init = init;
+_g.start = start;
+_g.stop = stop;
+_g.onCronTrigger = onCronTrigger;
+_g.onSetupStart = onSetupStart;
+_g.onSetupSubmit = onSetupSubmit;
+_g.onSetupCancel = onSetupCancel;
+_g.onListOptions = onListOptions;
+_g.onSetOption = onSetOption;
+_g.onSessionStart = onSessionStart;
+_g.onSessionEnd = onSessionEnd;
 
 const tools = [
   getPingStatsTool,

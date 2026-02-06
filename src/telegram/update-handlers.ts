@@ -1,24 +1,22 @@
 // TDLib update handlers for persisting data to SQLite.
 // Each handler processes a specific update type and writes to the database.
-
+// Import db-helpers to initialize globalThis.telegramDb
+import './db-helpers';
 import type { TdUpdate } from './tdlib-client';
 import type {
-  TdUpdateNewChat,
-  TdUpdateChatTitle,
-  TdUpdateChatPosition,
   TdUpdateChatLastMessage,
+  TdUpdateChatPosition,
   TdUpdateChatReadInbox,
+  TdUpdateChatTitle,
   TdUpdateChatUnreadMentionCount,
-  TdUpdateNewMessage,
+  TdUpdateDeleteMessages,
   TdUpdateMessageContent,
   TdUpdateMessageEdited,
-  TdUpdateDeleteMessages,
+  TdUpdateNewChat,
+  TdUpdateNewMessage,
   TdUpdateUser,
   TdUpdateUserStatus,
 } from './types';
-
-// Import db-helpers to initialize globalThis.telegramDb
-import './db-helpers';
 
 // ---------------------------------------------------------------------------
 // Update Handler Registry

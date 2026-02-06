@@ -1,6 +1,5 @@
 // Tool: telegram-get-chats
 // Get chat list with optional filtering.
-
 import { getChats } from '../db-helpers';
 import type { ChatType } from '../types';
 
@@ -25,18 +24,12 @@ export const getChatsToolDefinition: ToolDefinition = {
         description: 'Only return chats with unread messages (true/false)',
         enum: ['true', 'false'],
       },
-      search: {
-        type: 'string',
-        description: 'Search term to filter chats by title or username',
-      },
+      search: { type: 'string', description: 'Search term to filter chats by title or username' },
       limit: {
         type: 'string',
         description: 'Maximum number of chats to return (default: 50, max: 100)',
       },
-      offset: {
-        type: 'string',
-        description: 'Number of chats to skip for pagination',
-      },
+      offset: { type: 'string', description: 'Number of chats to skip for pagination' },
     },
     required: [],
   },
@@ -48,16 +41,10 @@ export const getChatsToolDefinition: ToolDefinition = {
       const limit = Math.min(parseInt((args.limit as string) || '50', 10), 100);
       const offset = parseInt((args.offset as string) || '0', 10);
 
-      const chats = getChats({
-        type,
-        unreadOnly,
-        search,
-        limit,
-        offset,
-      });
+      const chats = getChats({ type, unreadOnly, search, limit, offset });
 
       // Format for readability
-      const formattedChats = chats.map((chat) => ({
+      const formattedChats = chats.map(chat => ({
         id: chat.id,
         type: chat.type,
         title: chat.title,

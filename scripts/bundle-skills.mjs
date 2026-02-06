@@ -126,6 +126,10 @@ for (const skillName of skills) {
       banner: { js: '/* Bundled skill with esbuild */' },
       // Configure to handle CommonJS modules properly
       mainFields: ['module', 'main'],
+      // Suppress CommonJS-in-ESM warnings since we're intentionally using a hybrid approach
+      logOverride: {
+        'commonjs-variable-in-esm': 'silent',
+      },
       inject: [join(polyfillsDir, 'buffer-inject.js')],
       alias: {
         buffer: join(polyfillsDir, 'buffer.js'),

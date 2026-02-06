@@ -1,6 +1,5 @@
 // Tool: telegram-get-messages
 // Get messages from a chat with optional filtering.
-
 import { getMessages } from '../db-helpers';
 
 /**
@@ -14,19 +13,13 @@ export const getMessagesToolDefinition: ToolDefinition = {
   input_schema: {
     type: 'object',
     properties: {
-      chat_id: {
-        type: 'string',
-        description: 'The chat ID to get messages from (required)',
-      },
+      chat_id: { type: 'string', description: 'The chat ID to get messages from (required)' },
       content_type: {
         type: 'string',
         description: 'Filter by message content type',
         enum: ['text', 'photo', 'video', 'document', 'audio', 'voicenote', 'sticker', 'animation'],
       },
-      search: {
-        type: 'string',
-        description: 'Search term to filter messages by text content',
-      },
+      search: { type: 'string', description: 'Search term to filter messages by text content' },
       before_id: {
         type: 'string',
         description: 'Get messages before this message ID (for pagination)',
@@ -50,15 +43,10 @@ export const getMessagesToolDefinition: ToolDefinition = {
       const beforeId = args.before_id as string | undefined;
       const limit = Math.min(parseInt((args.limit as string) || '50', 10), 100);
 
-      const messages = getMessages(chatId, {
-        contentType,
-        search,
-        beforeId,
-        limit,
-      });
+      const messages = getMessages(chatId, { contentType, search, beforeId, limit });
 
       // Format for readability
-      const formattedMessages = messages.map((msg) => {
+      const formattedMessages = messages.map(msg => {
         const formatted: Record<string, unknown> = {
           id: msg.id,
           chat_id: msg.chat_id,
@@ -98,7 +86,8 @@ export const getMessagesToolDefinition: ToolDefinition = {
         count: formattedMessages.length,
         messages: formattedMessages,
         has_more: formattedMessages.length === limit,
-        oldest_id: formattedMessages.length > 0 ? formattedMessages[formattedMessages.length - 1].id : null,
+        oldest_id:
+          formattedMessages.length > 0 ? formattedMessages[formattedMessages.length - 1].id : null,
       });
     } catch (err) {
       return JSON.stringify({

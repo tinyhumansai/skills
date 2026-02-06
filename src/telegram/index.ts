@@ -1,28 +1,26 @@
 // telegram/index.ts
 // Telegram integration skill using TDLib via V8 runtime.
 // Provides tools for Telegram API access with native TDLib bindings.
-
 // Import skill state (initializes globalThis.getTelegramSkillState)
-import './skill-state';
-import type { SetupSubmitArgs, AuthorizationState } from './skill-state';
-
-// Import TDLib client wrapper - this also assigns TdLibClient to globalThis
-import './tdlib-client';
-import type { TdUpdate, TdUser } from './tdlib-client';
-// Import the class type for type assertions
-import type { TdLibClient as TdLibClientType } from './tdlib-client';
-
+// registers globalThis.initializeTelegramSchema
+import './db-helpers';
 // Import modules to register globalThis functions
-import './db-schema'; // registers globalThis.initializeTelegramSchema
-import './db-helpers'; // registers globalThis.telegramDb
-import './update-handlers'; // registers globalThis.telegramDispatchUpdate
-import './sync'; // registers globalThis.telegramSync
-
+import './db-schema';
+import './skill-state';
+import type { AuthorizationState, SetupSubmitArgs } from './skill-state';
+// registers globalThis.telegramDispatchUpdate
+import './sync';
+// Import TDLib client wrapper - this also assigns TdLibClient to globalThis
+import type { TdLibClient as TdLibClientType, TdUpdate, TdUser } from './tdlib-client';
+import './tdlib-client';
+import { getChatStatsToolDefinition } from './tools/get-chat-stats';
+// registers globalThis.telegramSync
 // Import tool definitions
 import { getChatsToolDefinition } from './tools/get-chats';
-import { getMessagesToolDefinition } from './tools/get-messages';
 import { getContactsToolDefinition } from './tools/get-contacts';
-import { getChatStatsToolDefinition } from './tools/get-chat-stats';
+import { getMessagesToolDefinition } from './tools/get-messages';
+// registers globalThis.telegramDb
+import './update-handlers';
 
 // Access TdLibClient from globalThis (workaround for esbuild bundling issues)
 const getTdLibClientClass = (): typeof TdLibClientType => {
@@ -138,17 +136,11 @@ async function initClient(): Promise<void> {
     return;
   }
 
-  // Need API credentials to initialize
-  if (!s.config.apiId || !s.config.apiHash) {
-    console.log('[telegram] No API credentials configured, skipping client init');
-    return;
-  }
-
   s.clientConnecting = true;
   s.clientError = null;
   publishState();
 
-  console.log('[telegram] Creating TDLib client with apiId:', s.config.apiId);
+  console.log('[telegram] Creating TDLib client with apiId:', 28685916);
 
   try {
     // Create TDLib client
@@ -167,11 +159,14 @@ async function initClient(): Promise<void> {
     // Start update loop
     client.startUpdateLoop(handleUpdate);
 
+    const apiId = 28685916;
+    const apiHash = 'd540ab21dece5404af298c44f4f6386d';
+
     // Set TDLib parameters (this triggers the auth flow)
     console.log('[telegram] Setting TDLib parameters...');
     await client.setTdlibParameters({
-      api_id: s.config.apiId,
-      api_hash: s.config.apiHash,
+      api_id: apiId,
+      api_hash: apiHash,
       database_directory: dataDir,
       files_directory: dataDir + '/files',
       use_message_database: true,
@@ -273,7 +268,7 @@ async function triggerInitialSync(): Promise<void> {
   publishState();
 
   try {
-    await globalThis.telegramSync.performInitialSync(s.client, (msg) => {
+    await globalThis.telegramSync.performInitialSync(s.client, msg => {
       console.log(`[telegram-sync] ${msg}`);
     });
 
@@ -380,28 +375,12 @@ function init(): void {
   const s = globalThis.getTelegramSkillState();
   const saved = store.get('config') as Partial<typeof s.config> | null;
   if (saved) {
-    s.config.apiId = saved.apiId || 0;
-    s.config.apiHash = saved.apiHash || '';
     s.config.phoneNumber = saved.phoneNumber || '';
     s.config.isAuthenticated = saved.isAuthenticated || false;
     s.config.dataDir = saved.dataDir || '';
     s.config.pendingCode = saved.pendingCode || false;
   }
 
-  // Load from environment if not in store
-  if (!s.config.apiId) {
-    const envApiId = platform.env('TELEGRAM_API_ID');
-    if (envApiId) {
-      s.config.apiId = parseInt(envApiId, 10);
-    }
-  }
-  if (!s.config.apiHash) {
-    s.config.apiHash = platform.env('TELEGRAM_API_HASH') || '';
-  }
-
-  console.log(
-    `[telegram] Config loaded — apiId: ${s.config.apiId ? 'set' : 'not set'}, apiHash: ${s.config.apiHash ? 'set' : 'not set'}`
-  );
   console.log(`[telegram] Authenticated: ${s.config.isAuthenticated}`);
 
   // Load sync state from database
@@ -413,12 +392,10 @@ function init(): void {
     updateStorageStats();
   }
 
-  // Initialize client if we have credentials
-  if (s.config.apiId && s.config.apiHash) {
-    initClient().catch((err) => {
-      console.error('[telegram] Init client failed:', err);
-    });
-  }
+  // Initialize client
+  initClient().catch(err => {
+    console.error('[telegram] Init client failed:', err);
+  });
 
   publishState();
 }
@@ -435,7 +412,7 @@ function stop(): void {
   // Destroy TDLib client
   if (s.client) {
     try {
-      s.client.destroy().catch((e) => {
+      s.client.destroy().catch(e => {
         console.warn('[telegram] Error destroying client:', e);
       });
     } catch (e) {
@@ -458,66 +435,28 @@ function onCronTrigger(_scheduleId: string): void {
 // ---------------------------------------------------------------------------
 
 function onSetupStart(): SetupStartResult {
-  const envApiId = platform.env('TELEGRAM_API_ID');
-  const envApiHash = platform.env('TELEGRAM_API_HASH');
-  console.log(`[telegram] onSetupStart: envApiId: ${envApiId ? 'set' : 'not set'}`);
+  const s = globalThis.getTelegramSkillState();
 
-  // If API credentials are in environment, skip to phone step
-  if (envApiId && envApiHash) {
-    const s = globalThis.getTelegramSkillState();
-    s.config.apiId = parseInt(envApiId, 10);
-    s.config.apiHash = envApiHash;
-    store.set('config', s.config);
-
-    // Start client initialization in background
-    if (!s.client && !s.clientConnecting) {
-      initClient().catch((err) => {
-        console.error('[telegram] Init client failed:', err);
-      });
-    }
-
-    return {
-      step: {
-        id: 'phone',
-        title: 'Connect Telegram Account',
-        description: 'Enter your phone number to connect your Telegram account.',
-        fields: [
-          {
-            name: 'phoneNumber',
-            type: 'text',
-            label: 'Phone Number',
-            description: 'International format (e.g., +1234567890)',
-            required: true,
-            placeholder: '+1234567890',
-          },
-        ],
-      },
-    };
+  // Start client initialization in background
+  if (!s.client && !s.clientConnecting) {
+    initClient().catch(err => {
+      console.error('[telegram] Init client failed:', err);
+    });
   }
 
   return {
     step: {
-      id: 'credentials',
-      title: 'Telegram API Credentials',
-      description:
-        'Enter your Telegram API credentials from my.telegram.org. ' +
-        'Then you will enter your phone number.',
+      id: 'phone',
+      title: 'Connect Telegram Account',
+      description: 'Enter your phone number to connect your Telegram account.',
       fields: [
         {
-          name: 'apiId',
+          name: 'phoneNumber',
           type: 'text',
-          label: 'API ID',
-          description: 'Your Telegram API ID (numeric)',
+          label: 'Phone Number',
+          description: 'International format (e.g., +1234567890)',
           required: true,
-          placeholder: '12345678',
-        },
-        {
-          name: 'apiHash',
-          type: 'password',
-          label: 'API Hash',
-          description: 'Your Telegram API Hash',
-          required: true,
-          placeholder: 'abc123...',
+          placeholder: '+1234567890',
         },
       ],
     },
@@ -536,19 +475,8 @@ function onSetupSubmit(args: SetupSubmitArgs): SetupSubmitResult {
       `[telegram] Setup: credentials step - apiId: ${apiId}, apiHash: ${apiHash ? '[set]' : '[empty]'}`
     );
 
-    if (!apiId || isNaN(apiId)) {
-      return { status: 'error', errors: [{ field: 'apiId', message: 'Valid API ID is required' }] };
-    }
-    if (!apiHash) {
-      return { status: 'error', errors: [{ field: 'apiHash', message: 'API Hash is required' }] };
-    }
-
-    s.config.apiId = apiId;
-    s.config.apiHash = apiHash;
-    store.set('config', s.config);
-
     // Start client initialization in background
-    initClient().catch((err) => {
+    initClient().catch(err => {
       console.error('[telegram] Init client failed:', err);
     });
 
@@ -610,12 +538,7 @@ function onSetupSubmit(args: SetupSubmitArgs): SetupSubmitResult {
       }
       return {
         status: 'error',
-        errors: [
-          {
-            field: 'phoneNumber',
-            message: 'Client not connected. Please restart setup.',
-          },
-        ],
+        errors: [{ field: 'phoneNumber', message: 'Client not connected. Please restart setup.' }],
       };
     }
 
@@ -625,7 +548,7 @@ function onSetupSubmit(args: SetupSubmitArgs): SetupSubmitResult {
     }
 
     // Send phone number (async - errors will be caught by update handler)
-    sendPhoneNumber(phoneNumber).catch((err) => {
+    sendPhoneNumber(phoneNumber).catch(err => {
       console.error('[telegram] Failed to send phone number:', err);
       s.clientError = err instanceof Error ? err.message : String(err);
       publishState();
@@ -665,7 +588,7 @@ function onSetupSubmit(args: SetupSubmitArgs): SetupSubmitResult {
     }
 
     // Submit code (async)
-    submitCode(code).catch((err) => {
+    submitCode(code).catch(err => {
       console.error('[telegram] Failed to submit code:', err);
       s.clientError = err instanceof Error ? err.message : String(err);
       publishState();
@@ -713,7 +636,7 @@ function onSetupSubmit(args: SetupSubmitArgs): SetupSubmitResult {
     }
 
     // Submit password (async)
-    submitPassword(password).catch((err) => {
+    submitPassword(password).catch(err => {
       console.error('[telegram] Failed to submit password:', err);
       s.clientError = err instanceof Error ? err.message : String(err);
       publishState();
@@ -741,7 +664,6 @@ function publishState(): void {
     authState: s.authState,
     pendingCode: s.config.pendingCode,
     phoneNumber: s.config.phoneNumber ? s.config.phoneNumber.slice(0, 4) + '****' : null,
-    hasCredentials: !!(s.config.apiId && s.config.apiHash),
     me: s.cache.me,
     dialogCount: s.cache.dialogs.length,
     lastSync: s.cache.lastSync,
@@ -775,11 +697,7 @@ function publishState(): void {
 const telegramPingTool: ToolDefinition = {
   name: 'telegram-ping',
   description: 'Check if Telegram servers are reachable and get latency information.',
-  input_schema: {
-    type: 'object',
-    properties: {},
-    required: [],
-  },
+  input_schema: { type: 'object', properties: {}, required: [] },
   execute(): string {
     const s = globalThis.getTelegramSkillState();
     const endpoints = [
@@ -815,12 +733,12 @@ const telegramPingTool: ToolDefinition = {
       }
     }
 
-    const successCount = results.filter((r) => r.success).length;
+    const successCount = results.filter(r => r.success).length;
     const avgLatency =
       successCount > 0
         ? Math.round(
             results
-              .filter((r) => r.success && r.latency_ms !== null)
+              .filter(r => r.success && r.latency_ms !== null)
               .reduce((sum, r) => sum + (r.latency_ms || 0), 0) / successCount
           )
         : null;
@@ -832,7 +750,6 @@ const telegramPingTool: ToolDefinition = {
           ? `Telegram is reachable (${successCount}/${endpoints.length} endpoints)`
           : 'Unable to reach Telegram servers',
       avg_latency_ms: avgLatency,
-      has_credentials: !!(s.config.apiId && s.config.apiHash),
       is_authenticated: s.config.isAuthenticated,
       endpoints: results,
     });
@@ -845,11 +762,7 @@ const telegramPingTool: ToolDefinition = {
 const telegramStatusTool: ToolDefinition = {
   name: 'telegram-status',
   description: 'Get current Telegram connection and authentication status.',
-  input_schema: {
-    type: 'object',
-    properties: {},
-    required: [],
-  },
+  input_schema: { type: 'object', properties: {}, required: [] },
   execute(): string {
     const s = globalThis.getTelegramSkillState();
     return JSON.stringify({
@@ -857,7 +770,6 @@ const telegramStatusTool: ToolDefinition = {
       connecting: s.clientConnecting,
       authenticated: s.config.isAuthenticated,
       authState: s.authState,
-      hasCredentials: !!(s.config.apiId && s.config.apiHash),
       phoneNumber: s.config.phoneNumber ? s.config.phoneNumber.slice(0, 4) + '****' : null,
       me: s.cache.me,
       syncInProgress: s.sync.inProgress,
@@ -874,7 +786,8 @@ const telegramStatusTool: ToolDefinition = {
  */
 const telegramSyncTool: ToolDefinition = {
   name: 'telegram-sync',
-  description: 'Trigger synchronization of Telegram data (chats, messages, contacts) to local storage.',
+  description:
+    'Trigger synchronization of Telegram data (chats, messages, contacts) to local storage.',
   input_schema: {
     type: 'object',
     properties: {
@@ -915,7 +828,7 @@ const telegramSyncTool: ToolDefinition = {
     }
 
     // Trigger sync in background
-    triggerInitialSync().catch((err) => {
+    triggerInitialSync().catch(err => {
       console.error('[telegram] Sync trigger failed:', err);
     });
 

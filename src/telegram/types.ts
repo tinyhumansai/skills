@@ -43,9 +43,7 @@ export interface TdChat {
   positions?: TdChatPosition[];
   unread_count?: number;
   unread_mention_count?: number;
-  notification_settings?: {
-    mute_for?: number;
-  };
+  notification_settings?: { mute_for?: number };
 }
 
 /**
@@ -76,17 +74,10 @@ export interface TdMessage {
   is_pinned?: boolean;
   can_be_edited?: boolean;
   can_be_deleted_for_all_users?: boolean;
-  reply_to?: {
-    '@type': 'messageReplyToMessage';
-    chat_id?: number;
-    message_id?: number;
-  };
+  reply_to?: { '@type': 'messageReplyToMessage'; chat_id?: number; message_id?: number };
   forward_info?: TdMessageForwardInfo;
   content: TdMessageContent;
-  interaction_info?: {
-    view_count?: number;
-    forward_count?: number;
-  };
+  interaction_info?: { view_count?: number; forward_count?: number };
 }
 
 /**
@@ -137,10 +128,7 @@ export interface TdUserFull {
   id: number;
   first_name: string;
   last_name?: string;
-  usernames?: {
-    active_usernames?: string[];
-    editable_username?: string;
-  };
+  usernames?: { active_usernames?: string[]; editable_username?: string };
   phone_number?: string;
   status?: TdUserStatus;
   profile_photo?: {
@@ -154,9 +142,7 @@ export interface TdUserFull {
   is_support?: boolean;
   is_scam?: boolean;
   is_fake?: boolean;
-  type?: {
-    '@type': 'userTypeRegular' | 'userTypeBot' | 'userTypeDeleted' | 'userTypeUnknown';
-  };
+  type?: { '@type': 'userTypeRegular' | 'userTypeBot' | 'userTypeDeleted' | 'userTypeUnknown' };
 }
 
 /**

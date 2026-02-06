@@ -1,10 +1,9 @@
 // Initial sync logic for loading Telegram data on authentication.
 // Fetches chats, messages, and user info via TDLib and stores in SQLite.
-
-import type { TdLibClient } from './tdlib-client';
-import type { TdChat, TdMessage, TdUserFull } from './types';
 // Import db-helpers to initialize globalThis.telegramDb
 import './db-helpers';
+import type { TdLibClient } from './tdlib-client';
+import type { TdChat, TdMessage, TdUserFull } from './types';
 
 // Extend globalThis for sync functions
 declare global {
@@ -57,9 +56,7 @@ async function performInitialSyncImpl(
     log(`Loaded ${chats.length} chats`);
 
     // 2. Store chats
-    for (const chat of chats) {
-      globalThis.telegramDb.upsertChat(chat);
-    }
+    for (const chat of chats) globalThis.telegramDb.upsertChat(chat);
     log('Stored all chats');
 
     // 3. Load messages for top chats
@@ -76,15 +73,10 @@ async function performInitialSyncImpl(
           globalThis.telegramDb.upsertMessage(msg);
 
           // Also load sender info if it's a user
-          if (
-            msg.sender_id?.['@type'] === 'messageSenderUser' &&
-            msg.sender_id.user_id
-          ) {
+          if (msg.sender_id?.['@type'] === 'messageSenderUser' && msg.sender_id.user_id) {
             try {
               const user = await getUser(client, msg.sender_id.user_id);
-              if (user) {
-                globalThis.telegramDb.upsertContact(user);
-              }
+              if (user) globalThis.telegramDb.upsertContact(user);
             } catch {
               // User may not be accessible, ignore
             }
@@ -165,11 +157,7 @@ export function getLastSyncTime(): number | null {
  */
 async function loadChats(client: TdLibClient, limit: number): Promise<TdChat[]> {
   // First, load the chat list (this triggers updateNewChat for each chat)
-  await client.send({
-    '@type': 'loadChats',
-    chat_list: { '@type': 'chatListMain' },
-    limit,
-  });
+  await client.send({ '@type': 'loadChats', chat_list: { '@type': 'chatListMain' }, limit });
 
   // The chats are sent via updateNewChat updates, not in the response.
   // We need to call getChats to get the ordered list.
@@ -185,10 +173,7 @@ async function loadChats(client: TdLibClient, limit: number): Promise<TdChat[]> 
   // Get each chat's full info
   for (const chatId of chatIds) {
     try {
-      const chat = await client.send({
-        '@type': 'getChat',
-        chat_id: chatId,
-      });
+      const chat = await client.send({ '@type': 'getChat', chat_id: chatId });
       chats.push(chat as unknown as TdChat);
     } catch (err) {
       console.warn(`[telegram-sync] Failed to get chat ${chatId}:`, err);
@@ -223,10 +208,7 @@ async function loadChatHistory(
  */
 async function getUser(client: TdLibClient, userId: number): Promise<TdUserFull | null> {
   try {
-    const response = await client.send({
-      '@type': 'getUser',
-      user_id: userId,
-    });
+    const response = await client.send({ '@type': 'getUser', user_id: userId });
     return response as unknown as TdUserFull;
   } catch {
     return null;
@@ -237,9 +219,7 @@ async function getUser(client: TdLibClient, userId: number): Promise<TdUserFull 
  * Load contacts from TDLib.
  */
 async function loadContacts(client: TdLibClient): Promise<TdUserFull[]> {
-  const response = await client.send({
-    '@type': 'getContacts',
-  });
+  const response = await client.send({ '@type': 'getContacts' });
 
   const userIds = (response as { user_ids?: number[] }).user_ids || [];
   const users: TdUserFull[] = [];

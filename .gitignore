@@ -1,4 +1,5 @@
 node_modules
+src/*/node_modules
 dist
 build
 package-lock.json
@@ -7,6 +8,8 @@ package-lock.json
 .env.development.local
 .env.test.local
 .env.production.local
+
+.idea
 
 # Python
 __pycache__/
@@ -31,11 +34,10 @@ dmypy.json
 # Compiled JavaScript from TypeScript skills
 skills
 skills-ts-out
-examples/**/*.js
 src/**/*.js
 
 # Compiled JavaScript from test harness
 dev/js-harness/**/*.js
 
-# Documentation (auto-generated)
-docs/
+# Local model files (large GGUF binaries)
+.models/

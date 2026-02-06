@@ -1,6 +1,5 @@
 // Tool: telegram-get-chat-stats
 // Get statistics for a specific chat.
-
 import { getChatStats, getContacts } from '../db-helpers';
 
 /**
@@ -14,10 +13,7 @@ export const getChatStatsToolDefinition: ToolDefinition = {
   input_schema: {
     type: 'object',
     properties: {
-      chat_id: {
-        type: 'string',
-        description: 'The chat ID to get statistics for (required)',
-      },
+      chat_id: { type: 'string', description: 'The chat ID to get statistics for (required)' },
     },
     required: ['chat_id'],
   },
@@ -31,25 +27,21 @@ export const getChatStatsToolDefinition: ToolDefinition = {
       const stats = getChatStats(chatId);
 
       // Enrich top senders with names
-      const enrichedSenders = stats.top_senders.map((sender) => {
+      const enrichedSenders = stats.top_senders.map(sender => {
         // Try to find the contact
         const contacts = getContacts({ search: sender.sender_id, limit: 1 });
-        const contact = contacts.find((c) => c.id === sender.sender_id);
+        const contact = contacts.find(c => c.id === sender.sender_id);
 
         let name = 'Unknown';
         if (contact) {
           name = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || 'Unknown';
         }
 
-        return {
-          sender_id: sender.sender_id,
-          name,
-          message_count: sender.count,
-        };
+        return { sender_id: sender.sender_id, name, message_count: sender.count };
       });
 
       // Format message types
-      const formattedTypes = stats.message_types.map((t) => ({
+      const formattedTypes = stats.message_types.map(t => ({
         type: t.type,
         count: t.count,
         percentage: stats.message_count > 0 ? Math.round((t.count / stats.message_count) * 100) : 0,

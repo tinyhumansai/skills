@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * test-harness.mjs - Simple test harness for V8 skills
+ * test-harness.mjs - Simple test harness for QuickJS skills
  *
- * This harness provides mock implementations of the V8 bridge APIs
+ * This harness provides mock implementations of the QuickJS bridge APIs
  * and runs basic verification tests on bundled skills.
  */
 import { existsSync, readdirSync, readFileSync } from 'fs';
@@ -158,6 +158,22 @@ function createBridgeAPIs() {
     // Skills API
     skills: { list: () => [], callTool: () => null },
 
+    // Model API
+    model: {
+      isAvailable: () => true,
+      getStatus: () => ({ available: true, loaded: true, loading: false, downloaded: true }),
+      generate: (prompt, options) => '(mock model response)',
+      summarize: (text, options) => '(mock summary)',
+      submitSummary: () => {},
+    },
+
+    // OAuth API
+    oauth: {
+      getCredential: () => null,
+      fetch: (path, options) => ({ status: 404, headers: {}, body: '{"error":"No OAuth mock configured"}' }),
+      revoke: () => true,
+    },
+
     // Console
     console: {
       log: (...args) => {
@@ -259,7 +275,7 @@ function testSkill(skillDir, skillName) {
         send() {}
         close() {}
       },
-      navigator: { userAgent: 'V8TestHarness' },
+      navigator: { userAgent: 'QuickJSTestHarness' },
       setTimeout: fn => {
         return 1;
       },
@@ -319,6 +335,8 @@ function testSkill(skillDir, skillName) {
     sandbox.onDisconnect = undefined;
     sandbox.onListOptions = undefined;
     sandbox.onSetOption = undefined;
+    sandbox.onOAuthComplete = undefined;
+    sandbox.onOAuthRevoked = undefined;
 
     const context = vm.createContext(sandbox);
 
@@ -340,6 +358,26 @@ function testSkill(skillDir, skillName) {
       }
     }
 
+    // Fix tools array: esbuild CommonJS interop can leave tool references undefined
+    // when __esm wrappers create isolated module scopes. Tools end up on the outer
+    // 'exports' object instead. Rebuild from exports if tools has undefined entries.
+    if (Array.isArray(sandbox.globalThis.tools)) {
+      const hasUndefined = sandbox.globalThis.tools.length > 0 &&
+        sandbox.globalThis.tools.some(t => !t);
+      if (hasUndefined && sandbox.globalThis.exports) {
+        const fixedTools = [];
+        for (const key of Object.keys(sandbox.globalThis.exports)) {
+          const val = sandbox.globalThis.exports[key];
+          if (val && typeof val === 'object' && typeof val.name === 'string' && typeof val.execute === 'function') {
+            fixedTools.push(val);
+          }
+        }
+        if (fixedTools.length > 0) {
+          sandbox.globalThis.tools = fixedTools;
+        }
+      }
+    }
+
     // Check tools
     if (Array.isArray(sandbox.globalThis.tools)) {
       console.log(
@@ -349,7 +387,7 @@ function testSkill(skillDir, skillName) {
 
       // List tools
       for (const tool of sandbox.globalThis.tools) {
-        if (tool.name && tool.description && typeof tool.execute === 'function') {
+        if (tool && tool.name && tool.description && typeof tool.execute === 'function') {
           console.log(`    - ${tool.name}`);
         }
       }
@@ -384,7 +422,7 @@ console.log(
   `${colors.yellow}═══════════════════════════════════════════════════════════════${colors.reset}`
 );
 console.log(
-  `${colors.yellow}                   V8 Skills Test Harness                      ${colors.reset}`
+  `${colors.yellow}                 QuickJS Skills Test Harness                    ${colors.reset}`
 );
 console.log(
   `${colors.yellow}═══════════════════════════════════════════════════════════════${colors.reset}`

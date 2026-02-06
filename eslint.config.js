@@ -6,11 +6,6 @@ import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import importPlugin from 'eslint-plugin-import';
 import prettierConfig from 'eslint-config-prettier';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export default [
   // Base recommended rules
@@ -35,22 +30,26 @@ export default [
 
   // TypeScript files configuration
   {
-    files: ['src/**/*.ts', 'types/**/*.ts'],
+    files: ['src/**/*.ts', 'types/**/*.ts', 'types/**/*.d.ts'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: './tsconfig.json',
-        tsconfigRootDir: __dirname,
       },
       globals: {
-        // V8 runtime globals
+        // QuickJS runtime globals
         console: 'readonly',
         setTimeout: 'readonly',
         setInterval: 'readonly',
         clearTimeout: 'readonly',
         clearInterval: 'readonly',
+        AbortController: 'readonly',
+        AbortSignal: 'readonly',
+        atob: 'readonly',
+        btoa: 'readonly',
+        encodeURIComponent: 'readonly',
+        decodeURIComponent: 'readonly',
         // Bridge API globals (defined in types/globals.d.ts)
         db: 'readonly',
         store: 'readonly',
@@ -60,6 +59,8 @@ export default [
         platform: 'readonly',
         state: 'readonly',
         data: 'readonly',
+        oauth: 'readonly',
+        model: 'readonly',
         tools: 'writable',
       },
     },
@@ -68,6 +69,9 @@ export default [
       import: importPlugin,
     },
     rules: {
+      // Disable no-undef for TypeScript — TS handles this far better than ESLint
+      // (see https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors)
+      'no-undef': 'off',
       // Disable base no-unused-vars in favor of TypeScript version
       'no-unused-vars': 'off',
       // TypeScript recommended rules
@@ -94,7 +98,8 @@ export default [
       // General JavaScript/TypeScript rules
       'no-console': 'off', // Allow console in skills
       'no-debugger': 'error',
-      'no-duplicate-imports': 'error',
+      // Use import/no-duplicates instead of no-duplicate-imports (handles `import type` correctly)
+      'no-duplicate-imports': 'off',
       'no-unused-expressions': 'off', // Covered by @typescript-eslint version
       '@typescript-eslint/no-unused-expressions': 'error',
 

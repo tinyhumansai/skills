@@ -5,10 +5,7 @@ interface SimpleSkillConfig {
   count: number;
 }
 
-const CONFIG: SimpleSkillConfig = {
-  greeting: 'Hello',
-  count: 0,
-};
+const CONFIG: SimpleSkillConfig = { greeting: 'Hello', count: 0 };
 
 function init(): void {
   console.log('[simple-skill] Initializing');
@@ -38,19 +35,16 @@ function onSetupStart(): SetupStartResult {
       title: 'Configure Greeting',
       description: 'Set your custom greeting message',
       fields: [
-        {
-          name: 'greeting',
-          type: 'text',
-          label: 'Greeting',
-          required: true,
-          default: 'Hello',
-        },
+        { name: 'greeting', type: 'text', label: 'Greeting', required: true, default: 'Hello' },
       ],
     },
   };
 }
 
-function onSetupSubmit(args: { stepId: string; values: Record<string, unknown> }): SetupSubmitResult {
+function onSetupSubmit(args: {
+  stepId: string;
+  values: Record<string, unknown>;
+}): SetupSubmitResult {
   const { stepId, values } = args;
 
   if (stepId === 'greeting') {
@@ -73,10 +67,7 @@ const tools: ToolDefinition[] = [
     execute(args: Record<string, unknown>): string {
       CONFIG.count++;
       const name = (args.name as string) || 'World';
-      return JSON.stringify({
-        message: CONFIG.greeting + ', ' + name + '!',
-        count: CONFIG.count,
-      });
+      return JSON.stringify({ message: CONFIG.greeting + ', ' + name + '!', count: CONFIG.count });
     },
   },
   {
@@ -100,11 +91,7 @@ interface Skill {
 }
 
 const skill: Skill = {
-  info: {
-    id: 'simple-skill',
-    name: 'Simple Test Skill',
-    version: '1.0.0',
-  },
+  info: { id: 'simple-skill', name: 'Simple Test Skill', version: '1.0.0' },
   tools,
   init,
   start,

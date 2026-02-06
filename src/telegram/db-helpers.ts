@@ -1,19 +1,18 @@
 // Database helper functions for upserting and querying Telegram data.
 // All functions use the global `db` bridge API.
-
 import type {
+  ChatRow,
+  ChatStats,
+  ChatType,
+  ContactRow,
+  MessageRow,
+  StorageStats,
   TdChat,
+  TdChatPosition,
   TdMessage,
+  TdMessageContent,
   TdUserFull,
   TdUserStatus,
-  TdMessageContent,
-  TdChatPosition,
-  ChatType,
-  ChatRow,
-  MessageRow,
-  ContactRow,
-  StorageStats,
-  ChatStats,
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -164,7 +163,7 @@ export function parseUserStatus(status?: TdUserStatus): string {
  */
 export function getMainPosition(positions?: TdChatPosition[]): TdChatPosition | undefined {
   if (!positions || positions.length === 0) return undefined;
-  return positions.find((p) => p.list?.['@type'] === 'chatListMain') || positions[0];
+  return positions.find(p => p.list?.['@type'] === 'chatListMain') || positions[0];
 }
 
 // ---------------------------------------------------------------------------
@@ -509,7 +508,8 @@ export function upsertContact(user: TdUserFull): void {
   const id = String(user.id);
 
   // Extract username
-  const username = user.usernames?.active_usernames?.[0] || user.usernames?.editable_username || null;
+  const username =
+    user.usernames?.active_usernames?.[0] || user.usernames?.editable_username || null;
 
   // Check if contact exists
   const existing = db.get('SELECT id, created_at FROM contacts WHERE id = ?', [id]);
@@ -586,7 +586,9 @@ export function updateUserStatus(userId: number, status: TdUserStatus): void {
  * Get a sync state value.
  */
 export function getSyncState(key: string): string | null {
-  const row = db.get('SELECT value FROM sync_state WHERE key = ?', [key]) as { value: string | null } | null;
+  const row = db.get('SELECT value FROM sync_state WHERE key = ?', [key]) as {
+    value: string | null;
+  } | null;
   return row?.value || null;
 }
 
@@ -656,12 +658,7 @@ export function getChats(options?: {
  */
 export function getMessages(
   chatId: string,
-  options?: {
-    contentType?: string;
-    search?: string;
-    beforeId?: string;
-    limit?: number;
-  }
+  options?: { contentType?: string; search?: string; beforeId?: string; limit?: number }
 ): MessageRow[] {
   const conditions: string[] = ['chat_id = ?', 'is_deleted = 0'];
   const params: unknown[] = [chatId];
@@ -800,14 +797,7 @@ export function getStorageStats(): StorageStats {
   const lastSyncStr = getSyncState('last_sync_time');
   const lastSync = lastSyncStr ? parseInt(lastSyncStr, 10) : null;
 
-  return {
-    chatCount,
-    messageCount,
-    contactCount,
-    unreadCount,
-    syncCompleted,
-    lastSync,
-  };
+  return { chatCount, messageCount, contactCount, unreadCount, syncCompleted, lastSync };
 }
 
 // ---------------------------------------------------------------------------
