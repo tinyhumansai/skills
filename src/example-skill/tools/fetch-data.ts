@@ -1,5 +1,4 @@
 /** fetch-data tool — makes an HTTP request to the configured server URL */
-import { getState } from '../skill-state';
 
 export const fetchDataTool: ToolDefinition = {
   name: 'fetch-data',
@@ -14,7 +13,7 @@ export const fetchDataTool: ToolDefinition = {
     },
   },
   execute(args: Record<string, unknown>): string {
-    const s = getState();
+    const s = (globalThis as any).getSkillState();
     const endpoint = (args.endpoint as string) || '';
     const url = s.config.serverUrl + endpoint;
 

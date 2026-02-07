@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // notion/index.ts
 // Notion integration skill exposing 25 tools for the Notion API + local sync.
 // Supports pages, databases, blocks, users, comments, and local search.

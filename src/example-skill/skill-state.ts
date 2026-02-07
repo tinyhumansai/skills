@@ -29,7 +29,7 @@ _g.getSkillState = function (): ExampleSkillState {
   return _g.__skillState as ExampleSkillState;
 };
 
-/** Typed accessor for use within this skill's source files */
+/** Typed accessor for use within this skill's source files. Delegates to globalThis so bundle works. */
 export function getState(): ExampleSkillState {
-  return _g.__skillState as ExampleSkillState;
+  return (_g.getSkillState as () => ExampleSkillState)();
 }

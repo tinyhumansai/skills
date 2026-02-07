@@ -1,6 +1,5 @@
 // Tool: get-ping-stats
 // Get current ping statistics including uptime, total pings, failures, and latest latency.
-import { getSkillState } from '../skill-state';
 
 export const getPingStatsTool: ToolDefinition = {
   name: 'get-ping-stats',
@@ -8,7 +7,7 @@ export const getPingStatsTool: ToolDefinition = {
     'Get current ping statistics including uptime, total pings, failures, and latest latency.',
   input_schema: { type: 'object', properties: {} },
   execute(): string {
-    const s = getSkillState();
+    const s = (globalThis as any).getSkillState();
 
     const uptimePct =
       s.pingCount > 0 ? Math.round(((s.pingCount - s.failCount) / s.pingCount) * 10000) / 100 : 100;
