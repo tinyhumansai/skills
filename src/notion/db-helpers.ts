@@ -87,11 +87,25 @@ function extractParent(parent: unknown): { type: string; id: string | null } {
  * Captures: created_by, last_edited_by, people properties (assignees),
  * relation properties (linked pages), created_by/last_edited_by property types.
  */
-function extractPageEntities(page: Record<string, unknown>): Array<{ id: string; type: string; name?: string; role: string; property?: string }> {
-  const entities: Array<{ id: string; type: string; name?: string; role: string; property?: string }> = [];
+function extractPageEntities(
+  page: Record<string, unknown>
+): Array<{ id: string; type: string; name?: string; role: string; property?: string }> {
+  const entities: Array<{
+    id: string;
+    type: string;
+    name?: string;
+    role: string;
+    property?: string;
+  }> = [];
   const seen = new Set<string>();
 
-  const add = (id: string, type: string, name: string | undefined, role: string, property?: string) => {
+  const add = (
+    id: string,
+    type: string,
+    name: string | undefined,
+    role: string,
+    property?: string
+  ) => {
     const key = `${id}:${role}`;
     if (seen.has(key)) return;
     seen.add(key);
@@ -105,7 +119,12 @@ function extractPageEntities(page: Record<string, unknown>): Array<{ id: string;
   }
   const lastEditedBy = page.last_edited_by as Record<string, unknown> | undefined;
   if (lastEditedBy?.id) {
-    add(lastEditedBy.id as string, 'person', lastEditedBy.name as string | undefined, 'last_editor');
+    add(
+      lastEditedBy.id as string,
+      'person',
+      lastEditedBy.name as string | undefined,
+      'last_editor'
+    );
   }
 
   // Scan properties for person, relation, created_by, last_edited_by types
@@ -118,7 +137,13 @@ function extractPageEntities(page: Record<string, unknown>): Array<{ id: string;
       if (propType === 'people' && Array.isArray(prop.people)) {
         for (const person of prop.people as Array<Record<string, unknown>>) {
           if (person.id) {
-            add(person.id as string, 'person', person.name as string | undefined, 'assignee', propName);
+            add(
+              person.id as string,
+              'person',
+              person.name as string | undefined,
+              'assignee',
+              propName
+            );
           }
         }
       } else if (propType === 'relation' && Array.isArray(prop.relation)) {
@@ -293,12 +318,7 @@ export function getPagesNeedingContent(limit: number, updatedAfterIso?: string):
 export function updatePageAiSummary(
   pageId: string,
   summary: string,
-  opts?: {
-    category?: string;
-    sentiment?: string;
-    entities?: unknown[];
-    topics?: string[];
-  }
+  opts?: { category?: string; sentiment?: string; entities?: unknown[]; topics?: string[] }
 ): void {
   db.exec(
     `UPDATE pages SET
@@ -324,14 +344,23 @@ export function updatePageAiSummary(
 export function getPageStructuredEntities(
   pageId: string
 ): Array<{ id: string; type: string; name?: string; role: string; property?: string }> {
-  const page = db.get('SELECT page_entities, created_by_id, last_edited_by_id FROM pages WHERE id = ?', [pageId]) as {
+  const page = db.get(
+    'SELECT page_entities, created_by_id, last_edited_by_id FROM pages WHERE id = ?',
+    [pageId]
+  ) as {
     page_entities: string | null;
     created_by_id: string | null;
     last_edited_by_id: string | null;
   } | null;
   if (!page) return [];
 
-  let entities: Array<{ id: string; type: string; name?: string; role: string; property?: string }> = [];
+  let entities: Array<{
+    id: string;
+    type: string;
+    name?: string;
+    role: string;
+    property?: string;
+  }> = [];
   if (page.page_entities) {
     try {
       entities = JSON.parse(page.page_entities);
@@ -352,7 +381,9 @@ export function getPageStructuredEntities(
   // Resolve names from users table
   for (const entity of entities) {
     if (entity.type === 'person' && !entity.name) {
-      const user = db.get('SELECT name FROM users WHERE id = ?', [entity.id]) as { name: string } | null;
+      const user = db.get('SELECT name FROM users WHERE id = ?', [entity.id]) as {
+        name: string;
+      } | null;
       if (user) entity.name = user.name;
     }
   }

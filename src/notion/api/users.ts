@@ -1,8 +1,5 @@
 // Notion Users API
-import type {
-  GetUserResponse,
-  ListUsersResponse,
-} from '@notionhq/client/build/src/api-endpoints';
+import type { GetUserResponse, ListUsersResponse } from '@notionhq/client/build/src/api-endpoints';
 
 import { apiFetch } from './client';
 

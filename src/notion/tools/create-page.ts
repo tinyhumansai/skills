@@ -1,6 +1,6 @@
 // Tool: notion-create-page
-import type { NotionGlobals } from '../types';
 import type { NotionApi } from '../api/index';
+import type { NotionGlobals } from '../types';
 
 // Resolve from globalThis at runtime (esbuild IIFE breaks module imports)
 const n = (): NotionGlobals => {
@@ -88,7 +88,10 @@ export const createPageTool: ToolDefinition = {
 
       const page = api.createPage(body);
 
-      return JSON.stringify({ success: true, page: formatPageSummary(page as Record<string, unknown>) });
+      return JSON.stringify({
+        success: true,
+        page: formatPageSummary(page as Record<string, unknown>),
+      });
     } catch (e) {
       return JSON.stringify({ error: n().formatApiError(e) });
     }

@@ -17,9 +17,7 @@ export function getBlockChildren(
   blockId: string,
   pageSize: number = 50
 ): ListBlockChildrenResponse {
-  return apiFetch<ListBlockChildrenResponse>(
-    `/blocks/${blockId}/children?page_size=${pageSize}`
-  );
+  return apiFetch<ListBlockChildrenResponse>(`/blocks/${blockId}/children?page_size=${pageSize}`);
 }
 
 export function appendBlockChildren(
@@ -32,10 +30,7 @@ export function appendBlockChildren(
   });
 }
 
-export function updateBlock(
-  blockId: string,
-  body: Record<string, unknown>
-): UpdateBlockResponse {
+export function updateBlock(blockId: string, body: Record<string, unknown>): UpdateBlockResponse {
   return apiFetch<UpdateBlockResponse>(`/blocks/${blockId}`, { method: 'PATCH', body });
 }
 

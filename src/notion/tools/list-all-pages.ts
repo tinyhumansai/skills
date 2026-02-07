@@ -1,6 +1,6 @@
 // Tool: notion-list-all-pages
-import type { NotionGlobals } from '../types';
 import type { NotionApi } from '../api/index';
+import type { NotionGlobals } from '../types';
 
 // Resolve from globalThis at runtime (esbuild IIFE breaks module imports)
 const n = (): NotionGlobals => {

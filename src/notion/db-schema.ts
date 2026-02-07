@@ -77,7 +77,15 @@ export function initializeNotionSchema(): void {
   );
 
   // Migrate: add ai columns if they don't exist (for existing installs)
-  const migrateColumns = ['ai_summary TEXT', 'ai_summary_at INTEGER', 'ai_category TEXT', 'ai_sentiment TEXT', 'ai_entities TEXT', 'ai_topics TEXT', 'page_entities TEXT'];
+  const migrateColumns = [
+    'ai_summary TEXT',
+    'ai_summary_at INTEGER',
+    'ai_category TEXT',
+    'ai_sentiment TEXT',
+    'ai_entities TEXT',
+    'ai_topics TEXT',
+    'page_entities TEXT',
+  ];
   for (const col of migrateColumns) {
     try {
       db.exec(`ALTER TABLE pages ADD COLUMN ${col}`, []);

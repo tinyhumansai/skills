@@ -54,18 +54,32 @@ export const summarizePagesTool: ToolDefinition = {
           }>)
         | undefined;
       const updatePageAiSummary = (globalThis as Record<string, unknown>).updatePageAiSummary as
-        | ((pageId: string, summary: string, opts?: { category?: string; sentiment?: string; entities?: unknown[]; topics?: string[] }) => void)
+        | ((
+            pageId: string,
+            summary: string,
+            opts?: {
+              category?: string;
+              sentiment?: string;
+              entities?: unknown[];
+              topics?: string[];
+            }
+          ) => void)
         | undefined;
-      const inferClassification = (globalThis as Record<string, unknown>)
-        .inferClassification as
-        | ((text: string) => { category: string; sentiment: string; entities: Array<{ id: string; type: string; name?: string; role?: string }>; topics: string[] })
+      const inferClassification = (globalThis as Record<string, unknown>).inferClassification as
+        | ((text: string) => {
+            category: string;
+            sentiment: string;
+            entities: Array<{ id: string; type: string; name?: string; role?: string }>;
+            topics: string[];
+          })
         | undefined;
       const getPageStructuredEntities = (globalThis as Record<string, unknown>)
         .getPageStructuredEntities as
-        | ((pageId: string) => Array<{ id: string; type: string; name?: string; role: string; property?: string }>)
+        | ((
+            pageId: string
+          ) => Array<{ id: string; type: string; name?: string; role: string; property?: string }>)
         | undefined;
-      const mergeEntitiesFn = (globalThis as Record<string, unknown>)
-        .mergeEntities as
+      const mergeEntitiesFn = (globalThis as Record<string, unknown>).mergeEntities as
         | ((structured: unknown[], llm: unknown[]) => unknown[])
         | undefined;
 
@@ -115,13 +129,10 @@ export const summarizePagesTool: ToolDefinition = {
             metaParts.push(`Last edited: ${page.last_edited_time}`);
             const metaBlock = metaParts.join('\n');
 
-            const summarizeFn = (globalThis as Record<string, unknown>)
-              .summarizeWithFallback as
+            const summarizeFn = (globalThis as Record<string, unknown>).summarizeWithFallback as
               | ((content: string, metaBlock: string) => string | null)
               | undefined;
-            const result = summarizeFn
-              ? summarizeFn(trimmed, metaBlock)
-              : null;
+            const result = summarizeFn ? summarizeFn(trimmed, metaBlock) : null;
             if (!result) continue;
             summary = result;
           }
@@ -129,8 +140,16 @@ export const summarizePagesTool: ToolDefinition = {
           // Merge structured entities (from Notion properties) with LLM-inferred entities
           const structuredEnts = getPageStructuredEntities?.(page.id) ?? [];
           const mergedEntities = mergeEntitiesFn
-            ? mergeEntitiesFn(structuredEnts, classification.entities) as Array<{ id: string; type: string; name?: string; role: string }>
-            : [...structuredEnts, ...classification.entities.map(e => ({ ...e, role: e.role || 'mentioned' }))];
+            ? (mergeEntitiesFn(structuredEnts, classification.entities) as Array<{
+                id: string;
+                type: string;
+                name?: string;
+                role: string;
+              }>)
+            : [
+                ...structuredEnts,
+                ...classification.entities.map(e => ({ ...e, role: e.role || 'mentioned' })),
+              ];
 
           // Store summary + classification in local DB
           updatePageAiSummary(page.id, summary, {
@@ -147,14 +166,22 @@ export const summarizePagesTool: ToolDefinition = {
             dataSource: 'notion',
             sentiment: classification.sentiment as 'positive' | 'neutral' | 'negative' | 'mixed',
             keyPoints: classification.topics.length > 0 ? classification.topics : undefined,
-            entities: mergedEntities.length > 0
-              ? mergedEntities.map(e => ({
-                  id: e.id,
-                  type: (e.type === 'page' ? 'other' : e.type) as 'person' | 'wallet' | 'channel' | 'group' | 'organization' | 'token' | 'other',
-                  name: e.name,
-                  role: e.role,
-                }))
-              : undefined,
+            entities:
+              mergedEntities.length > 0
+                ? mergedEntities.map(e => ({
+                    id: e.id,
+                    type: (e.type === 'page' ? 'other' : e.type) as
+                      | 'person'
+                      | 'wallet'
+                      | 'channel'
+                      | 'group'
+                      | 'organization'
+                      | 'token'
+                      | 'other',
+                    name: e.name,
+                    role: e.role,
+                  }))
+                : undefined,
             metadata: {
               pageId: page.id,
               pageTitle: page.title,

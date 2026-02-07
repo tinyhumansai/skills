@@ -9,13 +9,6 @@ import * as users from './users';
 
 export { blocks, comments, databases, pages, search, users };
 
-export const notionApi = {
-  ...pages,
-  ...databases,
-  ...blocks,
-  ...users,
-  ...comments,
-  ...search,
-};
+export const notionApi = { ...pages, ...databases, ...blocks, ...users, ...comments, ...search };
 
 export type NotionApi = typeof notionApi;

@@ -28,7 +28,5 @@ export function archivePage(pageId: string): UpdatePageResponse {
 }
 
 export function getPageContent(pageId: string, pageSize: number = 50): ListBlockChildrenResponse {
-  return apiFetch<ListBlockChildrenResponse>(
-    `/blocks/${pageId}/children?page_size=${pageSize}`
-  );
+  return apiFetch<ListBlockChildrenResponse>(`/blocks/${pageId}/children?page_size=${pageSize}`);
 }

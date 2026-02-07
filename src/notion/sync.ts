@@ -1,9 +1,9 @@
 // Notion sync engine
 // Periodically downloads pages, databases, users, and page content from Notion
 // into local SQLite for fast local querying.
+import type { NotionApi } from './api/index';
 import './skill-state';
 import type { NotionGlobals } from './types';
-import type { NotionApi } from './api/index';
 
 // Resolve helpers and API from globalThis at call time.
 // We avoid module imports of n()/getApi() because esbuild's IIFE bundling
@@ -133,7 +133,9 @@ function syncUsers(): void {
         upsertUser(user as Record<string, unknown>);
         count++;
       } catch (e) {
-        console.error(`[notion] Failed to upsert user ${(user as Record<string, unknown>).id}: ${e}`);
+        console.error(
+          `[notion] Failed to upsert user ${(user as Record<string, unknown>).id}: ${e}`
+        );
       }
     }
 
@@ -168,7 +170,9 @@ function syncSearchItems(): void {
     | undefined;
 
   if (!upsertPage || !upsertDatabase) {
-    console.warn('[notion] upsertPage/upsertDatabase not available on globalThis — skipping search sync');
+    console.warn(
+      '[notion] upsertPage/upsertDatabase not available on globalThis — skipping search sync'
+    );
     return;
   }
 
@@ -252,7 +256,13 @@ function syncSearchItems(): void {
   }
 
   // Explicitly fetch data_sources (API 2025-09-03: unfiltered search may not return them)
-  const dsResult = syncDataSources(upsertDatabase, getDatabaseById, cutoffMs, lastSyncTime, isFirstSync);
+  const dsResult = syncDataSources(
+    upsertDatabase,
+    getDatabaseById,
+    cutoffMs,
+    lastSyncTime,
+    isFirstSync
+  );
   dbCount += dsResult.count;
   dbSkipped += dsResult.skipped;
   errorCount += dsResult.errors;
@@ -263,7 +273,9 @@ function syncSearchItems(): void {
   const skipMsg =
     pageSkipped > 0 || dbSkipped > 0 ? ` (${pageSkipped} pages, ${dbSkipped} dbs unchanged)` : '';
   const errorMsg = errorCount > 0 ? `, ${errorCount} errors` : '';
-  console.log(`[notion] Synced ${pageCount} pages, ${dbCount} databases (last 30 days)${skipMsg}${errorMsg}`);
+  console.log(
+    `[notion] Synced ${pageCount} pages, ${dbCount} databases (last 30 days)${skipMsg}${errorMsg}`
+  );
 }
 
 function syncDataSources(
@@ -369,9 +381,31 @@ function syncContent(): void {
 // Phase 4: AI summarization of synced page content
 // ---------------------------------------------------------------------------
 
-const VALID_CATEGORIES = ['research', 'meeting_notes', 'project', 'documentation', 'planning', 'design', 'engineering', 'marketing', 'finance', 'hr', 'legal', 'operations', 'other'] as const;
+const VALID_CATEGORIES = [
+  'research',
+  'meeting_notes',
+  'project',
+  'documentation',
+  'planning',
+  'design',
+  'engineering',
+  'marketing',
+  'finance',
+  'hr',
+  'legal',
+  'operations',
+  'other',
+] as const;
 const VALID_SENTIMENTS = ['positive', 'neutral', 'negative', 'mixed'] as const;
-const VALID_ENTITY_TYPES = ['person', 'wallet', 'channel', 'group', 'organization', 'token', 'other'] as const;
+const VALID_ENTITY_TYPES = [
+  'person',
+  'wallet',
+  'channel',
+  'group',
+  'organization',
+  'token',
+  'other',
+] as const;
 
 interface PageClassification {
   category: string;
@@ -385,7 +419,12 @@ interface PageClassification {
  * Returns defaults on failure so callers always get usable values.
  */
 function inferClassification(text: string): PageClassification {
-  const defaults: PageClassification = { category: 'other', sentiment: 'neutral', entities: [], topics: [] };
+  const defaults: PageClassification = {
+    category: 'other',
+    sentiment: 'neutral',
+    entities: [],
+    topics: [],
+  };
   try {
     const prompt =
       `Analyze the following Notion page. Respond with ONLY a JSON object:\n` +
@@ -400,10 +439,14 @@ function inferClassification(text: string): PageClassification {
     if (match) {
       const parsed = JSON.parse(match[0]) as Partial<PageClassification>;
 
-      const category = VALID_CATEGORIES.includes(parsed.category as typeof VALID_CATEGORIES[number])
+      const category = VALID_CATEGORIES.includes(
+        parsed.category as (typeof VALID_CATEGORIES)[number]
+      )
         ? parsed.category!
         : 'other';
-      const sentiment = VALID_SENTIMENTS.includes(parsed.sentiment as typeof VALID_SENTIMENTS[number])
+      const sentiment = VALID_SENTIMENTS.includes(
+        parsed.sentiment as (typeof VALID_SENTIMENTS)[number]
+      )
         ? parsed.sentiment!
         : 'neutral';
 
@@ -415,7 +458,9 @@ function inferClassification(text: string): PageClassification {
           if (ent.id || ent.name) {
             entities.push({
               id: String(ent.id || ent.name || ''),
-              type: VALID_ENTITY_TYPES.includes(String(ent.type || '') as typeof VALID_ENTITY_TYPES[number])
+              type: VALID_ENTITY_TYPES.includes(
+                String(ent.type || '') as (typeof VALID_ENTITY_TYPES)[number]
+              )
                 ? String(ent.type)
                 : 'other',
               name: ent.name ? String(ent.name) : undefined,
@@ -448,12 +493,12 @@ const CONTENT_LIMITS = [3000, 1500, 500];
  * Local models have limited context windows; retry with less text on overflow.
  */
 function summarizeWithFallback(content: string, metaBlock: string): string | null {
-  const instruction = 'Write a 2-3 sentence summary of this Notion page. Be direct and dense — include all key facts, decisions, names, dates, and action items. Omit filler and pleasantries.';
+  const instruction =
+    'Write a 2-3 sentence summary of this Notion page. Be direct and dense — include all key facts, decisions, names, dates, and action items. Omit filler and pleasantries.';
 
   for (const limit of CONTENT_LIMITS) {
-    const truncated = content.length > limit
-      ? content.substring(0, limit) + '\n...(truncated)'
-      : content;
+    const truncated =
+      content.length > limit ? content.substring(0, limit) + '\n...(truncated)' : content;
     const prompt = `${instruction}\n\n--- Page Metadata ---\n${metaBlock}\n\n--- Page Content ---\n${truncated}`;
     try {
       const result = model.summarize(prompt, { maxTokens: 10000 });
@@ -461,7 +506,11 @@ function summarizeWithFallback(content: string, metaBlock: string): string | nul
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       // Context overflow — retry with less content
-      if (msg.includes('No sequences left') || msg.includes('context') || msg.includes('too long')) {
+      if (
+        msg.includes('No sequences left') ||
+        msg.includes('context') ||
+        msg.includes('too long')
+      ) {
         continue;
       }
       throw e; // Re-throw non-context errors
@@ -502,13 +551,29 @@ function syncAiSummaries(): void {
   }
 
   const getPagesNeedingSummary = (globalThis as Record<string, unknown>).getPagesNeedingSummary as
-    | ((limit: number) => Array<{ id: string; title: string; content_text: string; url: string | null; last_edited_time: string; created_time: string }>)
+    | ((
+        limit: number
+      ) => Array<{
+        id: string;
+        title: string;
+        content_text: string;
+        url: string | null;
+        last_edited_time: string;
+        created_time: string;
+      }>)
     | undefined;
   const updatePageAiSummary = (globalThis as Record<string, unknown>).updatePageAiSummary as
-    | ((pageId: string, summary: string, opts?: { category?: string; sentiment?: string; entities?: unknown[]; topics?: string[] }) => void)
+    | ((
+        pageId: string,
+        summary: string,
+        opts?: { category?: string; sentiment?: string; entities?: unknown[]; topics?: string[] }
+      ) => void)
     | undefined;
-  const getPageStructuredEntities = (globalThis as Record<string, unknown>).getPageStructuredEntities as
-    | ((pageId: string) => Array<{ id: string; type: string; name?: string; role: string; property?: string }>)
+  const getPageStructuredEntities = (globalThis as Record<string, unknown>)
+    .getPageStructuredEntities as
+    | ((
+        pageId: string
+      ) => Array<{ id: string; type: string; name?: string; role: string; property?: string }>)
     | undefined;
 
   if (!getPagesNeedingSummary || !updatePageAiSummary) return;
@@ -573,14 +638,22 @@ function syncAiSummaries(): void {
         dataSource: 'notion',
         sentiment: classification.sentiment as 'positive' | 'neutral' | 'negative' | 'mixed',
         keyPoints: classification.topics.length > 0 ? classification.topics : undefined,
-        entities: mergedEntities.length > 0
-          ? mergedEntities.map(e => ({
-              id: e.id,
-              type: (e.type === 'page' ? 'other' : e.type) as 'person' | 'wallet' | 'channel' | 'group' | 'organization' | 'token' | 'other',
-              name: e.name,
-              role: e.role,
-            }))
-          : undefined,
+        entities:
+          mergedEntities.length > 0
+            ? mergedEntities.map(e => ({
+                id: e.id,
+                type: (e.type === 'page' ? 'other' : e.type) as
+                  | 'person'
+                  | 'wallet'
+                  | 'channel'
+                  | 'group'
+                  | 'organization'
+                  | 'token'
+                  | 'other',
+                name: e.name,
+                role: e.role,
+              }))
+            : undefined,
         metadata: {
           pageId: page.id,
           pageTitle: page.title,

@@ -20,8 +20,18 @@ export interface NotionGlobals {
   getPageById(pageId: string): unknown | null;
   getNotionSyncState(key: string): string | null;
   setNotionSyncState(key: string, value: string): void;
-  getEntityCounts(): { pages: number; databases: number; users: number; pagesWithContent: number; pagesWithSummary: number };
-  updatePageAiSummary(pageId: string, summary: string, opts?: { category?: string; sentiment?: string; entities?: unknown[]; topics?: string[] }): void;
+  getEntityCounts(): {
+    pages: number;
+    databases: number;
+    users: number;
+    pagesWithContent: number;
+    pagesWithSummary: number;
+  };
+  updatePageAiSummary(
+    pageId: string,
+    summary: string,
+    opts?: { category?: string; sentiment?: string; entities?: unknown[]; topics?: string[] }
+  ): void;
   getPagesNeedingSummary(limit: number): unknown[];
   performSync(): void;
 }
