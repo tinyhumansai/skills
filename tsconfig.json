@@ -13,7 +13,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "moduleResolution": "node"
   },
   "include": ["types/**/*.d.ts", "src/types.d.ts", "src/*/index.ts", "examples/*/index.ts"],
   "exclude": ["node_modules", ".venv", "dev"]
