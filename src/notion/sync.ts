@@ -663,6 +663,8 @@ function syncAiSummaries(): void {
           contentLength: trimmed.length,
           noContent: !hasContent,
         },
+        createdAt: new Date(page.created_time).toISOString(),
+        updatedAt: new Date(page.last_edited_time).toISOString(),
       });
 
       summarized++;

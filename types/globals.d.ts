@@ -299,6 +299,8 @@ interface SummarySubmission {
   entities?: SummaryEntity[];
   /** Free-form metadata for skill-specific data. */
   metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface SummaryEntity {
