@@ -2,7 +2,28 @@
 // Periodically downloads pages, databases, users, and page content from Notion
 // into local SQLite for fast local querying.
 import './skill-state';
-import { getApi, n } from './types';
+import type { NotionGlobals } from './types';
+import type { NotionApi } from './api/index';
+
+// Resolve helpers and API from globalThis at call time.
+// We avoid module imports of n()/getApi() because esbuild's IIFE bundling
+// can fail to resolve peer-module exports in sync.ts (tools/ works fine
+// because they're in a subdirectory). Resolving from globalThis is reliable.
+const n = (): NotionGlobals => {
+  const g = globalThis as unknown as Record<string, unknown>;
+  if (g.exports && typeof (g.exports as Record<string, unknown>).notionFetch === 'function') {
+    return g.exports as unknown as NotionGlobals;
+  }
+  return globalThis as unknown as NotionGlobals;
+};
+
+const getApi = (): NotionApi => {
+  const g = globalThis as unknown as Record<string, unknown>;
+  if (g.exports && typeof (g.exports as Record<string, unknown>).notionApi === 'object') {
+    return (g.exports as Record<string, unknown>).notionApi as NotionApi;
+  }
+  return g.notionApi as NotionApi;
+};
 
 // ---------------------------------------------------------------------------
 // Main sync orchestrator
