@@ -55,8 +55,7 @@ export const queryDatabaseTool: ToolDefinition = {
         }
       }
 
-      // Notion API 2025-09-03: query uses data_sources, not databases
-      // Resolve database_id (container) to first data_source_id
+      // Resolve database container to data_source_id for query
       const dbContainer = notionFetch(`/databases/${databaseId}`) as {
         data_sources?: Array<{ id: string; name?: string }>;
       };

@@ -34,26 +34,15 @@ export const searchTool: ToolDefinition = {
 
       const body: Record<string, unknown> = { page_size: pageSize };
       if (query) body.query = query;
+      if (filter)
+        body.filter = { property: 'object', value: filter === 'database' ? 'data_source' : filter };
 
-      // For page filter or no filter, just make one call. For database filter, try both.
-      const filterValues =
-        filter === 'data_source' ? ['data_source'] : filter ? [filter] : [];
+      const result = notionFetch('/search', { method: 'POST', body }) as {
+        results: Record<string, unknown>[];
+        has_more: boolean;
+      };
 
-      let result: { results: Record<string, unknown>[]; has_more: boolean } | undefined;
-
-      if (filterValues.length === 0) {
-        // No filter — single call
-        result = notionFetch('/search', { method: 'POST', body }) as typeof result;
-      } else {
-        // Try each filter value until we get results
-        for (const fv of filterValues) {
-          body.filter = { property: 'object', value: fv };
-          result = notionFetch('/search', { method: 'POST', body }) as typeof result;
-          if (result!.results.length > 0) break;
-        }
-      }
-
-      const formatted = (result?.results || []).map(item => {
+      const formatted = result.results.map(item => {
         if (item.object === 'page') {
           return { object: 'page', ...formatPageSummary(item) };
         }
@@ -65,7 +54,7 @@ export const searchTool: ToolDefinition = {
 
       return JSON.stringify({
         count: formatted.length,
-        has_more: result?.has_more || false,
+        has_more: result.has_more,
         results: formatted,
       });
     } catch (e) {

@@ -25,7 +25,7 @@ export const getDatabaseTool: ToolDefinition = {
         return JSON.stringify({ error: 'database_id is required' });
       }
 
-      // Notion API 2025-09-03: schema lives on data_source, not database container
+      // Resolve database container to data_source for schema
       const dbContainer = notionFetch(`/databases/${databaseId}`) as Record<string, unknown> & {
         data_sources?: Array<{ id: string; name?: string }>;
       };

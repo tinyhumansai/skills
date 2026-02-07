@@ -199,7 +199,7 @@ function syncSearchItems(): void {
           upsertPage(item);
           pageCount++;
         }
-      } else if (item.object === 'database') {
+      } else if (item.object === 'data_source') {
         const existing = getDatabaseById?.(item.id as string);
         if (existing && existing.last_edited_time === lastEdited) {
           dbSkipped++;
@@ -254,7 +254,7 @@ function syncDataSources(
     const body: Record<string, unknown> = {
       page_size: 100,
       sort: { direction: 'descending', timestamp: 'last_edited_time' },
-      filter: { property: 'object', value: 'database' },
+      filter: { property: 'object', value: 'data_source' },
     };
     if (startCursor) body.start_cursor = startCursor;
 

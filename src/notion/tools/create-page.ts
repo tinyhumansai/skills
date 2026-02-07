@@ -50,7 +50,7 @@ export const createPageTool: ToolDefinition = {
 
       let parentPayload: Record<string, unknown>;
       if (parentType === 'database_id') {
-        // Notion API 2025-09-03: page parent is data_source_id, not database_id
+        // Resolve database container to data_source_id for page parent
         const dbContainer = notionFetch(`/databases/${parentId}`) as {
           data_sources?: Array<{ id: string }>;
         };
