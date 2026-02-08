@@ -29,6 +29,9 @@ export const syncStatusTool: ToolDefinition = {
           databases: s.syncStatus.totalDatabases,
           users: s.syncStatus.totalUsers,
           pages_with_content: s.syncStatus.pagesWithContent,
+          pages_with_summary: s.syncStatus.pagesWithSummary,
+          summaries_total: s.syncStatus.summariesTotal,
+          summaries_pending: s.syncStatus.summariesPending,
         },
         config: {
           sync_interval_minutes: s.config.syncIntervalMinutes,

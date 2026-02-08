@@ -20,12 +20,6 @@ export interface LocalPage {
   archived: number;
   content_text: string | null;
   content_synced_at: number | null;
-  ai_summary: string | null;
-  ai_summary_at: number | null;
-  ai_category: string | null;
-  ai_sentiment: string | null;
-  ai_entities: string | null;
-  ai_topics: string | null;
   page_entities: string | null;
   synced_at: number;
 }
@@ -312,32 +306,6 @@ export function getPagesNeedingContent(limit: number, updatedAfterIso?: string):
 }
 
 /**
- * Update a page's AI-generated summary and classification data.
- * entities and topics are stored as JSON strings.
- */
-export function updatePageAiSummary(
-  pageId: string,
-  summary: string,
-  opts?: { category?: string; sentiment?: string; entities?: unknown[]; topics?: string[] }
-): void {
-  db.exec(
-    `UPDATE pages SET
-      ai_summary = ?, ai_summary_at = ?, ai_category = ?, ai_sentiment = ?,
-      ai_entities = ?, ai_topics = ?
-     WHERE id = ?`,
-    [
-      summary,
-      Date.now(),
-      opts?.category || null,
-      opts?.sentiment || null,
-      opts?.entities ? JSON.stringify(opts.entities) : null,
-      opts?.topics ? JSON.stringify(opts.topics) : null,
-      pageId,
-    ]
-  );
-}
-
-/**
  * Get structured entities for a page, with user names resolved from the users table.
  * Returns the stored page_entities with names filled in from local user records.
  */
@@ -393,20 +361,112 @@ export function getPageStructuredEntities(
 
 /**
  * Get pages that need AI summarization.
- * Returns pages where content_text exists but either:
- *   - ai_summary is NULL (never summarized), OR
- *   - content was re-synced after the last summary (content_synced_at > ai_summary_at)
+ * Returns pages where content_text exists and no summary record exists
+ * in the summaries table yet.
  */
 export function getPagesNeedingSummary(limit: number): LocalPage[] {
   return db.all(
-    `SELECT * FROM pages
-     WHERE archived = 0
-       AND content_text IS NOT NULL
-       -- AND (ai_summary IS NULL OR ai_summary_at < content_synced_at)
-     ORDER BY last_edited_time DESC
+    `SELECT p.* FROM pages p
+     LEFT JOIN summaries s ON s.page_id = p.id
+     WHERE p.archived = 0
+       AND p.content_text IS NOT NULL
+       AND s.id IS NULL
+     ORDER BY p.last_edited_time DESC
      LIMIT ?`,
     [limit]
   ) as unknown as LocalPage[];
+}
+
+// ---------------------------------------------------------------------------
+// Summary operations
+// ---------------------------------------------------------------------------
+
+export interface LocalSummary {
+  id: number;
+  page_id: string;
+  summary: string;
+  category: string | null;
+  sentiment: string | null;
+  entities: string | null;
+  topics: string | null;
+  metadata: string | null;
+  source_created_at: string;
+  source_updated_at: string;
+  created_at: number;
+  synced: number;
+  synced_at: number | null;
+}
+
+/**
+ * Insert a new summary record for a page.
+ * Entities, topics, and metadata are stored as JSON strings.
+ */
+export function insertSummary(opts: {
+  pageId: string;
+  summary: string;
+  category?: string;
+  sentiment?: string;
+  entities?: unknown[];
+  topics?: string[];
+  metadata?: Record<string, unknown>;
+  sourceCreatedAt: string;
+  sourceUpdatedAt: string;
+}): void {
+  db.exec(
+    `INSERT INTO summaries (
+      page_id, summary, category, sentiment, entities, topics, metadata,
+      source_created_at, source_updated_at, created_at, synced
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+    [
+      opts.pageId,
+      opts.summary,
+      opts.category || null,
+      opts.sentiment || null,
+      opts.entities ? JSON.stringify(opts.entities) : null,
+      opts.topics ? JSON.stringify(opts.topics) : null,
+      opts.metadata ? JSON.stringify(opts.metadata) : null,
+      opts.sourceCreatedAt,
+      opts.sourceUpdatedAt,
+      Date.now(),
+    ]
+  );
+}
+
+/**
+ * Get all summaries that have not been synced to the server yet.
+ */
+export function getUnsyncedSummaries(limit: number): LocalSummary[] {
+  return db.all('SELECT * FROM summaries WHERE synced = 0 ORDER BY created_at ASC LIMIT ?', [
+    limit,
+  ]) as unknown as LocalSummary[];
+}
+
+/**
+ * Mark a list of summary IDs as synced.
+ */
+export function markSummariesSynced(ids: number[]): void {
+  if (ids.length === 0) return;
+  const now = Date.now();
+  const placeholders = ids.map(() => '?').join(',');
+  db.exec(`UPDATE summaries SET synced = 1, synced_at = ? WHERE id IN (${placeholders})`, [
+    now,
+    ...ids,
+  ]);
+}
+
+/**
+ * Get count of synced vs unsynced summaries.
+ */
+export function getSummaryCounts(): { total: number; synced: number; pending: number } {
+  const total = db.get('SELECT COUNT(*) as cnt FROM summaries', []) as { cnt: number } | null;
+  const synced = db.get('SELECT COUNT(*) as cnt FROM summaries WHERE synced = 1', []) as {
+    cnt: number;
+  } | null;
+  return {
+    total: total?.cnt || 0,
+    synced: synced?.cnt || 0,
+    pending: (total?.cnt || 0) - (synced?.cnt || 0),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -560,6 +620,8 @@ export function getEntityCounts(): {
   users: number;
   pagesWithContent: number;
   pagesWithSummary: number;
+  summariesTotal: number;
+  summariesPending: number;
 } {
   const pages = db.get('SELECT COUNT(*) as cnt FROM pages', []) as { cnt: number } | null;
   const databases = db.get('SELECT COUNT(*) as cnt FROM databases', []) as { cnt: number } | null;
@@ -569,9 +631,15 @@ export function getEntityCounts(): {
     []
   ) as { cnt: number } | null;
   const pagesWithSummary = db.get(
-    'SELECT COUNT(*) as cnt FROM pages WHERE ai_summary IS NOT NULL',
+    'SELECT COUNT(DISTINCT page_id) as cnt FROM summaries',
     []
   ) as { cnt: number } | null;
+  const summariesTotal = db.get('SELECT COUNT(*) as cnt FROM summaries', []) as {
+    cnt: number;
+  } | null;
+  const summariesPending = db.get('SELECT COUNT(*) as cnt FROM summaries WHERE synced = 0', []) as {
+    cnt: number;
+  } | null;
 
   return {
     pages: pages?.cnt || 0,
@@ -579,6 +647,8 @@ export function getEntityCounts(): {
     users: users?.cnt || 0,
     pagesWithContent: pagesWithContent?.cnt || 0,
     pagesWithSummary: pagesWithSummary?.cnt || 0,
+    summariesTotal: summariesTotal?.cnt || 0,
+    summariesPending: summariesPending?.cnt || 0,
   };
 }
 
@@ -597,9 +667,12 @@ _g.getLocalPages = getLocalPages;
 _g.getLocalDatabases = getLocalDatabases;
 _g.getLocalUsers = getLocalUsers;
 _g.getPagesNeedingContent = getPagesNeedingContent;
-_g.updatePageAiSummary = updatePageAiSummary;
 _g.getPagesNeedingSummary = getPagesNeedingSummary;
 _g.getPageStructuredEntities = getPageStructuredEntities;
 _g.getNotionSyncState = getNotionSyncState;
 _g.setNotionSyncState = setNotionSyncState;
 _g.getEntityCounts = getEntityCounts;
+_g.insertSummary = insertSummary;
+_g.getUnsyncedSummaries = getUnsyncedSummaries;
+_g.markSummariesSynced = markSummariesSynced;
+_g.getSummaryCounts = getSummaryCounts;

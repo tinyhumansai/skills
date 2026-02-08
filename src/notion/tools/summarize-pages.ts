@@ -53,18 +53,6 @@ export const summarizePagesTool: ToolDefinition = {
             created_time: string;
           }>)
         | undefined;
-      const updatePageAiSummary = (globalThis as Record<string, unknown>).updatePageAiSummary as
-        | ((
-            pageId: string,
-            summary: string,
-            opts?: {
-              category?: string;
-              sentiment?: string;
-              entities?: unknown[];
-              topics?: string[];
-            }
-          ) => void)
-        | undefined;
       const inferClassification = (globalThis as Record<string, unknown>).inferClassification as
         | ((text: string) => {
             category: string;
@@ -82,8 +70,21 @@ export const summarizePagesTool: ToolDefinition = {
       const mergeEntitiesFn = (globalThis as Record<string, unknown>).mergeEntities as
         | ((structured: unknown[], llm: unknown[]) => unknown[])
         | undefined;
+      const insertSummaryFn = (globalThis as Record<string, unknown>).insertSummary as
+        | ((opts: {
+            pageId: string;
+            summary: string;
+            category?: string;
+            sentiment?: string;
+            entities?: unknown[];
+            topics?: string[];
+            metadata?: Record<string, unknown>;
+            sourceCreatedAt: string;
+            sourceUpdatedAt: string;
+          }) => void)
+        | undefined;
 
-      if (!getPagesNeedingSummary || !updatePageAiSummary) {
+      if (!getPagesNeedingSummary) {
         return JSON.stringify({ success: false, error: 'Database helpers not available.' });
       }
 
@@ -151,49 +152,34 @@ export const summarizePagesTool: ToolDefinition = {
                 ...classification.entities.map(e => ({ ...e, role: e.role || 'mentioned' })),
               ];
 
-          // Store summary + classification in local DB
-          updatePageAiSummary(page.id, summary, {
-            category: classification.category,
-            sentiment: classification.sentiment,
-            entities: mergedEntities,
-            topics: classification.topics,
-          });
-
-          // Submit to server via socket
-          model.submitSummary({
-            summary,
-            category: classification.category,
-            dataSource: 'notion',
-            sentiment: classification.sentiment as 'positive' | 'neutral' | 'negative' | 'mixed',
-            keyPoints: classification.topics.length > 0 ? classification.topics : undefined,
-            entities:
-              mergedEntities.length > 0
-                ? mergedEntities.map(e => ({
-                    id: e.id,
-                    type: (e.type === 'page' ? 'other' : e.type) as
-                      | 'person'
-                      | 'wallet'
-                      | 'channel'
-                      | 'group'
-                      | 'organization'
-                      | 'token'
-                      | 'other',
-                    name: e.name,
-                    role: e.role,
-                  }))
-                : undefined,
-            metadata: {
+          // Store in summaries table (synced=0, will be sent to server later)
+          if (insertSummaryFn) {
+            insertSummaryFn({
               pageId: page.id,
-              pageTitle: page.title,
-              pageUrl: page.url,
-              lastEditedTime: page.last_edited_time,
-              createdTime: page.created_time,
-              contentLength: trimmed.length,
-              noContent: !hasContent,
-            },
-            createdAt: new Date(page.created_time).toISOString(),
-            updatedAt: new Date(page.last_edited_time).toISOString(),
-          });
+              summary,
+              category: classification.category,
+              sentiment: classification.sentiment,
+              entities: mergedEntities.map(e => ({
+                id: e.id,
+                dataSourceId: 'notionId',
+                type: e.type === 'page' ? 'other' : e.type,
+                name: e.name,
+                role: e.role,
+              })),
+              topics: classification.topics,
+              metadata: {
+                pageId: page.id,
+                pageTitle: page.title,
+                pageUrl: page.url,
+                lastEditedTime: page.last_edited_time,
+                createdTime: page.created_time,
+                contentLength: trimmed.length,
+                noContent: !hasContent,
+              },
+              sourceCreatedAt: new Date(page.created_time).toISOString(),
+              sourceUpdatedAt: new Date(page.last_edited_time).toISOString(),
+            });
+          }
 
           summarized++;
         } catch (e) {

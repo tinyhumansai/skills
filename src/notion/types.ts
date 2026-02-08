@@ -26,13 +26,23 @@ export interface NotionGlobals {
     users: number;
     pagesWithContent: number;
     pagesWithSummary: number;
+    summariesTotal: number;
+    summariesPending: number;
   };
-  updatePageAiSummary(
-    pageId: string,
-    summary: string,
-    opts?: { category?: string; sentiment?: string; entities?: unknown[]; topics?: string[] }
-  ): void;
   getPagesNeedingSummary(limit: number): unknown[];
+  insertSummary(opts: {
+    pageId: string;
+    summary: string;
+    category?: string;
+    sentiment?: string;
+    entities?: unknown[];
+    topics?: string[];
+    metadata?: Record<string, unknown>;
+    sourceCreatedAt: string;
+    sourceUpdatedAt: string;
+  }): void;
+  getUnsyncedSummaries(limit: number): unknown[];
+  markSummariesSynced(ids: number[]): void;
   performSync(): void;
 }
 

@@ -63,11 +63,15 @@ export function performSync(): void {
       syncContent();
     }
 
-    // Phase 4: AI summarization of page content
+    // Phase 4a: Generate AI summaries (stored locally, not yet synced)
     if (s.config.contentSyncEnabled) {
-      console.log('[notion] Sync phase 4: AI summaries');
-      syncAiSummaries();
+      console.log('[notion] Sync phase 4a: generate AI summaries');
+      generateSummaries();
     }
+
+    // Phase 4b: Sync unsynced summaries to the server
+    console.log('[notion] Sync phase 4b: sync summaries to server');
+    syncSummariesToServer();
 
     // Update sync state
     const durationMs = Date.now() - startTime;
@@ -93,6 +97,8 @@ export function performSync(): void {
     s.syncStatus.totalUsers = counts.users;
     s.syncStatus.pagesWithContent = counts.pagesWithContent;
     s.syncStatus.pagesWithSummary = counts.pagesWithSummary;
+    s.syncStatus.summariesTotal = counts.summariesTotal;
+    s.syncStatus.summariesPending = counts.summariesPending;
 
     console.log(
       `[notion] Sync complete in ${durationMs}ms — ${counts.pages} pages, ${counts.databases} databases, ${counts.users} users`
@@ -541,7 +547,12 @@ function mergeEntities(
   return merged;
 }
 
-function syncAiSummaries(): void {
+/**
+ * Phase 4a: Generate AI summaries for pages that need them.
+ * Stores results in the `summaries` table with synced=0.
+ * Does NOT submit to the server — that's handled by syncSummariesToServer().
+ */
+function generateSummaries(): void {
   const s = globalThis.getNotionSkillState();
 
   // Check if the local model is available
@@ -562,21 +573,27 @@ function syncAiSummaries(): void {
         created_time: string;
       }>)
     | undefined;
-  const updatePageAiSummary = (globalThis as Record<string, unknown>).updatePageAiSummary as
-    | ((
-        pageId: string,
-        summary: string,
-        opts?: { category?: string; sentiment?: string; entities?: unknown[]; topics?: string[] }
-      ) => void)
-    | undefined;
   const getPageStructuredEntities = (globalThis as Record<string, unknown>)
     .getPageStructuredEntities as
     | ((
         pageId: string
       ) => Array<{ id: string; type: string; name?: string; role: string; property?: string }>)
     | undefined;
+  const insertSummaryFn = (globalThis as Record<string, unknown>).insertSummary as
+    | ((opts: {
+        pageId: string;
+        summary: string;
+        category?: string;
+        sentiment?: string;
+        entities?: unknown[];
+        topics?: string[];
+        metadata?: Record<string, unknown>;
+        sourceCreatedAt: string;
+        sourceUpdatedAt: string;
+      }) => void)
+    | undefined;
 
-  if (!getPagesNeedingSummary || !updatePageAiSummary) return;
+  if (!getPagesNeedingSummary || !insertSummaryFn) return;
 
   const batchSize = s.config.maxPagesPerContentSync;
   const pages = getPagesNeedingSummary(batchSize);
@@ -623,37 +640,20 @@ function syncAiSummaries(): void {
       const structuredEnts = getPageStructuredEntities?.(page.id) ?? [];
       const mergedEntities = mergeEntities(structuredEnts, classification.entities);
 
-      // Store summary + classification in local DB
-      updatePageAiSummary(page.id, summary, {
-        category: classification.category,
-        sentiment: classification.sentiment,
-        entities: mergedEntities,
-        topics: classification.topics,
-      });
-
-      // Submit to server via socket
-      model.submitSummary({
+      // Store in summaries table (synced=0, will be sent to server later)
+      insertSummaryFn({
+        pageId: page.id,
         summary,
         category: classification.category,
-        dataSource: 'notion',
-        sentiment: classification.sentiment as 'positive' | 'neutral' | 'negative' | 'mixed',
-        keyPoints: classification.topics.length > 0 ? classification.topics : undefined,
-        entities:
-          mergedEntities.length > 0
-            ? mergedEntities.map(e => ({
-                id: e.id,
-                type: (e.type === 'page' ? 'other' : e.type) as
-                  | 'person'
-                  | 'wallet'
-                  | 'channel'
-                  | 'group'
-                  | 'organization'
-                  | 'token'
-                  | 'other',
-                name: e.name,
-                role: e.role,
-              }))
-            : undefined,
+        sentiment: classification.sentiment,
+        entities: mergedEntities.map(e => ({
+          id: e.id,
+          dataSourceId: 'notionId',
+          type: e.type === 'page' ? 'other' : e.type,
+          name: e.name,
+          role: e.role,
+        })),
+        topics: classification.topics,
         metadata: {
           pageId: page.id,
           pageTitle: page.title,
@@ -663,8 +663,8 @@ function syncAiSummaries(): void {
           contentLength: trimmed.length,
           noContent: !hasContent,
         },
-        createdAt: new Date(page.created_time).toISOString(),
-        updatedAt: new Date(page.last_edited_time).toISOString(),
+        sourceCreatedAt: new Date(page.created_time).toISOString(),
+        sourceUpdatedAt: new Date(page.last_edited_time).toISOString(),
       });
 
       summarized++;
@@ -676,6 +676,79 @@ function syncAiSummaries(): void {
 
   console.log(
     `[notion] AI summaries: ${summarized} pages summarized${failed > 0 ? `, ${failed} failed` : ''}`
+  );
+}
+
+/**
+ * Phase 4b: Sync unsynced summaries to the server.
+ * Reads summaries with synced=0, submits each via model.submitSummary(),
+ * and marks them as synced on success.
+ */
+function syncSummariesToServer(): void {
+  const getUnsyncedSummariesFn = (globalThis as Record<string, unknown>).getUnsyncedSummaries as
+    | ((limit: number) => Array<{
+        id: number;
+        page_id: string;
+        summary: string;
+        category: string | null;
+        sentiment: string | null;
+        entities: string | null;
+        topics: string | null;
+        metadata: string | null;
+        source_created_at: string;
+        source_updated_at: string;
+      }>)
+    | undefined;
+  const markSummariesSyncedFn = (globalThis as Record<string, unknown>).markSummariesSynced as
+    | ((ids: number[]) => void)
+    | undefined;
+
+  if (!getUnsyncedSummariesFn || !markSummariesSyncedFn) return;
+
+  const batch = getUnsyncedSummariesFn(100);
+  if (batch.length === 0) {
+    console.log('[notion] No unsynced summaries to send');
+    return;
+  }
+
+  let sent = 0;
+  let failed = 0;
+  const syncedIds: number[] = [];
+
+  for (const row of batch) {
+    try {
+      // Parse stored JSON fields
+      const entities: SummaryEntity[] = row.entities ? JSON.parse(row.entities) : [];
+      const topics: string[] = row.topics ? JSON.parse(row.topics) : [];
+      const metadata: Record<string, unknown> = row.metadata ? JSON.parse(row.metadata) : {};
+
+      model.submitSummary({
+        summary: row.summary,
+        category: row.category || undefined,
+        dataSource: 'notion',
+        sentiment: (row.sentiment as 'positive' | 'neutral' | 'negative' | 'mixed') || 'neutral',
+        keyPoints: topics.length > 0 ? topics : undefined,
+        entities: entities.length > 0 ? entities : undefined,
+        metadata,
+        createdAt: row.source_created_at,
+        updatedAt: row.source_updated_at,
+      });
+
+      syncedIds.push(row.id);
+      sent++;
+    } catch (e) {
+      console.error(`[notion] Failed to sync summary ${row.id} (page ${row.page_id}): ${e}`);
+      failed++;
+    }
+  }
+
+  // Mark successfully sent summaries as synced
+  if (syncedIds.length > 0) {
+    markSummariesSyncedFn(syncedIds);
+  }
+
+  console.log(
+    `[notion] Server sync: ${sent} summaries sent${failed > 0 ? `, ${failed} failed` : ''}`
   );
 }
 
@@ -701,6 +774,8 @@ function publishSyncState(): void {
     totalUsers: s.syncStatus.totalUsers,
     pagesWithContent: s.syncStatus.pagesWithContent,
     pagesWithSummary: s.syncStatus.pagesWithSummary,
+    summariesTotal: s.syncStatus.summariesTotal,
+    summariesPending: s.syncStatus.summariesPending,
     lastSyncError: s.syncStatus.lastSyncError,
     lastSyncDurationMs: s.syncStatus.lastSyncDurationMs,
   });
@@ -713,3 +788,5 @@ _g.publishSyncState = publishSyncState;
 _g.inferClassification = inferClassification;
 _g.mergeEntities = mergeEntities;
 _g.summarizeWithFallback = summarizeWithFallback;
+_g.generateSummaries = generateSummaries;
+_g.syncSummariesToServer = syncSummariesToServer;

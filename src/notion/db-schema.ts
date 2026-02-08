@@ -24,12 +24,6 @@ export function initializeNotionSchema(): void {
       archived INTEGER NOT NULL DEFAULT 0,
       content_text TEXT,
       content_synced_at INTEGER,
-      ai_summary TEXT,
-      ai_summary_at INTEGER,
-      ai_category TEXT,
-      ai_sentiment TEXT,
-      ai_entities TEXT,
-      ai_topics TEXT,
       page_entities TEXT,
       synced_at INTEGER NOT NULL
     )`,
@@ -66,6 +60,27 @@ export function initializeNotionSchema(): void {
     []
   );
 
+  // Summaries table: stores AI-generated summaries with sync tracking
+  db.exec(
+    `CREATE TABLE IF NOT EXISTS summaries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      page_id TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      category TEXT,
+      sentiment TEXT,
+      entities TEXT,
+      topics TEXT,
+      metadata TEXT,
+      source_created_at TEXT NOT NULL,
+      source_updated_at TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      synced INTEGER NOT NULL DEFAULT 0,
+      synced_at INTEGER,
+      FOREIGN KEY (page_id) REFERENCES pages(id)
+    )`,
+    []
+  );
+
   // Sync state key-value table
   db.exec(
     `CREATE TABLE IF NOT EXISTS sync_state (
@@ -76,22 +91,11 @@ export function initializeNotionSchema(): void {
     []
   );
 
-  // Migrate: add ai columns if they don't exist (for existing installs)
-  const migrateColumns = [
-    'ai_summary TEXT',
-    'ai_summary_at INTEGER',
-    'ai_category TEXT',
-    'ai_sentiment TEXT',
-    'ai_entities TEXT',
-    'ai_topics TEXT',
-    'page_entities TEXT',
-  ];
-  for (const col of migrateColumns) {
-    try {
-      db.exec(`ALTER TABLE pages ADD COLUMN ${col}`, []);
-    } catch {
-      // Column already exists
-    }
+  // Migrate: add page_entities column if it doesn't exist (for existing installs)
+  try {
+    db.exec('ALTER TABLE pages ADD COLUMN page_entities TEXT', []);
+  } catch {
+    // Column already exists
   }
 
   // Create indexes for performance
@@ -102,6 +106,8 @@ export function initializeNotionSchema(): void {
     'CREATE INDEX IF NOT EXISTS idx_databases_last_edited ON databases(last_edited_time DESC)',
     []
   );
+  db.exec('CREATE INDEX IF NOT EXISTS idx_summaries_synced ON summaries(synced)', []);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_summaries_page_id ON summaries(page_id)', []);
 
   console.log('[notion] Database schema initialized successfully');
 }

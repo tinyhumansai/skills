@@ -290,11 +290,12 @@ interface SummarySubmission {
   /** Category (e.g. "market_update", "alert", "digest", "research", "activity"). */
   category?: string;
   /** Sentiment analysis result. */
-  sentiment?: 'positive' | 'neutral' | 'negative' | 'mixed';
+  sentiment: 'positive' | 'neutral' | 'negative' | 'mixed';
   /** Data source identifier (e.g. "telegram", "email", "on-chain", "api"). */
-  dataSource?: string;
+  dataSource: string;
   /** Time range covered, in epoch milliseconds. */
   timeRange?: { start: number; end: number };
+  url?: string;
   /** Entities and relationships extracted from the data. */
   entities?: SummaryEntity[];
   /** Free-form metadata for skill-specific data. */
@@ -306,6 +307,8 @@ interface SummarySubmission {
 interface SummaryEntity {
   /** Entity identifier (username, email, wallet address, channel ID, etc.) */
   id: string;
+  /** Data source identifier (e.g. "notionId", "telegramId", "emailId", "onChainId", "apiId"). */
+  dataSourceId: string;
   /** Entity type. */
   type: 'person' | 'wallet' | 'channel' | 'group' | 'organization' | 'token' | 'other';
   /** Display name. */
