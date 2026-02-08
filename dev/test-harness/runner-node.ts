@@ -17,7 +17,7 @@
  *   yarn test:script notion scripts/examples/test-notion.js --clean
  *
  * Supported Features:
- *   - Bridge APIs: db, store, net (real HTTP), platform (real), state, data, cron, skills
+ *   - Bridge APIs: db, net (real HTTP), platform (real), state, data, cron, skills
  *   - Lifecycle hooks: init, start, stop
  *   - Setup flow: onSetupStart, onSetupSubmit
  *   - Options: onListOptions, onSetOption
@@ -220,7 +220,6 @@ async function main(): Promise<void> {
       "use strict";
       // Destructure globals from G
       var console = G.console;
-      var store = G.store;
       var db = G.db;
       var net = G.net;
       var platform = G.platform;

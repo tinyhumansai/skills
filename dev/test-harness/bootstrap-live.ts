@@ -243,15 +243,6 @@ export async function createBridgeAPIs(
     },
   };
 
-  // Store — persistent JSON file
-  const pStore = createPersistentStore(join(dataDir, 'store.json'));
-  const store = {
-    get: (key: string): unknown => pStore.get(key),
-    set: (key: string, value: unknown): void => pStore.set(key, value),
-    delete: (key: string): void => pStore.delete(key),
-    keys: (): string[] => pStore.keys(),
-  };
-
   // Database — persistent SQLite via better-sqlite3
   persistentDb = createPersistentDb(join(dataDir, 'skill.db'));
   const pDb = persistentDb;
@@ -372,13 +363,19 @@ export async function createBridgeAPIs(
     },
   };
 
-  // State — persistent JSON file with __getAll for debugging
+  // State — persistent store + frontend-publishing state
+  const pStore = createPersistentStore(join(dataDir, 'store.json'));
   const stateFilePath = join(dataDir, 'state.json');
   const pState = createPersistentState(stateFilePath);
   const stateApi = {
-    get: (key: string): unknown => pState.get(key),
-    set: (key: string, value: unknown): void => pState.set(key, value),
-    setPartial: (partial: Record<string, unknown>): void => pState.setPartial(partial),
+    get: (key: string): unknown => pStore.get(key),
+    set: (key: string, value: unknown): void => { pStore.set(key, value); pState.set(key, value); },
+    setPartial: (partial: Record<string, unknown>): void => {
+      for (const [k, v] of Object.entries(partial)) { pStore.set(k, v); }
+      pState.setPartial(partial);
+    },
+    delete: (key: string): void => pStore.delete(key),
+    keys: (): string[] => pStore.keys(),
     /** Read all state entries (for REPL/debugging only, not part of bridge contract) */
     __getAll: (): Record<string, unknown> => {
       try {
@@ -654,7 +651,6 @@ export async function createBridgeAPIs(
 
   return {
     console,
-    store,
     db,
     net,
     platform,

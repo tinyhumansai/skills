@@ -189,7 +189,7 @@ export function resetMockState(): void {
 
 /** Initialize mock state with optional overrides */
 export function initMockState(options?: {
-  storeData?: Record<string, unknown>;
+  stateData?: Record<string, unknown>;
   fetchResponses?: Record<string, { status: number; body: string; headers?: Record<string, string> }>;
   fetchErrors?: Record<string, string>;
   env?: Record<string, string>;
@@ -203,8 +203,8 @@ export function initMockState(options?: {
 }): void {
   resetMockState();
 
-  if (options?.storeData) {
-    mockState.store = { ...options.storeData };
+  if (options?.stateData) {
+    mockState.store = { ...options.stateData };
   }
   if (options?.fetchResponses) {
     mockState.fetchResponses = { ...options.fetchResponses };

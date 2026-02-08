@@ -1,7 +1,7 @@
 /**
  * bootstrap-node.ts - Provides the same globals as Rust's bootstrap.js (Node.js version)
  *
- * Creates all the bridge APIs (db, store, net, platform, state, data, cron, skills)
+ * Creates all the bridge APIs (db, net, platform, state, data, cron, skills)
  * with mock implementations backed by mock-state.ts.
  */
 
@@ -11,7 +11,7 @@ import { getMockState, type FetchOptions } from './mock-state';
 import { createPersistentData } from './persistent-data';
 import { createPersistentDb, type PersistentDb } from './persistent-db';
 import { createPersistentState } from './persistent-state';
-import { createPersistentStore } from './persistent-store';
+import { type PersistentStore, createPersistentStore } from './persistent-store';
 
 export interface BridgeOptions {
   /** When set, db/store/state/data use file-backed storage in this directory */
@@ -55,25 +55,6 @@ export async function createBridgeAPIs(options?: BridgeOptions): Promise<Record<
       globalThis.console.debug('[skill]', ...args);
     },
   };
-
-  // Store API - persistent key-value store
-  let store;
-  if (dataDir) {
-    const pStore = createPersistentStore(join(dataDir, 'store.json'));
-    store = {
-      get: (key: string): unknown => pStore.get(key),
-      set: (key: string, value: unknown): void => pStore.set(key, value),
-      delete: (key: string): void => pStore.delete(key),
-      keys: (): string[] => pStore.keys(),
-    };
-  } else {
-    store = {
-      get: (key: string): unknown => state.store[key] ?? null,
-      set: (key: string, value: unknown): void => { state.store[key] = value; },
-      delete: (key: string): void => { delete state.store[key]; },
-      keys: (): string[] => Object.keys(state.store),
-    };
-  }
 
   // Database API - SQLite (real or mock)
   let db;
@@ -141,20 +122,31 @@ export async function createBridgeAPIs(options?: BridgeOptions): Promise<Record<
     },
   };
 
-  // State API - frontend state publishing
+  // State API - persistent key-value store + frontend state publishing
   let stateApi;
   if (dataDir) {
+    const pStore: PersistentStore = createPersistentStore(join(dataDir, 'store.json'));
     const pState = createPersistentState(join(dataDir, 'state.json'));
     stateApi = {
-      get: (key: string): unknown => pState.get(key),
-      set: (key: string, value: unknown): void => pState.set(key, value),
-      setPartial: (partial: Record<string, unknown>): void => pState.setPartial(partial),
+      get: (key: string): unknown => pStore.get(key),
+      set: (key: string, value: unknown): void => { pStore.set(key, value); pState.set(key, value); },
+      setPartial: (partial: Record<string, unknown>): void => {
+        for (const [k, v] of Object.entries(partial)) { pStore.set(k, v); }
+        pState.setPartial(partial);
+      },
+      delete: (key: string): void => pStore.delete(key),
+      keys: (): string[] => pStore.keys(),
     };
   } else {
     stateApi = {
-      get: (key: string): unknown => state.state[key],
-      set: (key: string, value: unknown): void => { state.state[key] = value; },
-      setPartial: (partial: Record<string, unknown>): void => { Object.assign(state.state, partial); },
+      get: (key: string): unknown => state.store[key] ?? null,
+      set: (key: string, value: unknown): void => { state.store[key] = value; state.state[key] = value; },
+      setPartial: (partial: Record<string, unknown>): void => {
+        for (const [k, v] of Object.entries(partial)) { state.store[k] = v; }
+        Object.assign(state.state, partial);
+      },
+      delete: (key: string): void => { delete state.store[key]; },
+      keys: (): string[] => Object.keys(state.store),
     };
   }
 
@@ -403,7 +395,6 @@ export async function createBridgeAPIs(options?: BridgeOptions): Promise<Record<
 
   return {
     console,
-    store,
     db,
     net,
     platform,
