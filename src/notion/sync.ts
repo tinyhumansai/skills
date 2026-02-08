@@ -80,7 +80,7 @@ export function performSync(): void {
     s.syncStatus.lastSyncDurationMs = durationMs;
 
     // Persist sync time in database
-    const { setNotionSyncState, getEntityCounts } = n();
+    const { getEntityCounts } = n();
 
     // Only advance lastSyncTime if we actually have items in the DB.
     // This prevents the incremental sync from skipping everything on the
@@ -88,7 +88,7 @@ export function performSync(): void {
     const counts = getEntityCounts();
     if (counts.pages > 0 || counts.databases > 0) {
       s.syncStatus.lastSyncTime = nowMs;
-      setNotionSyncState('last_sync_time', s.syncStatus.lastSyncTime.toString());
+      store.set('last_sync_time', s.syncStatus.lastSyncTime);
     }
 
     // Update counts
@@ -160,7 +160,6 @@ function syncUsers(): void {
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 function syncSearchItems(): void {
-  const { getNotionSyncState, setNotionSyncState } = n();
   const api = getApi();
   const upsertPage = (globalThis as Record<string, unknown>).upsertPage as
     | ((page: Record<string, unknown>) => void)
@@ -182,8 +181,7 @@ function syncSearchItems(): void {
     return;
   }
 
-  const lastSyncTimeStr = getNotionSyncState('last_sync_time');
-  const lastSyncTime = lastSyncTimeStr ? parseInt(lastSyncTimeStr, 10) : 0;
+  const lastSyncTime = (store.get('last_sync_time') as number | null) || 0;
   const isFirstSync = lastSyncTime === 0;
   const cutoffMs = Date.now() - THIRTY_DAYS_MS;
 
@@ -274,7 +272,7 @@ function syncSearchItems(): void {
   errorCount += dsResult.errors;
 
   // Record that sync happened (even if first sync was partial)
-  setNotionSyncState('last_search_sync', Date.now().toString());
+  store.set('last_search_sync', Date.now());
 
   const skipMsg =
     pageSkipped > 0 || dbSkipped > 0 ? ` (${pageSkipped} pages, ${dbSkipped} dbs unchanged)` : '';

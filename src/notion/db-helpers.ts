@@ -583,31 +583,6 @@ export function getLocalUsers(): LocalUser[] {
 }
 
 // ---------------------------------------------------------------------------
-// Sync state operations
-// ---------------------------------------------------------------------------
-
-/**
- * Get a sync state value by key
- */
-export function getNotionSyncState(key: string): string | null {
-  const row = db.get('SELECT value FROM sync_state WHERE key = ?', [key]) as {
-    value: string;
-  } | null;
-  return row?.value || null;
-}
-
-/**
- * Set a sync state value
- */
-export function setNotionSyncState(key: string, value: string): void {
-  db.exec(
-    `INSERT OR REPLACE INTO sync_state (key, value, updated_at)
-     VALUES (?, ?, ?)`,
-    [key, value, Date.now()]
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Aggregate queries
 // ---------------------------------------------------------------------------
 
@@ -669,8 +644,6 @@ _g.getLocalUsers = getLocalUsers;
 _g.getPagesNeedingContent = getPagesNeedingContent;
 _g.getPagesNeedingSummary = getPagesNeedingSummary;
 _g.getPageStructuredEntities = getPageStructuredEntities;
-_g.getNotionSyncState = getNotionSyncState;
-_g.setNotionSyncState = setNotionSyncState;
 _g.getEntityCounts = getEntityCounts;
 _g.insertSummary = insertSummary;
 _g.getUnsyncedSummaries = getUnsyncedSummaries;

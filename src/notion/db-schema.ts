@@ -81,16 +81,6 @@ export function initializeNotionSchema(): void {
     []
   );
 
-  // Sync state key-value table
-  db.exec(
-    `CREATE TABLE IF NOT EXISTS sync_state (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updated_at INTEGER NOT NULL DEFAULT 0
-    )`,
-    []
-  );
-
   // Migrate: add page_entities column if it doesn't exist (for existing installs)
   try {
     db.exec('ALTER TABLE pages ADD COLUMN page_entities TEXT', []);

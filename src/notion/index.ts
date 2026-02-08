@@ -101,13 +101,9 @@ function init(): void {
       saved.maxPagesPerContentSync || s.config.maxPagesPerContentSync;
   }
 
-  // Load sync state from database
-  const getNotionSyncState = (globalThis as { getNotionSyncState?: (key: string) => string | null })
-    .getNotionSyncState;
-  if (getNotionSyncState) {
-    const lastSync = getNotionSyncState('last_sync_time');
-    if (lastSync) s.syncStatus.lastSyncTime = parseInt(lastSync, 10);
-  }
+  // Load sync state from store
+  const lastSync = store.get('last_sync_time') as number | null;
+  if (lastSync) s.syncStatus.lastSyncTime = lastSync;
 
   // Load entity counts
   const getEntityCounts = (
@@ -180,12 +176,7 @@ function stop(): void {
   store.set('config', s.config);
 
   // Persist sync state
-  const setNotionSyncState = (
-    globalThis as { setNotionSyncState?: (key: string, value: string) => void }
-  ).setNotionSyncState;
-  if (setNotionSyncState) {
-    setNotionSyncState('last_sync_time', s.syncStatus.lastSyncTime.toString());
-  }
+  store.set('last_sync_time', s.syncStatus.lastSyncTime);
 
   state.set('status', 'stopped');
   console.log('[notion] Stopped');

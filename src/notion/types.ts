@@ -18,8 +18,6 @@ export interface NotionGlobals {
   getLocalDatabases(options?: { query?: string; limit?: number }): unknown[];
   getLocalUsers(): unknown[];
   getPageById(pageId: string): unknown | null;
-  getNotionSyncState(key: string): string | null;
-  setNotionSyncState(key: string, value: string): void;
   getEntityCounts(): {
     pages: number;
     databases: number;
