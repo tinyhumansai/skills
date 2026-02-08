@@ -95,10 +95,10 @@ function freshInit(overrides?: {
   oauthAvailable?: boolean;
   oauthCredentials?: Record<string, unknown> | null;
 }): void {
-  const storeData: Record<string, unknown> = { config: overrides?.config || {} };
+  const stateData: Record<string, unknown> = { config: overrides?.config || {} };
 
   _setup({
-    storeData,
+    stateData,
     fetchResponses: overrides?.fetchResponses || {},
     // OAuth mock configuration
     oauthAvailable: overrides?.oauthAvailable ?? false,

@@ -59,14 +59,14 @@ function freshInit(overrides?: {
   fetchErrors?: Record<string, string>;
   peerSkills?: { id: string; name: string; version?: string; status?: string }[];
 }): void {
-  const storeData: Record<string, unknown> = {
+  const stateData: Record<string, unknown> = {
     config: { ...CLEAN_CONFIG, ...(overrides?.config || {}) },
   };
   if (overrides?.counters) {
-    storeData['counters'] = overrides.counters;
+    stateData['counters'] = overrides.counters;
   }
   _setup({
-    storeData,
+    stateData,
     env: overrides?.env || {},
     platformOs: overrides?.platformOs,
     fetchResponses: overrides?.fetchResponses,

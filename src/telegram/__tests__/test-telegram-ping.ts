@@ -47,10 +47,10 @@ function freshInit(overrides?: {
   >;
   fetchErrors?: Record<string, string>;
 }): void {
-  const storeData: Record<string, unknown> = {
+  const stateData: Record<string, unknown> = {
     config: { ...CLEAN_CONFIG, ...(overrides?.config || {}) },
   };
-  _setup({ storeData, env: overrides?.env || {}, fetchResponses: overrides?.fetchResponses });
+  _setup({ stateData, env: overrides?.env || {}, fetchResponses: overrides?.fetchResponses });
   // Set up fetch errors (network errors that throw)
   if (overrides?.fetchErrors) {
     for (const [url, msg] of Object.entries(overrides.fetchErrors)) {

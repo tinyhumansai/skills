@@ -144,9 +144,9 @@ const _callTool = (globalThis as any).callTool;
 
 _describe('My Skill', () => {
   _it('should initialize with default config', () => {
-    _setup({ storeData: { config: { apiKey: 'test-key' } } });
+    _setup({ stateData: { config: { apiKey: 'test-key' } } });
     (globalThis as any).init();
-    _assertNotNull(store.get('config'));
+    _assertNotNull(state.get('config'));
   });
 
   _it('should call the API', () => {
@@ -166,7 +166,7 @@ _describe('My Skill', () => {
 
 | Option | Purpose |
 |---|---|
-| `storeData` | Pre-populate the key-value store |
+| `stateData` | Pre-populate the persistent key-value state |
 | `fetchResponses` | Map URLs to canned HTTP responses |
 | `fetchErrors` | Map URLs to network errors |
 | `env` | Set environment variables |

@@ -18,7 +18,7 @@ const MOCK_URL = 'https://api.example.com';
 function freshInit(overrides?: Partial<ExampleConfig>): void {
   const config = { ...DEFAULT_CONFIG, ...overrides };
   setupSkillTest({
-    storeData: overrides ? { config } : {},
+    stateData: overrides ? { config } : {},
     fetchResponses: { [MOCK_URL]: { status: 200, body: '{"ok":true}' } },
   });
   init();

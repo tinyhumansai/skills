@@ -91,7 +91,7 @@ function init(): void {
   if (initSchema) initSchema();
 
   // Load persisted config from store
-  const saved = store.get('config') as Partial<NotionSkillConfig> | null;
+  const saved = state.get('config') as Partial<NotionSkillConfig> | null;
   if (saved) {
     s.config.credentialId = saved.credentialId || s.config.credentialId;
     s.config.workspaceName = saved.workspaceName || s.config.workspaceName;
@@ -102,7 +102,7 @@ function init(): void {
   }
 
   // Load sync state from store
-  const lastSync = store.get('last_sync_time') as number | null;
+  const lastSync = state.get('last_sync_time') as number | null;
   if (lastSync) s.syncStatus.lastSyncTime = lastSync;
 
   // Load entity counts
@@ -173,10 +173,10 @@ function stop(): void {
   cron.unregister('notion-sync');
 
   // Persist config
-  store.set('config', s.config);
+  state.set('config', s.config);
 
   // Persist sync state
-  store.set('last_sync_time', s.syncStatus.lastSyncTime);
+  state.set('last_sync_time', s.syncStatus.lastSyncTime);
 
   state.set('status', 'stopped');
   console.log('[notion] Stopped');
@@ -225,7 +225,7 @@ function onOAuthComplete(args: OAuthCompleteArgs): OAuthCompleteResult | void {
     s.config.workspaceName = args.accountLabel;
   }
 
-  store.set('config', s.config);
+  state.set('config', s.config);
 
   // Start sync schedule and trigger initial sync
   const cronExpr = `0 */${s.config.syncIntervalMinutes} * * * *`;
@@ -245,7 +245,7 @@ function onOAuthRevoked(args: OAuthRevokedArgs): void {
 
   s.config.credentialId = '';
   s.config.workspaceName = '';
-  store.delete('config');
+  state.delete('config');
   cron.unregister('notion-sync');
   publishState();
 }
@@ -257,7 +257,7 @@ function onDisconnect(): void {
   oauth.revoke();
   s.config.credentialId = '';
   s.config.workspaceName = '';
-  store.delete('config');
+  state.delete('config');
   cron.unregister('notion-sync');
   publishState();
 }
@@ -327,7 +327,7 @@ function onSetOption(args: { name: string; value: unknown }): void {
       break;
   }
 
-  store.set('config', s.config);
+  state.set('config', s.config);
   publishState();
 }
 

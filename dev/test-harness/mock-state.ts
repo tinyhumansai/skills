@@ -6,7 +6,7 @@
  */
 
 export interface MockState {
-  /** store.get/set data */
+  /** Persistent KV backing data (state.get/set reads/writes here) */
   store: Record<string, unknown>;
 
   /** SQLite database mock */

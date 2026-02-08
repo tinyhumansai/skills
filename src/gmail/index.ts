@@ -87,7 +87,7 @@ function init(): void {
   }
 
   // Load persisted config from store
-  const saved = store.get('config') as Partial<SkillConfig> | null;
+  const saved = state.get('config') as Partial<SkillConfig> | null;
   if (saved) {
     s.config.credentialId = saved.credentialId || s.config.credentialId;
     s.config.userEmail = saved.userEmail || s.config.userEmail;
@@ -143,7 +143,7 @@ function stop(): void {
   cron.unregister('gmail-sync');
 
   // Save current state
-  store.set('config', s.config);
+  state.set('config', s.config);
 
   const setSyncState = (globalThis as { setSyncState?: (key: string, value: string) => void })
     .setSyncState;
@@ -191,7 +191,7 @@ function onOAuthComplete(args: OAuthCompleteArgs): OAuthCompleteResult | void {
     s.config.userEmail = args.accountLabel;
   }
 
-  store.set('config', s.config);
+  state.set('config', s.config);
 
   // Load profile to get user email
   loadGmailProfile();
@@ -215,7 +215,7 @@ function onOAuthRevoked(args: OAuthRevokedArgs): void {
   s.config.userEmail = '';
   s.profile = null;
 
-  store.set('config', s.config);
+  state.set('config', s.config);
   cron.unregister('gmail-sync');
   publishSkillState();
 
@@ -242,7 +242,7 @@ function onDisconnect(): void {
   };
 
   s.profile = null;
-  store.delete('config');
+  state.delete('config');
   cron.unregister('gmail-sync');
   publishSkillState();
 
@@ -332,7 +332,7 @@ function onSetOption(args: { name: string; value: unknown }): void {
   }
 
   // Save updated config
-  store.set('config', s.config);
+  state.set('config', s.config);
   publishSkillState();
 }
 
@@ -353,7 +353,7 @@ function loadGmailProfile(): void {
 
     if (!s.config.userEmail) {
       s.config.userEmail = response.data.emailAddress;
-      store.set('config', s.config);
+      state.set('config', s.config);
     }
 
     console.log(`[gmail] Profile loaded for ${s.profile.emailAddress}`);

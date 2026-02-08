@@ -14,14 +14,14 @@ if (!skillState) {
 }
 
 // Configure the skill via store (simulating setup)
-store.set("config", {
+state.set("config", {
   serverUrl: "https://httpbin.org/get",
   pingIntervalSec: 10,
   notifyOnDown: true,
   notifyOnRecover: true,
   verboseLogging: true,
 });
-console.log("\n✓ Stored config in store");
+console.log("\n✓ Stored config in state");
 
 // Call init to load the config
 init();

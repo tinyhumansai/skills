@@ -112,15 +112,14 @@ Skills have access to these global namespaces (defined in `types/globals.d.ts`):
 
 | Namespace  | Purpose                                   |
 | ---------- | ----------------------------------------- |
-| `db`       | SQLite database scoped to skill           |
-| `store`    | Persistent key-value store                |
-| `net`      | HTTP networking (synchronous)             |
-| `cron`     | Cron scheduling (6-field syntax)          |
-| `skills`   | Inter-skill communication                 |
-| `platform` | OS info, env vars, notifications          |
-| `state`    | Real-time frontend state publishing       |
-| `data`     | File I/O in skill's data directory        |
-| `model`    | Local LLM inference (generate, summarize) |
+| `db`       | SQLite database scoped to skill                     |
+| `net`      | HTTP networking (synchronous)                       |
+| `cron`     | Cron scheduling (6-field syntax)                    |
+| `skills`   | Inter-skill communication                           |
+| `platform` | OS info, env vars, notifications                    |
+| `state`    | Persistent key-value store + real-time frontend pub  |
+| `data`     | File I/O in skill's data directory                  |
+| `model`    | Local LLM inference (generate, summarize)           |
 
 ### Database (`db`)
 
@@ -131,15 +130,6 @@ const row = db.get('SELECT * FROM logs WHERE id = ?', [1]);
 const rows = db.all('SELECT * FROM logs LIMIT 10', []);
 db.kvSet('key', { any: 'value' });
 const value = db.kvGet('key');
-```
-
-### Store (`store`)
-
-```typescript
-store.set('config', { apiKey: 'xxx' });
-const config = store.get('config');
-store.delete('config');
-const keys = store.keys();
 ```
 
 ### HTTP (`net`)
@@ -165,10 +155,14 @@ const schedules = cron.list();
 
 ### State (`state`)
 
+Unified persistent key-value store that also publishes values to the frontend in real time.
+
 ```typescript
-state.set('status', 'healthy');
-state.setPartial({ lastPing: Date.now(), uptime: 99.9 });
-const status = state.get('status');
+state.set('config', { apiKey: 'xxx' });     // Persists AND publishes to frontend
+const config = state.get('config');          // Read from persistent store
+state.setPartial({ lastPing: Date.now() });  // Bulk set (persists + publishes each key)
+state.delete('config');                       // Remove from persistent store
+const keys = state.keys();                    // List all persisted keys
 ```
 
 ### Data (`data`)
@@ -347,7 +341,7 @@ Tests use a Node.js harness (tsx) with mocked bridge APIs.
 
 function freshInit(overrides?: Partial<Config>): void {
   setupSkillTest({
-    storeData: { config: { ...defaultConfig, ...overrides } },
+    stateData: { config: { ...defaultConfig, ...overrides } },
     fetchResponses: { 'https://api.example.com': { status: 200, body: '{"ok":true}' } },
   });
   init();
@@ -356,7 +350,7 @@ function freshInit(overrides?: Partial<Config>): void {
 _describe('My Skill', () => {
   _it('should initialize', () => {
     freshInit();
-    _assertNotNull(store.get('config'));
+    _assertNotNull(state.get('config'));
   });
 
   _it('should call API', () => {
@@ -372,14 +366,14 @@ _describe('My Skill', () => {
 
 ```typescript
 setupSkillTest(options?: {
-  storeData?: Record<string, unknown>;
+  stateData?: Record<string, unknown>;
   fetchResponses?: Record<string, { status: number; body: string }>;
   env?: Record<string, string>;
   platformOs?: string;
 });
 
 callTool(name: string, args?: Record<string, unknown>): unknown;
-getMockState(): { store, fetchCalls, notifications, cronSchedules, ... };
+getMockState(): { store, state, fetchCalls, notifications, cronSchedules, ... };
 mockFetchResponse(url: string, status: number, body: string): void;
 mockFetchError(url: string, message?: string): void;
 ```
@@ -519,7 +513,7 @@ import './skill-state';
 
 function init(): void {
   const s = globalThis.getSkillState();
-  const saved = store.get('config');
+  const saved = state.get('config');
   if (saved) s.config = { ...s.config, ...saved };
 }
 
@@ -579,7 +573,7 @@ interface SkillConfig {
 const CONFIG: SkillConfig = { serverUrl: '', interval: 30 };
 
 function init(): void {
-  const saved = store.get('config') as Partial<SkillConfig> | null;
+  const saved = state.get('config') as Partial<SkillConfig> | null;
   if (saved) {
     CONFIG.serverUrl = saved.serverUrl ?? CONFIG.serverUrl;
     CONFIG.interval = saved.interval ?? CONFIG.interval;
@@ -587,7 +581,7 @@ function init(): void {
 }
 
 function stop(): void {
-  store.set('config', CONFIG);
+  state.set('config', CONFIG);
 }
 ```
 

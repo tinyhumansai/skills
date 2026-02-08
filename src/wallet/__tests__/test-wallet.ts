@@ -30,11 +30,11 @@ const MOCK_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc454e4438f44e';
 const ETH_RPC = 'https://eth.llamarpc.com';
 
 function freshInit(overrides?: {
-  storeData?: Record<string, unknown>;
+  stateData?: Record<string, unknown>;
   fetchResponses?: Record<string, { status: number; body: string }>;
 }): void {
   _setup({
-    storeData: overrides?.storeData ?? {},
+    stateData: overrides?.stateData ?? {},
     fetchResponses: overrides?.fetchResponses ?? {},
   });
   (globalThis as any).init();
@@ -45,7 +45,7 @@ function freshInit(overrides?: {
 _describe('init()', () => {
   _it('should load walletAddresses and networks from store', () => {
     freshInit({
-      storeData: {
+      stateData: {
         config: {
           walletAddresses: [MOCK_ADDRESS],
           networks: [{ chain_id: '1', name: 'Ethereum', rpc_url: ETH_RPC, chain_type: 'evm' }],
@@ -72,7 +72,7 @@ _describe('init()', () => {
 
 _describe('start()', () => {
   _it('should set isRunning and publish state', () => {
-    freshInit({ storeData: { config: { walletAddresses: [MOCK_ADDRESS], networks: [] } } });
+    freshInit({ stateData: { config: { walletAddresses: [MOCK_ADDRESS], networks: [] } } });
     (globalThis as any).start();
     const mock = _getMockState();
     _assertEqual(mock.state['status'], 'running');
@@ -113,7 +113,7 @@ _describe('onLoad()', () => {
   });
 
   _it('should not duplicate address if already present', () => {
-    freshInit({ storeData: { config: { walletAddresses: [MOCK_ADDRESS], networks: [] } } });
+    freshInit({ stateData: { config: { walletAddresses: [MOCK_ADDRESS], networks: [] } } });
     (globalThis as any).onLoad({ walletAddress: MOCK_ADDRESS });
     const s = (globalThis as any).getState();
     _assertEqual(s.config.walletAddresses.length, 1);
@@ -173,7 +173,7 @@ _describe('Setup flow', () => {
 
 _describe('Tools', () => {
   _it('list_wallets should return wallets from state', () => {
-    freshInit({ storeData: { config: { walletAddresses: [MOCK_ADDRESS], networks: [] } } });
+    freshInit({ stateData: { config: { walletAddresses: [MOCK_ADDRESS], networks: [] } } });
     const result = _callTool('list_wallets');
     _assertNotNull(result.wallets);
     _assertEqual(result.wallets.length, 1);
@@ -189,7 +189,7 @@ _describe('Tools', () => {
 
   _it('list_networks should return networks from state', () => {
     freshInit({
-      storeData: {
+      stateData: {
         config: {
           walletAddresses: [],
           networks: [{ chain_id: '1', name: 'Ethereum', rpc_url: ETH_RPC, chain_type: 'evm' }],
@@ -211,7 +211,7 @@ _describe('Tools', () => {
 
   _it('get_balance should require address and chain_id', () => {
     freshInit({
-      storeData: {
+      stateData: {
         config: {
           walletAddresses: [MOCK_ADDRESS],
           networks: [{ chain_id: '1', name: 'Ethereum', rpc_url: ETH_RPC, chain_type: 'evm' }],
@@ -225,7 +225,7 @@ _describe('Tools', () => {
   });
 
   _it('get_balance should return error when network not configured', () => {
-    freshInit({ storeData: { config: { walletAddresses: [MOCK_ADDRESS], networks: [] } } });
+    freshInit({ stateData: { config: { walletAddresses: [MOCK_ADDRESS], networks: [] } } });
     const result = _callTool('get_balance', { address: MOCK_ADDRESS, chain_id: '1' });
     _assertNotNull(result.error);
   });
@@ -233,7 +233,7 @@ _describe('Tools', () => {
   _it('get_balance should return balance when RPC responds', () => {
     const rpcBody = JSON.stringify({ jsonrpc: '2.0', id: 1, result: '0x0de0b6b3a7640000' });
     freshInit({
-      storeData: {
+      stateData: {
         config: {
           walletAddresses: [MOCK_ADDRESS],
           networks: [{ chain_id: '1', name: 'Ethereum', rpc_url: ETH_RPC, chain_type: 'evm' }],
@@ -251,7 +251,7 @@ _describe('Tools', () => {
 
   _it('get_balance should return error when RPC fails', () => {
     freshInit({
-      storeData: {
+      stateData: {
         config: {
           walletAddresses: [MOCK_ADDRESS],
           networks: [{ chain_id: '1', name: 'Ethereum', rpc_url: ETH_RPC, chain_type: 'evm' }],

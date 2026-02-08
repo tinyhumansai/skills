@@ -46,7 +46,7 @@ export const getProfileTool: ToolDefinition = {
       // Update config with user email if not already set
       if (!s.config.userEmail) {
         s.config.userEmail = profile.emailAddress;
-        store.set('config', s.config);
+        state.set('config', s.config);
       }
 
       return JSON.stringify({

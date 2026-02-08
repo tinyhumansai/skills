@@ -139,7 +139,7 @@ const SAMPLE_SENT_EMAIL_RESPONSE = {
  */
 function setupAuthenticatedGmailTest(overrides?: any): void {
   _setup({
-    storeData: {
+    stateData: {
       config: {
         clientId: 'test_client_id',
         clientSecret: 'test_client_secret',
@@ -194,7 +194,7 @@ function setupAuthenticatedGmailTest(overrides?: any): void {
  * Helper to setup unauthenticated skill test
  */
 function setupUnauthenticatedGmailTest(): void {
-  _setup({ storeData: {}, fetchResponses: {} });
+  _setup({ stateData: {}, fetchResponses: {} });
 
   init();
 }

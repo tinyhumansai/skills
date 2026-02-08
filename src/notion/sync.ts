@@ -88,7 +88,7 @@ export function performSync(): void {
     const counts = getEntityCounts();
     if (counts.pages > 0 || counts.databases > 0) {
       s.syncStatus.lastSyncTime = nowMs;
-      store.set('last_sync_time', s.syncStatus.lastSyncTime);
+      state.set('last_sync_time', s.syncStatus.lastSyncTime);
     }
 
     // Update counts
@@ -181,7 +181,7 @@ function syncSearchItems(): void {
     return;
   }
 
-  const lastSyncTime = (store.get('last_sync_time') as number | null) || 0;
+  const lastSyncTime = (state.get('last_sync_time') as number | null) || 0;
   const isFirstSync = lastSyncTime === 0;
   const cutoffMs = Date.now() - THIRTY_DAYS_MS;
 
@@ -272,7 +272,7 @@ function syncSearchItems(): void {
   errorCount += dsResult.errors;
 
   // Record that sync happened (even if first sync was partial)
-  store.set('last_search_sync', Date.now());
+  state.set('last_search_sync', Date.now());
 
   const skipMsg =
     pageSkipped > 0 || dbSkipped > 0 ? ` (${pageSkipped} pages, ${dbSkipped} dbs unchanged)` : '';
