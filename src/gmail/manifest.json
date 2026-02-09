@@ -4,6 +4,7 @@
   "runtime": "quickjs",
   "entry": "index.js",
   "version": "1.0.0",
+  "ignoreInProduction": true,
   "description": "Gmail integration via Google API — comprehensive email management with OAuth2 authentication, send/receive, labels, search, and attachments.",
   "auto_start": false,
   "platforms": ["windows", "macos", "linux", "android", "ios"],
