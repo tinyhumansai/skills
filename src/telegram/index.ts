@@ -426,6 +426,55 @@ function stop(): void {
   state.set('status', 'stopped');
 }
 
+function onDisconnect(): void {
+  console.log('[telegram] Disconnecting skill and performing cleanup');
+  const s = globalThis.getTelegramSkillState();
+
+  // If authenticated, log out from Telegram servers first
+  if (s.client && s.config.isAuthenticated) {
+    try {
+      console.log('[telegram] Logging out from Telegram servers');
+      s.client.logOut().catch(e => {
+        console.warn('[telegram] Error during logout:', e);
+      });
+    } catch (e) {
+      console.warn('[telegram] Error during logout:', e);
+    }
+  }
+
+  // Destroy TDLib client
+  if (s.client) {
+    try {
+      s.client.destroy().catch(e => {
+        console.warn('[telegram] Error destroying client:', e);
+      });
+    } catch (e) {
+      console.warn('[telegram] Error destroying client:', e);
+    }
+    s.client = null;
+  }
+
+  // Clear authentication state
+  s.config.isAuthenticated = false;
+  s.config.pendingCode = false;
+  s.config.phoneNumber = '';
+  s.authState = 'unknown';
+  s.cache.me = null;
+  s.cache.lastSync = 0;
+  s.passwordHint = null;
+  s.clientError = null;
+  s.clientConnecting = false;
+
+  // Save cleared config
+  state.set('config', s.config);
+  state.set('status', 'disconnected');
+
+  // Publish updated state to frontend
+  publishState();
+
+  console.log('[telegram] Disconnect cleanup completed');
+}
+
 function onCronTrigger(_scheduleId: string): void {
   // No-op: TDLib update loop handles everything
 }
@@ -916,6 +965,7 @@ const skill: Skill = {
   init,
   start,
   stop,
+  onDisconnect,
   onCronTrigger,
   onSetupStart,
   onSetupSubmit,
