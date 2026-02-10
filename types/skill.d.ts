@@ -31,4 +31,10 @@ interface Skill {
   onRpc?: (args: { method: string; params: unknown }) => unknown;
   onServerEvent?: (event: string, data: unknown) => void;
   onDisconnect?: () => void;
+  /**
+   * Called when an unhandled error occurs during async operations
+   * (e.g. TDLib auth failures, network errors, promise rejections).
+   * Skills should use this to update their state and surface the error to the user.
+   */
+  onError?: (args: SkillErrorArgs) => void;
 }

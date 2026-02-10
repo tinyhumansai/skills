@@ -557,6 +557,22 @@ interface PingResult {
 }
 
 // ---------------------------------------------------------------------------
+// Error handling
+// ---------------------------------------------------------------------------
+
+/** Arguments passed to onError() when an unhandled error occurs. */
+interface SkillErrorArgs {
+  /** Error category for structured handling. */
+  type: 'network' | 'auth' | 'runtime' | 'timeout' | 'unknown';
+  /** Human-readable error message. */
+  message: string;
+  /** The operation that failed (e.g. "setAuthenticationPhoneNumber", "fetch", "init"). */
+  source?: string;
+  /** Whether the error is recoverable (skill can retry). */
+  recoverable?: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // OAuth lifecycle hooks
 // ---------------------------------------------------------------------------
 
@@ -569,3 +585,10 @@ declare function onOAuthRevoked(args: OAuthRevokedArgs): void;
 
 /** Called when a registered hook's filter matches and accumulation conditions are met. */
 declare function onHookTriggered(args: HookTriggeredArgs): HookActionResult | void;
+
+// ---------------------------------------------------------------------------
+// Error lifecycle hooks
+// ---------------------------------------------------------------------------
+
+/** Called when an unhandled error occurs during async operations. */
+declare function onError(args: SkillErrorArgs): void;
