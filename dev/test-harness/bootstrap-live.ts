@@ -412,7 +412,7 @@ export async function createBridgeAPIs(
   //   DELETE /auth/integrations/:id        → revoke integration
   const oauth = {
     getCredential: (): unknown => oauthCredential,
-    fetch: (
+    fetch: async (
       path: string,
       fetchOpts?: {
         method?: string;
@@ -421,7 +421,7 @@ export async function createBridgeAPIs(
         timeout?: number;
         baseUrl?: string;
       },
-    ): { status: number; headers: Record<string, string>; body: string } => {
+    ): Promise<{ status: number; headers: Record<string, string>; body: string; }> => {
       if (!oauthCredential) {
         return {
           status: 401,
@@ -435,7 +435,7 @@ export async function createBridgeAPIs(
       const proxyUrl = `${backendUrl}/proxy/by-id/${oauthCredential.credentialId}/${cleanPath}`;
       const method = fetchOpts?.method || 'GET';
       globalThis.console.log(`[oauth.fetch] ${method} ${path}`);
-      return realFetch(proxyUrl, {
+      const res = await realFetch(proxyUrl, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -445,6 +445,12 @@ export async function createBridgeAPIs(
         body: fetchOpts?.body,
         timeout: fetchOpts?.timeout ? fetchOpts.timeout * 1000 : 30000,
       });
+
+      return {
+        status: res.status,
+        headers: res.headers,
+        body: res.body,
+      };
     },
     revoke: (): boolean => {
       if (oauthCredential && jwtToken) {
@@ -550,18 +556,18 @@ export async function createBridgeAPIs(
     return true;
   };
 
-  // WebSocket via ws npm package
-  let RealWebSocket: unknown;
-  try {
-    const wsModule = await import('ws');
-    RealWebSocket = wsModule.default || wsModule.WebSocket;
-    globalThis.console.log('[bootstrap-live] Using ws npm package for WebSocket');
-  } catch {
-    RealWebSocket = globalThis.WebSocket;
-    globalThis.console.log(
-      '[bootstrap-live] Using native WebSocket (ws package not available)',
-    );
-  }
+  // // WebSocket via ws npm package
+  // let RealWebSocket: unknown;
+  // try {
+  //   const wsModule = await import('ws');
+  //   RealWebSocket = wsModule.default || wsModule.WebSocket;
+  //   globalThis.console.log('[bootstrap-live] Using ws npm package for WebSocket');
+  // } catch {
+  //   RealWebSocket = globalThis.WebSocket;
+  //   globalThis.console.log(
+  //     '[bootstrap-live] Using native WebSocket (ws package not available)',
+  //   );
+  // }
 
   // Crypto from node:crypto
   const { webcrypto } = await import('crypto');
@@ -678,7 +684,7 @@ export async function createBridgeAPIs(
     atob: (str: string): string => NodeBuffer.from(str, 'base64').toString('binary'),
     // Browser-like globals
     location: mockLocation,
-    WebSocket: RealWebSocket,
+    // WebSocket: RealWebSocket,
     crypto: liveCrypto,
     Buffer: NodeBuffer,
     // Browser event API

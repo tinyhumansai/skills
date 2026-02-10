@@ -78,6 +78,21 @@ export interface MockState {
 
   /** Hook trigger log (onHookTriggered calls) */
   hookTriggers: Array<{ hookId: string; events: HookEventMock[]; groupKey?: string }>;
+
+  /** Recorded backend.fetch calls */
+  backendFetchCalls: Array<{ path: string; options?: FetchOptions }>;
+
+  /** Path -> mock response for backend.fetch */
+  backendFetchResponses: Record<string, { status: number; body: string; headers?: Record<string, string> }>;
+
+  /** Path -> error message for backend.fetch */
+  backendFetchErrors: Record<string, string>;
+
+  /** Recorded socket.emit calls */
+  socketEmits: Array<{ event: string; args: unknown[] }>;
+
+  /** Registered socket.on listeners (event -> count) */
+  socketListeners: Record<string, number>;
 }
 
 export interface DbTable {
@@ -193,6 +208,11 @@ function createFreshState(): MockState {
     hooks: {},
     hookEvents: [],
     hookTriggers: [],
+    backendFetchCalls: [],
+    backendFetchResponses: {},
+    backendFetchErrors: {},
+    socketEmits: [],
+    socketListeners: {},
   };
 }
 
@@ -217,6 +237,7 @@ export function initMockState(options?: {
   dataFiles?: Record<string, string>;
   oauthCredential?: OAuthCredentialMock;
   oauthFetchResponses?: Record<string, { status: number; body: string; headers?: Record<string, string> }>;
+  backendFetchResponses?: Record<string, { status: number; body: string; headers?: Record<string, string> }>;
 }): void {
   resetMockState();
 
@@ -246,6 +267,9 @@ export function initMockState(options?: {
   }
   if (options?.oauthFetchResponses) {
     mockState.oauthFetchResponses = { ...options.oauthFetchResponses };
+  }
+  if (options?.backendFetchResponses) {
+    mockState.backendFetchResponses = { ...options.backendFetchResponses };
   }
 }
 
@@ -302,4 +326,21 @@ export function mockOAuthFetchError(path: string, message = 'OAuth proxy error')
 /** Queue a mock response for the next model.generate() or model.summarize() call */
 export function mockModelResponse(response: string): void {
   mockState.modelResponses.push(response);
+}
+
+/** Set up a mock backend.fetch response for a path */
+export function mockBackendFetchResponse(
+  path: string,
+  status: number,
+  body: string,
+  headers?: Record<string, string>,
+): void {
+  mockState.backendFetchResponses[path] = { status, body, headers };
+  delete mockState.backendFetchErrors[path];
+}
+
+/** Set up a mock backend.fetch error for a path */
+export function mockBackendFetchError(path: string, message = 'Backend error'): void {
+  mockState.backendFetchErrors[path] = message;
+  delete mockState.backendFetchResponses[path];
 }

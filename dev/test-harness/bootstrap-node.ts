@@ -583,6 +583,54 @@ export async function createBridgeAPIs(options?: BridgeOptions): Promise<Record<
     oauth,
     hooks,
     model,
+    // Backend API - authenticated API client mock
+    backend: {
+      url: state.env['BACKEND_URL'] ?? 'https://api.alphahuman.xyz',
+      token: state.env['JWT_TOKEN'] ?? '',
+      fetch: (
+        path: string,
+        fetchOpts?: FetchOptions,
+      ): { status: number; headers: Record<string, string>; body: string } => {
+        state.backendFetchCalls.push({ path, options: fetchOpts });
+
+        if (state.backendFetchErrors[path]) {
+          throw new Error(state.backendFetchErrors[path]);
+        }
+
+        const mockResponse = state.backendFetchResponses[path];
+        if (mockResponse) {
+          return {
+            status: mockResponse.status,
+            headers: mockResponse.headers ?? {},
+            body: mockResponse.body,
+          };
+        }
+
+        return {
+          status: 404,
+          headers: {},
+          body: JSON.stringify({ error: 'Not found (no backend mock configured)' }),
+        };
+      },
+    },
+    // Socket API - real-time events mock
+    socket: {
+      connected: (): boolean => false,
+      id: (): string | undefined => undefined,
+      emit: (event: string, ...args: unknown[]): void => {
+        state.socketEmits.push({ event, args });
+      },
+      on: (event: string, _callback: (...args: unknown[]) => void): void => {
+        state.socketListeners[event] = (state.socketListeners[event] ?? 0) + 1;
+      },
+      off: (event: string, _callback?: (...args: unknown[]) => void): void => {
+        if (state.socketListeners[event]) {
+          state.socketListeners[event]--;
+          if (state.socketListeners[event] <= 0) delete state.socketListeners[event];
+        }
+      },
+      disconnect: (): void => { /* no-op in test */ },
+    },
     setTimeout,
     setInterval,
     clearTimeout,

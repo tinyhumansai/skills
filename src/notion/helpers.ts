@@ -31,7 +31,7 @@ export async function notionFetch<T>(
     throw new Error(message);
   }
 
-  return response.body as T;
+  return JSON.parse(response.body as string) as T;
 }
 
 export function formatApiError(error: unknown): string {
@@ -134,7 +134,9 @@ export function formatBlockSummary(block: Record<string, unknown>): Record<strin
 }
 
 export function formatUserSummary(user: Record<string, unknown>): Record<string, unknown> {
-  return { id: user.id, name: user.name, type: user.type, avatar_url: user.avatar_url };
+  const person = user.person as Record<string, unknown> | undefined;
+  const email = person?.email || (user as Record<string, unknown>).email || '';
+  return { id: user.id, name: user.name, email, type: user.type, avatar_url: user.avatar_url };
 }
 
 // ---------------------------------------------------------------------------
