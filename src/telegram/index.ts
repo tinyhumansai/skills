@@ -248,24 +248,21 @@ async function loadMe(): Promise<void> {
 
 /**
  * Trigger initial sync of chats, messages, and contacts.
+ * Can be called manually (re-sync) or automatically after authentication.
  */
 async function onSync(): Promise<void> {
   const s = globalThis.getTelegramSkillState();
 
-  // Skip if already syncing or completed
+  // Skip if already syncing
   if (s.sync.inProgress) {
     console.log('[telegram] Initial sync already in progress');
     return;
   }
 
-  // Check if sync was already completed
+  // For manual re-sync: clear the completed flag so sync runs again
   if (globalThis.telegramSync.isSyncCompleted()) {
-    console.log('[telegram] Initial sync already completed');
-    s.sync.completed = true;
-    s.sync.lastSyncTime = globalThis.telegramSync.getLastSyncTime();
-    updateStorageStats();
-    publishState();
-    return;
+    console.log('[telegram] Clearing previous sync state for re-sync');
+    globalThis.telegramDb.setSyncState('initial_sync_completed', '');
   }
 
   if (!s.client) {
@@ -275,17 +272,23 @@ async function onSync(): Promise<void> {
 
   s.sync.inProgress = true;
   s.sync.error = null;
+  s.sync.progress = 0;
+  s.sync.progressMessage = 'Starting sync...';
   publishState();
 
   try {
-    await globalThis.telegramSync.performInitialSync(s.client, msg => {
-      console.log(`[telegram-sync] ${msg}`);
+    await globalThis.telegramSync.performInitialSync(s.client, (msg, pct) => {
+      s.sync.progress = pct;
+      s.sync.progressMessage = msg;
+      publishState();
     });
 
     s.sync.completed = true;
     s.sync.lastSyncTime = Date.now();
     s.sync.inProgress = false;
     s.sync.error = null;
+    s.sync.progress = null;
+    s.sync.progressMessage = null;
 
     updateStorageStats();
     console.log('[telegram] Initial sync completed successfully');
@@ -294,6 +297,8 @@ async function onSync(): Promise<void> {
     console.error('[telegram] Initial sync failed:', errorMsg);
     s.sync.inProgress = false;
     s.sync.error = errorMsg;
+    s.sync.progress = null;
+    s.sync.progressMessage = null;
   }
 
   publishState();
@@ -501,6 +506,8 @@ async function publishState(): Promise<void> {
     syncCompleted: s.sync.completed,
     syncError: s.sync.error,
     lastSyncTime: s.sync.lastSyncTime,
+    syncProgress: s.sync.progress,
+    syncProgressMessage: s.sync.progressMessage,
     // Storage statistics
     storage: {
       chatCount: s.storage.chatCount,

@@ -71,6 +71,8 @@ export interface SyncState {
   completed: boolean;
   lastSyncTime: number | null;
   error: string | null;
+  progress: number | null; // 0-100 percentage
+  progressMessage: string | null; // human-readable step description
 }
 
 /**
@@ -135,7 +137,14 @@ function initSkillState(): TelegramState {
     passwordHint: null,
     workerRunning: false,
     workerTimeoutId: null,
-    sync: { inProgress: false, completed: false, lastSyncTime: null, error: null },
+    sync: {
+      inProgress: false,
+      completed: false,
+      lastSyncTime: null,
+      error: null,
+      progress: null,
+      progressMessage: null,
+    },
     storage: { chatCount: 0, messageCount: 0, contactCount: 0, unreadCount: 0 },
     chatFolderInfos: [],
   };

@@ -15,6 +15,9 @@ declare global {
   };
 }
 
+/** Progress callback: receives a human-readable message and a 0-100 percentage. */
+type SyncProgressCallback = (message: string, progress: number) => void;
+
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -37,36 +40,40 @@ const MESSAGES_PER_CHAT = 100;
  * Called when authentication completes.
  *
  * @param client - TDLib client instance
- * @param onProgress - Optional callback for progress updates
+ * @param onProgress - Optional callback for progress updates (message, percentage 0-100)
  */
 async function performInitialSyncImpl(
   client: TdLibClient,
-  onProgress?: (message: string) => void
+  onProgress?: SyncProgressCallback
 ): Promise<void> {
-  const log = (msg: string) => {
-    console.log(`[telegram-sync] ${msg}`);
-    onProgress?.(msg);
+  const log = (msg: string, pct: number) => {
+    console.log(`[telegram-sync] [${pct}%] ${msg}`);
+    onProgress?.(msg, pct);
   };
 
-  log('Starting initial sync...');
+  log('Starting initial sync...', 0);
 
   try {
     // 1. Load chat list
-    log('Loading chat list...');
+    log('Loading chat list...', 5);
     const chats = await loadChats(client, CHAT_LIMIT);
-    log(`Loaded ${chats.length} chats`);
+    log(`Loaded ${chats.length} chats`, 10);
 
     // 2. Store chats
     for (const chat of chats) globalThis.telegramDb.upsertChat(chat);
-    log('Stored all chats');
+    log('Stored all chats', 15);
 
     // 3. Load messages for top chats
     const topChats = chats.slice(0, TOP_CHATS_FOR_MESSAGES);
-    log(`Loading messages for top ${topChats.length} chats...`);
+    const msgRangeStart = 15;
+    const msgRangeEnd = 75;
 
     for (let i = 0; i < topChats.length; i++) {
       const chat = topChats[i];
-      log(`Loading messages for chat ${i + 1}/${topChats.length}: ${chat.title}`);
+      const pct = Math.round(
+        msgRangeStart + ((i + 1) / topChats.length) * (msgRangeEnd - msgRangeStart)
+      );
+      log(`Loading messages for chat ${i + 1}/${topChats.length}: ${chat.title}`, pct);
 
       try {
         const messages = await api.getChatHistory(client, chat.id, MESSAGES_PER_CHAT);
@@ -83,26 +90,25 @@ async function performInitialSyncImpl(
             }
           }
         }
-        log(`  Loaded ${messages.length} messages`);
       } catch (err) {
-        log(`  Error loading messages: ${err}`);
+        console.log(`[telegram-sync]   Error loading messages: ${err}`);
       }
     }
 
     // 4. Load contacts
-    log('Loading contacts...');
+    log('Loading contacts...', 80);
     try {
       const contacts = await api.getContacts(client);
       for (const user of contacts) {
         globalThis.telegramDb.upsertContact(user);
       }
-      log(`Loaded ${contacts.length} contacts`);
+      log(`Loaded ${contacts.length} contacts`, 85);
     } catch (err) {
-      log(`Error loading contacts: ${err}`);
+      console.log(`[telegram-sync] Error loading contacts: ${err}`);
     }
 
     // 5. Load chat folders
-    log('Loading chat folders...');
+    log('Loading chat folders...', 90);
     try {
       const s = globalThis.getTelegramSkillState();
       const folderInfos = s.chatFolderInfos || [];
@@ -114,18 +120,18 @@ async function performInitialSyncImpl(
             // Folder may not be accessible, ignore
           }
         }
-        log(`Loaded ${folderInfos.length} chat folders`);
+        log(`Loaded ${folderInfos.length} chat folders`, 95);
       } else {
-        log('No chat folders found');
+        log('No chat folders found', 95);
       }
     } catch (err) {
-      log(`Error loading chat folders: ${err}`);
+      console.log(`[telegram-sync] Error loading chat folders: ${err}`);
     }
 
     // 6. Mark sync as complete
     globalThis.telegramDb.setSyncState('initial_sync_completed', 'true');
     globalThis.telegramDb.setSyncState('last_sync_time', String(Date.now()));
-    log('Initial sync completed!');
+    log('Initial sync completed!', 100);
   } catch (err) {
     console.error('[telegram-sync] Sync error:', err);
     throw err;
@@ -157,7 +163,7 @@ globalThis.telegramSync = {
 // Export wrappers for backward compatibility
 export async function performInitialSync(
   client: TdLibClient,
-  onProgress?: (message: string) => void
+  onProgress?: SyncProgressCallback
 ): Promise<void> {
   return performInitialSyncImpl(client, onProgress);
 }
