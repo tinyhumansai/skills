@@ -39,6 +39,7 @@ function parseAuthState(update: TdUpdate): AuthorizationState {
   const stateType = (update as { authorization_state?: { '@type': string } }).authorization_state?.[
     '@type'
   ];
+  console.log('[telegram] stateType', stateType);
   switch (stateType) {
     case 'authorizationStateWaitTdlibParameters':
       return 'waitTdlibParameters';
@@ -61,6 +62,7 @@ function parseAuthState(update: TdUpdate): AuthorizationState {
  * Handle TDLib updates (authorization state changes, etc.)
  */
 function handleUpdate(update: TdUpdate): void {
+  console.log('[telegram] handleUpdate', JSON.stringify(update));
   const s = globalThis.getTelegramSkillState();
   const updateType = update['@type'];
 
@@ -82,6 +84,11 @@ function handleUpdate(update: TdUpdate): void {
       const authState = (update as { authorization_state?: { password_hint?: string } })
         .authorization_state;
       s.passwordHint = authState?.password_hint || null;
+    }
+
+    if (s.authState === 'waitTdlibParameters') {
+      console.log('[telegram] Waiting for TDLib parameters');
+      if (s.client) s.client.init(s.config.dataDir);
     }
 
     // Handle ready state
@@ -133,40 +140,16 @@ async function initClient(): Promise<void> {
   s.clientError = null;
   publishState();
 
-  console.log('[telegram] Creating TDLib client with apiId:', 28685916);
-
   try {
-    // Create TDLib client
+    // Create JS wrapper — TDLib itself is already running (Rust pre-initializes
+    // the client + parameters at app startup, so no I/O needed here).
     const client = new TdLibClientClass();
-
-    // Determine data directory (use skill data directory)
-    const dataDir = s.config.dataDir || getDefaultDataDir();
-    s.config.dataDir = dataDir;
-
-    console.log('[telegram] Initializing TDLib with data dir:', dataDir);
-    await client.init(dataDir);
+    await client.init();
 
     // Store client in state
     s.client = client;
 
-    const apiId = 28685916;
-    const apiHash = 'd540ab21dece5404af298c44f4f6386d';
-
-    // Set TDLib parameters (this triggers the auth flow)
-    console.log('[telegram] Setting TDLib parameters...');
-    await client.setTdlibParameters({
-      api_id: apiId,
-      api_hash: apiHash,
-      database_directory: dataDir,
-      files_directory: dataDir + '/files',
-      use_message_database: true,
-      use_secret_chats: false,
-      system_language_code: 'en',
-      device_model: 'Desktop',
-      application_version: '1.0.0',
-    });
-
-    console.log('[telegram] TDLib parameters set, polling for auth state...');
+    console.log('[telegram] Connected to TDLib, polling for auth state...');
 
     // Manually poll for auth state updates BEFORE starting the background
     // update loop.  This guarantees auth state transitions to a usable value
@@ -188,6 +171,22 @@ async function initClient(): Promise<void> {
     // Now start the background update loop for ongoing updates
     client.startUpdateLoop(handleUpdate);
 
+    // Ask TDLib for the current authorization state so the skill knows
+    // where it stands immediately instead of waiting for an unsolicited update.
+    try {
+      console.log('[telegram] Querying initial auth state...');
+      const authState = await client.send({ '@type': 'getAuthorizationState' });
+      console.log('[telegram] Initial auth state:', authState);
+      if (authState) {
+        handleUpdate({
+          '@type': 'updateAuthorizationState',
+          authorization_state: authState,
+        } as TdUpdate);
+      }
+    } catch (e) {
+      console.warn('[telegram] Failed to query initial auth state:', e);
+    }
+
     s.clientConnecting = false;
     publishState();
   } catch (err) {
@@ -201,21 +200,21 @@ async function initClient(): Promise<void> {
   }
 }
 
-/**
- * Get default data directory for TDLib files.
- */
-function getDefaultDataDir(): string {
-  // Use the skill's data directory if available via platform
-  // Otherwise use a reasonable default
-  const os = platform.os();
-  if (os === 'windows') {
-    return 'C:/Users/Public/AlphaHuman/telegram';
-  } else if (os === 'macos') {
-    return '/tmp/alphahuman/telegram.macos';
-  } else {
-    return '/tmp/alphahuman/telegram';
-  }
-}
+// /**
+//  * Get default data directory for TDLib files.
+//  */
+// function getDefaultDataDir(): string {
+//   // Use the skill's data directory if available via platform
+//   // Otherwise use a reasonable default
+//   const os = platform.os();
+//   if (os === 'windows') {
+//     return 'C:/Users/Public/AlphaHuman/telegram';
+//   } else if (os === 'macos') {
+//     return '/tmp/alphahuman/telegram.macos';
+//   } else {
+//     return '/tmp/alphahuman/telegram';
+//   }
+// }
 
 /**
  * Load current user info after authentication.
@@ -363,6 +362,7 @@ async function init(): Promise<void> {
 
   // Initialize client
   initClient().catch(err => {
+    console.error('[telegram] Failed to initialize client:', err);
     const errorMsg = err instanceof Error ? err.message : String(err);
     onError({ type: 'network', message: errorMsg, source: 'initClient', recoverable: true });
   });
@@ -390,15 +390,15 @@ async function stop(): Promise<void> {
       });
     }
 
-    // Destroy TDLib client
-    if (s.client) {
-      await s.client.destroy().catch(e => {
-        const errorMsg = e instanceof Error ? e.message : String(e);
-        console.warn('[telegram] Error destroying client:', errorMsg);
-      });
+    // // Destroy TDLib client
+    // if (s.client) {
+    //   await s.client.destroy().catch(e => {
+    //     const errorMsg = e instanceof Error ? e.message : String(e);
+    //     console.warn('[telegram] Error destroying client:', errorMsg);
+    //   });
 
-      s.client = null;
-    }
+    //   s.client = null;
+    // }
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : String(e);
     console.warn('[telegram] Error during disconnect:', errorMsg);

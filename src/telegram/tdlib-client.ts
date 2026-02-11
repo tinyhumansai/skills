@@ -22,6 +22,7 @@ export interface TdRequest {
  */
 interface TdLibOps {
   isAvailable: () => boolean;
+  ensureInitialized: (dataDir: string) => Promise<number>;
   createClient: (dataDir: string) => Promise<number>;
   send: (requestJson: string) => Promise<string>;
   receive: (timeoutMs: number) => Promise<TdUpdate | null>;
@@ -143,14 +144,7 @@ function isTauriInvokeAvailable(): boolean {
  * const client = new TdLibClient();
  * await client.init('/path/to/data');
  *
- * // Send setTdlibParameters
- * await client.send({
- *   '@type': 'setTdlibParameters',
- *   api_id: 12345,
- *   api_hash: 'your_hash',
- *   // ...other params
- * });
- *
+
  * // Get current user
  * const user = await client.send({ '@type': 'getMe' });
  *
@@ -186,25 +180,26 @@ export class TdLibClient {
    * @param dataDir - Path to store TDLib database and files.
    * @throws Error if TDLib is not available or initialization fails.
    */
-  async init(dataDir: string): Promise<void> {
-    if (this.isInitialized) {
-      throw new Error('TDLib client already initialized');
-    }
+  /**
+   * Connect to the already-running TDLib client.
+   *
+   * The Rust side creates the client and sets parameters at app startup,
+   * so this just marks the wrapper as ready to send/receive.
+   *
+   * @param _dataDir - Unused (kept for API compatibility). The Rust side
+   *   determines the data directory at app startup.
+   */
+  async init(_dataDir?: string): Promise<void> {
+    if (this.isInitialized) return; // idempotent
 
-    if (isTdLibOpsAvailable() && globalThis.tdlib) {
-      // Desktop: use V8 ops
-      this.clientId = await globalThis.tdlib.createClient(dataDir);
-    } else if (isTauriInvokeAvailable() && globalThis.__TAURI_INTERNALS__) {
-      // Android: use Tauri invoke
-      this.clientId = await globalThis.__TAURI_INTERNALS__.invoke<number>('tdlib_create_client', {
-        dataDir,
-      });
-    } else {
+    if (!isTdLibOpsAvailable() && !isTauriInvokeAvailable()) {
       throw new Error('TDLib is not available on this platform');
     }
 
+    // The Rust singleton always uses client ID 1.
+    this.clientId = 1;
     this.isInitialized = true;
-    console.log('[tdlib-client] Initialized with client ID:', this.clientId);
+    console.log('[tdlib-client] Connected to existing TDLib client');
   }
 
   /**
@@ -431,39 +426,6 @@ export class TdLibClient {
   // ============================================================================
   // Convenience Methods for Common Operations
   // ============================================================================
-
-  /**
-   * Set TDLib parameters. Must be called after init() and before authentication.
-   */
-  async setTdlibParameters(params: {
-    api_id: number;
-    api_hash: string;
-    database_directory?: string;
-    files_directory?: string;
-    use_message_database?: boolean;
-    use_secret_chats?: boolean;
-    system_language_code?: string;
-    device_model?: string;
-    application_version?: string;
-  }): Promise<void> {
-    await this.send({
-      '@type': 'setTdlibParameters',
-      use_test_dc: false,
-      database_directory: params.database_directory || '',
-      files_directory: params.files_directory || '',
-      database_encryption_key: '',
-      use_file_database: true,
-      use_chat_info_database: true,
-      use_message_database: params.use_message_database ?? true,
-      use_secret_chats: params.use_secret_chats ?? false,
-      api_id: params.api_id,
-      api_hash: params.api_hash,
-      system_language_code: params.system_language_code ?? 'en',
-      device_model: params.device_model ?? 'Desktop',
-      system_version: '',
-      application_version: params.application_version ?? '1.0.0',
-    });
-  }
 
   /**
    * Set authentication phone number.
