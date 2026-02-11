@@ -47,7 +47,6 @@ jobs:
       - name: Update GH repo
         uses: peaceiris/actions-gh-pages@v4
         with:
-          external_repository: alphahumanxyz/alphahuman
           publish_dir: ./gh-pages-out
           publish_branch: build
           user_name: 'github-actions[bot]'
