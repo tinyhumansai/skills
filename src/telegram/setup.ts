@@ -5,7 +5,6 @@ import {
   checkAuthenticationPassword,
   setAuthenticationPhoneNumber,
 } from './api/auth';
-import type { AuthorizationState } from './state';
 import './state';
 
 // Access TdLibClient from globalThis (workaround for esbuild bundling issues)
@@ -51,35 +50,15 @@ export function createSetupHandlers(deps: TelegramSetupDeps): {
     }
 
     const startTime = Date.now();
-    const startTimestamp = new Date().toISOString();
     console.log(
-      `[telegram] ${startTimestamp} Waiting for auth state change to: ${expectedStates.join(', ')}, current: ${s.authState}`
-    );
-    console.log(
-      `[telegram] ${startTimestamp} Race condition debug - polling start time: ${startTime}`
+      `[telegram] Waiting for auth state change to: ${expectedStates.join(', ')}, current: ${s.authState}`
     );
 
-    // IMMEDIATE CHECK WITH RETRY: State might have already changed via background update loop
-    // Use multiple quick checks to handle race conditions where background handler is still updating
-    for (let retry = 0; retry < 8; retry++) {
-      const currentState = s.authState;
-      if (expectedStates.includes(currentState)) {
-        const waitTime = retry * 25;
-        console.log(
-          `[telegram] Auth state already at expected value: ${currentState} (found after ${waitTime}ms)`
-        );
-        return currentState;
-      }
-
-      // Small delay between checks to allow background handler to update state
-      if (retry < 7) {
-        await new Promise(resolve => setTimeout(resolve, 25));
-      }
+    // IMMEDIATE CHECK: State might have already changed via background update loop
+    if (expectedStates.includes(s.authState)) {
+      console.log(`[telegram] Auth state already at expected value: ${s.authState}`);
+      return s.authState;
     }
-
-    console.log(
-      `[telegram] Initial checks completed, auth state still: ${s.authState}, starting main polling...`
-    );
 
     // Validate current auth state
     if (s.authState === 'unknown') {
@@ -99,38 +78,7 @@ export function createSetupHandlers(deps: TelegramSetupDeps): {
 
     let lastCheckpointIndex = -1;
 
-    // HYBRID APPROACH: Use both event-based notifications and polling for maximum reliability
-    // Set up a Promise for event-based notification
-    let notificationPromise: Promise<string> | null = null;
-    let removeListener: (() => void) | null = null;
-
-    if (s.authStateChangeNotifier) {
-      const notifier = s.authStateChangeNotifier; // Capture for closure
-      notificationPromise = new Promise<string>(resolve => {
-        const listener = (newState: AuthorizationState) => {
-          if (expectedStates.includes(newState)) {
-            const notificationTimestamp = new Date().toISOString();
-            console.log(
-              `[telegram] ${notificationTimestamp} Auth state change notification received: ${newState}`
-            );
-            console.log(
-              `[telegram] ${notificationTimestamp} Race condition debug - success via notification at: ${Date.now()}`
-            );
-            resolve(newState);
-          }
-        };
-
-        notifier.listeners.push(listener);
-        removeListener = () => {
-          const index = notifier.listeners.indexOf(listener);
-          if (index > -1) {
-            notifier.listeners.splice(index, 1);
-          }
-        };
-      });
-    }
-
-    // PASSIVE POLLING: Backup method in case notifications fail
+    // PASSIVE WAITING: Let background update loop handle TDLib updates
     // We just poll the state variable that gets updated by the background loop
     while (Date.now() - startTime < totalTimeoutMs) {
       const currentState = s.authState;
@@ -138,18 +86,7 @@ export function createSetupHandlers(deps: TelegramSetupDeps): {
 
       // Check for expected states
       if (expectedStates.includes(currentState)) {
-        const successTimestamp = new Date().toISOString();
-        console.log(
-          `[telegram] ${successTimestamp} Auth state changed to: ${currentState} (after ${elapsedTime}ms)`
-        );
-        console.log(
-          `[telegram] ${successTimestamp} Race condition debug - success via polling at: ${Date.now()}`
-        );
-
-        // Cleanup notification listener
-        if (removeListener) {
-          (removeListener as () => void)();
-        }
+        console.log(`[telegram] Auth state changed to: ${currentState} (after ${elapsedTime}ms)`);
 
         // Update progress to completion
         state.setPartial({ setup_progress: 1.0, setup_status: 'Authentication successful!' });
@@ -211,12 +148,7 @@ export function createSetupHandlers(deps: TelegramSetupDeps): {
       await new Promise(resolve => setTimeout(resolve, 250));
     }
 
-    // Cleanup notification listener
-    if (removeListener) {
-      (removeListener as () => void)();
-    }
-
-    // Enhanced timeout error message with race condition detection
+    // Enhanced timeout error message
     const elapsedTime = Date.now() - startTime;
     const errorDetails = [
       `Timeout after ${elapsedTime}ms waiting for auth state change`,
@@ -224,17 +156,7 @@ export function createSetupHandlers(deps: TelegramSetupDeps): {
       `Current state: ${s.authState}`,
       `Client connected: ${s.client && s.client.initialized ? 'yes' : 'no'}`,
       `Auth operation in progress: ${s.authOperationInProgress ? 'yes' : 'no'}`,
-      `Notification system: ${notificationPromise ? 'enabled' : 'disabled'}`,
     ].join(', ');
-
-    // FINAL CHECK: One last attempt to catch race conditions
-    const finalState = s.authState;
-    if (expectedStates.includes(finalState)) {
-      console.warn(
-        `[telegram] Race condition detected! Auth state changed to ${finalState} just as timeout occurred`
-      );
-      return finalState;
-    }
 
     throw new Error(errorDetails);
   }
@@ -293,11 +215,6 @@ export function createSetupHandlers(deps: TelegramSetupDeps): {
       // Wait for auth state to change to either waitCode or an error state
       // Increased timeout from 15s to 45s to accommodate slower network conditions and TDLib initialization
       console.log('[telegram] Phone number sent, waiting for TDLib response (up to 45s)...');
-
-      // Add small delay to allow background update handler to propagate auth state changes
-      // This prevents race condition where TDLib updates auth state but polling starts too early
-      await new Promise(resolve => setTimeout(resolve, 100));
-
       const newState = await waitForAuthStateChange(['waitCode', 'waitPassword', 'ready'], 45000);
 
       console.log(`[telegram] Auth state after phone submission: ${newState}`);
@@ -971,20 +888,9 @@ export function createSetupHandlers(deps: TelegramSetupDeps): {
       }
 
       // Check final auth state after sendPhoneNumber completed
-      // Force state synchronization to ensure frontend gets the latest state
-      publishState();
-
-      // Add small delay to ensure any pending state updates have propagated
-      await new Promise(resolve => setTimeout(resolve, 50));
-
       const updatedState = globalThis.getTelegramSkillState();
       const finalState = updatedState.authState;
       console.log(`[telegram] Final auth state after phone submission: ${finalState}`);
-
-      // Enhanced state verification for frontend sync debugging
-      console.log(
-        `[telegram] Setup flow state verification - isAuthenticated: ${updatedState.config.isAuthenticated}, pendingCode: ${updatedState.config.pendingCode}`
-      );
 
       if (finalState === 'waitCode') {
         return {
@@ -1034,20 +940,13 @@ export function createSetupHandlers(deps: TelegramSetupDeps): {
         return { status: 'complete' };
       }
 
-      // FALLBACK: If we get here, there might be a frontend-backend state sync issue
-      // Even if the backend state isn't what we expect, TDLib might have succeeded
-      console.warn(`[telegram] FRONTEND SYNC ISSUE: Unexpected final auth state: ${finalState}`);
-      console.warn(
-        `[telegram] This might be a state synchronization delay. Backend TDLib authentication may have succeeded.`
-      );
-
-      // For better UX, return error but hint at potential success
+      // If we get here, something unexpected happened
       return {
         status: 'error',
         errors: [
           {
             field: 'phoneNumber',
-            message: `State synchronization issue detected (state: ${finalState}). Please try reloading the app and setting up again - the authentication may have actually succeeded in the background.`,
+            message: `Unexpected auth state after phone submission: ${finalState}. Please try again.`,
           },
         ],
       };
@@ -1083,20 +982,9 @@ export function createSetupHandlers(deps: TelegramSetupDeps): {
       }
 
       // Check final auth state after submitCode completed
-      // Force state synchronization to ensure frontend gets the latest state
-      publishState();
-
-      // Add small delay to ensure any pending state updates have propagated
-      await new Promise(resolve => setTimeout(resolve, 50));
-
       const updatedState2 = globalThis.getTelegramSkillState();
       const finalState = updatedState2.authState;
       console.log(`[telegram] Final auth state after code submission: ${finalState}`);
-
-      // Enhanced state verification for frontend sync debugging
-      console.log(
-        `[telegram] Code step state verification - isAuthenticated: ${updatedState2.config.isAuthenticated}, pendingCode: ${updatedState2.config.pendingCode}`
-      );
 
       if (finalState === 'waitPassword') {
         return {
@@ -1124,30 +1012,13 @@ export function createSetupHandlers(deps: TelegramSetupDeps): {
         return { status: 'complete' };
       }
 
-      // FALLBACK: If we get here, there might be a frontend-backend state sync issue
-      // Even if the backend state isn't what we expect, TDLib might have succeeded
-      console.warn(
-        `[telegram] FRONTEND SYNC ISSUE: Unexpected final auth state after code: ${finalState}`
-      );
-      console.warn(
-        `[telegram] This might be a state synchronization delay. Backend TDLib authentication may have succeeded.`
-      );
-
-      // Check if authentication actually succeeded despite state sync issues
-      if (updatedState2.config.isAuthenticated) {
-        console.log(
-          `[telegram] RECOVERY: config.isAuthenticated=true, completing setup despite state sync issue`
-        );
-        return { status: 'complete' };
-      }
-
-      // For better UX, return error but hint at potential success
+      // If we get here, something unexpected happened
       return {
         status: 'error',
         errors: [
           {
             field: 'code',
-            message: `State synchronization issue detected (state: ${finalState}). Please try reloading the app - the authentication may have actually succeeded in the background.`,
+            message: `Unexpected auth state after code submission: ${finalState}. Please try again.`,
           },
         ],
       };
