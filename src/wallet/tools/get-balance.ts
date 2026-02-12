@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Tool: get_balance — get balance for a wallet address on a network via RPC
 async function evmGetBalance(rpcUrl: string, address: string): Promise<string> {
   const body = JSON.stringify({
