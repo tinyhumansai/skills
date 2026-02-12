@@ -480,6 +480,73 @@ export class TdLibClient {
   async close(): Promise<void> {
     await this.send({ '@type': 'close' });
   }
+
+  /**
+   * Reset authentication state and clean database files.
+   * Call this when authentication gets stuck or corrupted.
+   */
+  async resetAuthState(): Promise<void> {
+    if (isTauriInvokeAvailable() && globalThis.__TAURI_INTERNALS__) {
+      await globalThis.__TAURI_INTERNALS__.invoke<void>('tdlib_reset_auth_state', {});
+    } else {
+      throw new Error('Auth reset only available on Tauri platforms');
+    }
+  }
+
+  /**
+   * Validate database integrity.
+   * Returns true if database appears healthy, false if reset is recommended.
+   */
+  async validateDatabase(): Promise<boolean> {
+    if (isTauriInvokeAvailable() && globalThis.__TAURI_INTERNALS__) {
+      try {
+        return await globalThis.__TAURI_INTERNALS__.invoke<boolean>('tdlib_validate_database', {});
+      } catch (e) {
+        console.error('[tdlib-client] Database validation failed:', e);
+        return false;
+      }
+    }
+    return true; // Default to healthy if not on Tauri
+  }
+
+  /**
+   * Check database health and auto-repair if corrupted.
+   * Returns true if database is healthy or was successfully repaired.
+   */
+  async ensureDatabaseHealth(): Promise<boolean> {
+    console.log('[tdlib-client] Checking database integrity...');
+
+    const isHealthy = await this.validateDatabase();
+    if (isHealthy) {
+      console.log('[tdlib-client] Database integrity check passed');
+      return true;
+    }
+
+    console.warn('[tdlib-client] Database corruption detected, attempting auto-repair');
+
+    try {
+      await this.resetAuthState();
+      console.log('[tdlib-client] Database reset completed successfully');
+      return true;
+    } catch (e) {
+      console.error('[tdlib-client] Database reset failed:', e);
+      return false;
+    }
+  }
+
+  /**
+   * Enhanced initialization with database validation.
+   */
+  async initWithValidation(dataDir: string): Promise<void> {
+    // Validate database before initialization
+    const isDatabaseHealthy = await this.ensureDatabaseHealth();
+    if (!isDatabaseHealthy) {
+      throw new Error('Database corruption detected and auto-repair failed');
+    }
+
+    // Proceed with normal initialization
+    await this.init(dataDir);
+  }
 }
 
 // ============================================================================

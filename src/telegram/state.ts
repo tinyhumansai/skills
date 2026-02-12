@@ -95,6 +95,7 @@ export interface TelegramState {
   clientConnecting: boolean;
   clientError: string | null;
   authState: AuthorizationState;
+  authOperationInProgress: boolean;
   passwordHint: string | null;
   workerRunning: boolean;
   workerTimeoutId: ReturnType<typeof setTimeout> | null;
@@ -134,6 +135,7 @@ function initSkillState(): TelegramState {
     clientConnecting: false,
     clientError: null,
     authState: 'unknown',
+    authOperationInProgress: false,
     passwordHint: null,
     workerRunning: false,
     workerTimeoutId: null,
