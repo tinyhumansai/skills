@@ -147,6 +147,51 @@ export class TdLibBridge {
   }
 
   /**
+   * Ensure a TDLib client is initialized: create if needed, then send
+   * setTdlibParameters. Mirrors the Rust-side ensureInitialized which creates
+   * the client and reactively sends parameters in one call.
+   *
+   * @param dataDir - Data directory for TDLib storage.
+   * @returns The client ID.
+   */
+  async ensureInitialized(dataDir: string): Promise<number> {
+    if (!this.ffi) throw new Error('TDLib not available');
+
+    // If client already exists, return its ID
+    if (this.clientId >= 0) return this.clientId;
+
+    // Create the client
+    const clientId = await this.createClient(dataDir);
+
+    // Auto-send setTdlibParameters (mirrors Rust-side behavior).
+    // The Rust side hardcodes API_ID/API_HASH; here we use env vars or defaults.
+    const apiId = parseInt(process.env.TELEGRAM_API_ID || '28685916', 10);
+    const apiHash = process.env.TELEGRAM_API_HASH || 'd540ab21dece5404af298c44f4f6386d';
+
+    const params = JSON.stringify({
+      '@type': 'setTdlibParameters',
+      database_directory: dataDir,
+      use_file_database: true,
+      use_chat_info_database: true,
+      use_message_database: true,
+      use_secret_chats: false,
+      api_id: apiId,
+      api_hash: apiHash,
+      system_language_code: 'en',
+      device_model: 'Node.js Test Harness',
+      system_version: process.version,
+      application_version: '1.0.0',
+    });
+
+    // Send directly (not via the correlated send() method, since TDLib
+    // may already be waiting for parameters and respond via an update).
+    this.ffi.td_send(clientId, params);
+    globalThis.console.log('[tdlib-bridge] Sent setTdlibParameters');
+
+    return clientId;
+  }
+
+  /**
    * Send a TDLib request and wait for the response.
    * Injects @extra for request-response correlation.
    */

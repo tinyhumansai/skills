@@ -568,6 +568,59 @@ export async function createBridgeAPIs(options?: BridgeOptions): Promise<Record<
     },
   };
 
+  // TDLib mock - simulates the tdlib bridge that the Rust side provides.
+  // In production, the Rust side creates the TDLib client at app startup and
+  // auto-sends setTdlibParameters. The TS TdLibClient.init() is a near no-op
+  // that just sets clientId = 1 and checks isAvailable().
+  const tdlib = {
+    isAvailable: (): boolean => state.tdlibAvailable,
+    ensureInitialized: async (dataDir: string): Promise<number> => {
+      state.tdlibEnsureInitializedCalls.push({ dataDir });
+      if (!state.tdlibAvailable) throw new Error('TDLib not available');
+      return 1; // Rust singleton always uses client ID 1
+    },
+    createClient: async (dataDir: string): Promise<number> => {
+      state.tdlibEnsureInitializedCalls.push({ dataDir });
+      if (!state.tdlibAvailable) throw new Error('TDLib not available');
+      return 1;
+    },
+    send: async (requestJson: string): Promise<string> => {
+      state.tdlibSendCalls.push({ requestJson });
+      const request = JSON.parse(requestJson);
+      const requestType = request['@type'] as string;
+
+      // Check for mock response
+      const mockResponse = state.tdlibSendResponses[requestType];
+      if (mockResponse) return mockResponse;
+
+      // Default responses for common requests
+      if (requestType === 'getAuthorizationState') {
+        return JSON.stringify({ '@type': 'authorizationStateReady' });
+      }
+      if (requestType === 'getMe') {
+        return JSON.stringify({
+          '@type': 'user',
+          id: 123456789,
+          first_name: 'Test',
+          last_name: 'User',
+          usernames: { active_usernames: ['testuser'] },
+          phone_number: '+1234567890',
+        });
+      }
+
+      return JSON.stringify({ '@type': 'ok' });
+    },
+    receive: async (_timeoutMs: number): Promise<Record<string, unknown> | null> => {
+      if (state.tdlibReceiveQueue.length > 0) {
+        return state.tdlibReceiveQueue.shift()!;
+      }
+      return null;
+    },
+    destroy: async (): Promise<void> => {
+      // No-op in mock
+    },
+  };
+
   // Mock Buffer class
   const { Buffer: NodeBuffer } = await import('buffer');
 
@@ -583,6 +636,7 @@ export async function createBridgeAPIs(options?: BridgeOptions): Promise<Record<
     oauth,
     hooks,
     model,
+    tdlib,
     // Backend API - authenticated API client mock
     backend: {
       url: state.env['BACKEND_URL'] ?? 'https://api.alphahuman.xyz',

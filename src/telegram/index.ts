@@ -3,17 +3,15 @@
 // Provides tools for Telegram API access with native TDLib bindings.
 // Import skill state (initializes globalThis.getTelegramSkillState)
 // registers globalThis.initializeTelegramSchema
+// Import TDLib client wrapper - this also assigns TdLibClient to globalThis
+// registers globalThis.telegramDispatchUpdate
 import { getMe } from './api';
 import './db/helpers';
 import './db/schema';
 import { createSetupHandlers } from './setup';
-import './state';
 import type { AuthorizationState } from './state';
-// registers globalThis.telegramDispatchUpdate
 import './sync';
-// Import TDLib client wrapper - this also assigns TdLibClient to globalThis
 import type { TdLibClient as TdLibClientType, TdUpdate, TdUser } from './tdlib-client';
-import './tdlib-client';
 import tools from './tools/index';
 import './update-handlers';
 
@@ -39,7 +37,6 @@ function parseAuthState(update: TdUpdate): AuthorizationState {
   const stateType = (update as { authorization_state?: { '@type': string } }).authorization_state?.[
     '@type'
   ];
-  console.log('[telegram] stateType', stateType);
   switch (stateType) {
     case 'authorizationStateWaitTdlibParameters':
       return 'waitTdlibParameters';
@@ -62,7 +59,6 @@ function parseAuthState(update: TdUpdate): AuthorizationState {
  * Handle TDLib updates (authorization state changes, etc.)
  */
 function handleUpdate(update: TdUpdate): void {
-  console.log('[telegram] handleUpdate', JSON.stringify(update));
   const s = globalThis.getTelegramSkillState();
   const updateType = update['@type'];
 
@@ -260,22 +256,6 @@ async function initClient(): Promise<void> {
     throw err;
   }
 }
-
-// /**
-//  * Get default data directory for TDLib files.
-//  */
-// function getDefaultDataDir(): string {
-//   // Use the skill's data directory if available via platform
-//   // Otherwise use a reasonable default
-//   const os = platform.os();
-//   if (os === 'windows') {
-//     return 'C:/Users/Public/AlphaHuman/telegram';
-//   } else if (os === 'macos') {
-//     return '/tmp/alphahuman/telegram.macos';
-//   } else {
-//     return '/tmp/alphahuman/telegram';
-//   }
-// }
 
 /**
  * Load current user info after authentication.

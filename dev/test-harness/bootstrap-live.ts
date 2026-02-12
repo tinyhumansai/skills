@@ -315,6 +315,10 @@ export async function createBridgeAPIs(
   const tdlib = tdlibAvailable && tdlibBridge
     ? {
         isAvailable: () => tdlibBridge !== null,
+        ensureInitialized: (dataDir: string) => {
+          if (!tdlibBridge) return Promise.reject(new Error('TDLib bridge destroyed'));
+          return tdlibBridge.ensureInitialized(dataDir);
+        },
         createClient: (dir: string) => {
           if (!tdlibBridge) return Promise.reject(new Error('TDLib bridge destroyed'));
           return tdlibBridge.createClient(dir);
@@ -334,6 +338,7 @@ export async function createBridgeAPIs(
       }
     : {
         isAvailable: () => false,
+        ensureInitialized: () => Promise.reject(new Error('TDLib not available')),
         createClient: () => Promise.reject(new Error('TDLib not available')),
         send: () => Promise.reject(new Error('TDLib not available')),
         receive: () => Promise.resolve(null),

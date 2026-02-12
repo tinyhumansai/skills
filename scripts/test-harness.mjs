@@ -171,6 +171,33 @@ function createBridgeAPIs() {
       summarize: (text, options) => '[mock summary]',
     },
 
+    // TDLib mock - simulates the tdlib bridge provided by Rust at app startup.
+    // TdLibClient.init() just sets clientId = 1 and checks isAvailable().
+    tdlib: {
+      isAvailable: () => true,
+      ensureInitialized: async (_dataDir) => 1,
+      createClient: async (_dataDir) => 1,
+      send: async (requestJson) => {
+        const request = JSON.parse(requestJson);
+        if (request['@type'] === 'getAuthorizationState') {
+          return JSON.stringify({ '@type': 'authorizationStateReady' });
+        }
+        if (request['@type'] === 'getMe') {
+          return JSON.stringify({
+            '@type': 'user',
+            id: 123456789,
+            first_name: 'Test',
+            last_name: 'User',
+            usernames: { active_usernames: ['testuser'] },
+            phone_number: '+1234567890',
+          });
+        }
+        return JSON.stringify({ '@type': 'ok' });
+      },
+      receive: async (_timeoutMs) => null,
+      destroy: async () => {},
+    },
+
     // Console
     console: {
       log: (...args) => {

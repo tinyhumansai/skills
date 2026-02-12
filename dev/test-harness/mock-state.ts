@@ -93,6 +93,21 @@ export interface MockState {
 
   /** Registered socket.on listeners (event -> count) */
   socketListeners: Record<string, number>;
+
+  /** Whether tdlib is "available" in mock (controls TdLibClient.init behavior) */
+  tdlibAvailable: boolean;
+
+  /** Recorded tdlib.send() calls */
+  tdlibSendCalls: Array<{ requestJson: string }>;
+
+  /** Request @type -> mock response JSON for tdlib.send() */
+  tdlibSendResponses: Record<string, string>;
+
+  /** Queue of mock TDLib updates to return from tdlib.receive() */
+  tdlibReceiveQueue: Array<Record<string, unknown>>;
+
+  /** Recorded tdlib.ensureInitialized() calls */
+  tdlibEnsureInitializedCalls: Array<{ dataDir: string }>;
 }
 
 export interface DbTable {
@@ -213,6 +228,11 @@ function createFreshState(): MockState {
     backendFetchErrors: {},
     socketEmits: [],
     socketListeners: {},
+    tdlibAvailable: true,
+    tdlibSendCalls: [],
+    tdlibSendResponses: {},
+    tdlibReceiveQueue: [],
+    tdlibEnsureInitializedCalls: [],
   };
 }
 
@@ -238,6 +258,8 @@ export function initMockState(options?: {
   oauthCredential?: OAuthCredentialMock;
   oauthFetchResponses?: Record<string, { status: number; body: string; headers?: Record<string, string> }>;
   backendFetchResponses?: Record<string, { status: number; body: string; headers?: Record<string, string> }>;
+  tdlibAvailable?: boolean;
+  tdlibSendResponses?: Record<string, string>;
 }): void {
   resetMockState();
 
@@ -270,6 +292,12 @@ export function initMockState(options?: {
   }
   if (options?.backendFetchResponses) {
     mockState.backendFetchResponses = { ...options.backendFetchResponses };
+  }
+  if (options?.tdlibAvailable !== undefined) {
+    mockState.tdlibAvailable = options.tdlibAvailable;
+  }
+  if (options?.tdlibSendResponses) {
+    mockState.tdlibSendResponses = { ...options.tdlibSendResponses };
   }
 }
 
@@ -343,4 +371,19 @@ export function mockBackendFetchResponse(
 export function mockBackendFetchError(path: string, message = 'Backend error'): void {
   mockState.backendFetchErrors[path] = message;
   delete mockState.backendFetchResponses[path];
+}
+
+/** Set whether TDLib is available in the mock */
+export function setTdlibAvailable(available: boolean): void {
+  mockState.tdlibAvailable = available;
+}
+
+/** Set up a mock TDLib send response for a request @type */
+export function mockTdlibSendResponse(requestType: string, responseJson: string): void {
+  mockState.tdlibSendResponses[requestType] = responseJson;
+}
+
+/** Queue a mock TDLib update to be returned by tdlib.receive() */
+export function mockTdlibUpdate(update: Record<string, unknown>): void {
+  mockState.tdlibReceiveQueue.push(update);
 }
