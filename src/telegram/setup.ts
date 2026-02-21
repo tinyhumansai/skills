@@ -70,9 +70,9 @@ export function createSetupHandlers(deps: TelegramSetupDeps): {
         );
         return currentState;
       }
-    console.log(
-      `[telegram] Waiting for auth state change to: ${expectedStates.join(', ')}, current: ${s.authState}`
-    );
+      console.log(
+        `[telegram] Waiting for auth state change to: ${expectedStates.join(', ')}, current: ${s.authState}`
+      );
 
       // Small delay between checks to allow background handler to update state
       if (retry < 7) {

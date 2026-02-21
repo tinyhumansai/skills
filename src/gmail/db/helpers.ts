@@ -11,29 +11,50 @@ import type {
   GmailThread,
 } from '../types';
 
+/** Get headers from Gmail API message (top-level payload or first part for multipart). */
+function getMessageHeaders(message: GmailMessage): Array<{ name: string; value: string }> | null {
+  const p = message?.payload;
+  if (!p) return null;
+  if (Array.isArray(p.headers) && p.headers.length > 0) return p.headers;
+  const firstPart = Array.isArray(p.parts) ? p.parts[0] : null;
+  if (firstPart && Array.isArray(firstPart.headers) && firstPart.headers.length > 0) {
+    return firstPart.headers;
+  }
+  return null;
+}
+
 /**
  * Insert or update an email in the database
  */
 export function upsertEmail(message: GmailMessage): void {
   const now = Date.now();
-  const headers = message.payload.headers;
+  const headers = getMessageHeaders(message);
+  if (!headers) {
+    console.warn('[gmail] upsertEmail: no headers found (payload or first part)', {
+      id: message?.id,
+      hasPayload: !!message?.payload,
+    });
+    return;
+  }
 
-  const subject = headers.find(h => h.name.toLowerCase() === 'subject')?.value || '';
-  const from = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
-  const to = headers.find(h => h.name.toLowerCase() === 'to')?.value || '';
-  const cc = headers.find(h => h.name.toLowerCase() === 'cc')?.value || null;
-  const bcc = headers.find(h => h.name.toLowerCase() === 'bcc')?.value || null;
+  const subject = headers.find(h => h.name.toLowerCase() === 'subject')?.value ?? '';
+  const from = headers.find(h => h.name.toLowerCase() === 'from')?.value ?? '';
+  const to = headers.find(h => h.name.toLowerCase() === 'to')?.value ?? '';
+  const cc = headers.find(h => h.name.toLowerCase() === 'cc')?.value ?? null;
+  const bcc = headers.find(h => h.name.toLowerCase() === 'bcc')?.value ?? null;
   const dateHeader = headers.find(h => h.name.toLowerCase() === 'date')?.value;
 
   // Parse sender email and name from "Name <email>" format
   const fromMatch = from.match(/(.+?)\s*<([^>]+)>/) || [null, from, from];
-  const senderName = fromMatch[1]?.trim().replace(/^["']|["']$/g, '') || null;
+  const senderName = fromMatch[1]?.trim().replace(/^["']|["']$/g, '') ?? null;
   const senderEmail = fromMatch[2]?.trim() || from;
 
-  const date = dateHeader ? new Date(dateHeader).getTime() : parseInt(message.internalDate, 10);
-  const isRead = !message.labelIds.includes('UNREAD');
-  const isImportant = message.labelIds.includes('IMPORTANT');
-  const isStarred = message.labelIds.includes('STARRED');
+  const internalDate = message.internalDate ?? '0';
+  const date = dateHeader ? new Date(dateHeader).getTime() : parseInt(internalDate, 10);
+  const labelIds = Array.isArray(message.labelIds) ? message.labelIds : [];
+  const isRead = !labelIds.includes('UNREAD');
+  const isImportant = labelIds.includes('IMPORTANT');
+  const isStarred = labelIds.includes('STARRED');
   const hasAttachments = hasEmailAttachments(message);
 
   db.exec(
@@ -44,26 +65,26 @@ export function upsertEmail(message: GmailMessage): void {
       size_estimate, history_id, internal_date, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      message.id,
-      message.threadId,
+      message.id ?? '',
+      message.threadId ?? '',
       subject,
       senderEmail,
       senderName,
       to,
       cc,
       bcc,
-      date,
-      message.snippet,
+      Number.isFinite(date) ? date : 0,
+      message.snippet ?? '',
       extractTextBody(message),
       extractHtmlBody(message),
       isRead ? 1 : 0,
       isImportant ? 1 : 0,
       isStarred ? 1 : 0,
       hasAttachments ? 1 : 0,
-      JSON.stringify(message.labelIds),
-      message.sizeEstimate,
-      message.historyId,
-      message.internalDate,
+      JSON.stringify(labelIds),
+      typeof message.sizeEstimate === 'number' ? message.sizeEstimate : 0,
+      message.historyId ?? '',
+      internalDate,
       now,
     ]
   );
@@ -297,10 +318,12 @@ function extractEmail(emailStr: string): string {
  * Helper: Check if email has attachments
  */
 function hasEmailAttachments(message: GmailMessage): boolean {
-  if (message.payload.body.attachmentId) return true;
-  if (message.payload.parts) {
-    return message.payload.parts.some(
-      part => part.body.attachmentId || (part.filename && part.filename.length > 0)
+  const p = message?.payload;
+  if (!p) return false;
+  if (p.body?.attachmentId) return true;
+  if (Array.isArray(p.parts)) {
+    return p.parts.some(
+      part => part.body?.attachmentId || (part.filename && part.filename.length > 0)
     );
   }
   return false;
@@ -310,18 +333,26 @@ function hasEmailAttachments(message: GmailMessage): boolean {
  * Helper: Extract text body from message
  */
 function extractTextBody(message: GmailMessage): string | null {
-  if (message.payload.mimeType === 'text/plain' && message.payload.body.data) {
-    return atob(message.payload.body.data);
+  const p = message?.payload;
+  if (!p) return null;
+  if (p.mimeType === 'text/plain' && p.body?.data) {
+    try {
+      return atob(p.body.data);
+    } catch {
+      return null;
+    }
   }
-
-  if (message.payload.parts) {
-    for (const part of message.payload.parts) {
-      if (part.mimeType === 'text/plain' && part.body.data) {
-        return atob(part.body.data);
+  if (Array.isArray(p.parts)) {
+    for (const part of p.parts) {
+      if (part.mimeType === 'text/plain' && part.body?.data) {
+        try {
+          return atob(part.body.data);
+        } catch {
+          return null;
+        }
       }
     }
   }
-
   return null;
 }
 
@@ -329,18 +360,26 @@ function extractTextBody(message: GmailMessage): string | null {
  * Helper: Extract HTML body from message
  */
 function extractHtmlBody(message: GmailMessage): string | null {
-  if (message.payload.mimeType === 'text/html' && message.payload.body.data) {
-    return atob(message.payload.body.data);
+  const p = message?.payload;
+  if (!p) return null;
+  if (p.mimeType === 'text/html' && p.body?.data) {
+    try {
+      return atob(p.body.data);
+    } catch {
+      return null;
+    }
   }
-
-  if (message.payload.parts) {
-    for (const part of message.payload.parts) {
-      if (part.mimeType === 'text/html' && part.body.data) {
-        return atob(part.body.data);
+  if (Array.isArray(p.parts)) {
+    for (const part of p.parts) {
+      if (part.mimeType === 'text/html' && part.body?.data) {
+        try {
+          return atob(part.body.data);
+        } catch {
+          return null;
+        }
       }
     }
   }
-
   return null;
 }
 
@@ -348,6 +387,8 @@ function extractHtmlBody(message: GmailMessage): string | null {
  * Helper: Insert email attachments
  */
 function insertEmailAttachments(message: GmailMessage): void {
+  const p = message?.payload;
+  if (!p) return;
   const attachments: Array<{
     attachmentId: string;
     filename: string;
@@ -357,26 +398,26 @@ function insertEmailAttachments(message: GmailMessage): void {
   }> = [];
 
   // Check main body
-  if (message.payload.body.attachmentId && message.payload.filename) {
+  if (p.body?.attachmentId && p.filename) {
     attachments.push({
-      attachmentId: message.payload.body.attachmentId,
-      filename: message.payload.filename,
-      mimeType: message.payload.mimeType,
-      size: message.payload.body.size,
-      partId: message.payload.partId,
+      attachmentId: p.body.attachmentId,
+      filename: p.filename,
+      mimeType: p.mimeType ?? '',
+      size: p.body.size ?? 0,
+      partId: p.partId ?? '',
     });
   }
 
   // Check parts
-  if (message.payload.parts) {
-    message.payload.parts.forEach(part => {
-      if (part.body.attachmentId && part.filename) {
+  if (Array.isArray(p.parts)) {
+    p.parts.forEach(part => {
+      if (part.body?.attachmentId && part.filename) {
         attachments.push({
           attachmentId: part.body.attachmentId,
           filename: part.filename,
-          mimeType: part.mimeType,
-          size: part.body.size,
-          partId: part.partId,
+          mimeType: part.mimeType ?? '',
+          size: part.body.size ?? 0,
+          partId: part.partId ?? '',
         });
       }
     });

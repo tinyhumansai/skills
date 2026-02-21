@@ -1,24 +1,77 @@
-// Tool: get-profile
-// Get Gmail user profile information
-import { gmailFetch } from '../api';
+// Tool: gmail-get-profile
+// Get Gmail user profile information. Supports optional accessToken (e.g. from frontend after OAuth).
 import { getGmailSkillState } from '../state';
+
+const GMAIL_API_BASE = 'https://gmail.googleapis.com/gmail/v1';
+
+async function fetchWithToken(
+  accessToken: string,
+  endpoint: string
+): Promise<{ success: boolean; data?: any; error?: { message: string } }> {
+  const url = endpoint.startsWith('/')
+    ? `${GMAIL_API_BASE}${endpoint}`
+    : `${GMAIL_API_BASE}/${endpoint}`;
+  const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+  try {
+    const res = await net.fetch(url, { method: 'GET', headers });
+    if (res.status < 200 || res.status >= 300) {
+      const body = typeof res.body === 'string' ? res.body : JSON.stringify(res.body);
+      return { success: false, error: { message: body } };
+    }
+    const data = typeof res.body === 'string' ? JSON.parse(res.body) : res.body;
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: { message: err instanceof Error ? err.message : String(err) } };
+  }
+}
 
 export const getProfileTool: ToolDefinition = {
   name: 'get-profile',
   description:
-    'Get Gmail user profile information including email address, total message counts, and account details.',
-  input_schema: { type: 'object', properties: {}, required: [] },
-  async execute(_args: Record<string, unknown>): Promise<string> {
+    'Get Gmail user profile information including email address, total message counts, and account details. Optional accessToken for frontend calls.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      accessToken: {
+        type: 'string',
+        description: 'Optional OAuth access token (e.g. from frontend).',
+      },
+    },
+    required: [],
+  },
+  async execute(args: Record<string, unknown>): Promise<string> {
     try {
-      if (!oauth.getCredential()) {
-        return JSON.stringify({
-          success: false,
-          error: 'Gmail not connected. Complete OAuth setup first.',
-        });
+      const accessToken = args.accessToken as string | undefined;
+      const useToken = !!accessToken;
+
+      if (!useToken) {
+        const gmailFetch = (
+          globalThis as {
+            gmailFetch?: (
+              endpoint: string
+            ) => Promise<{ success: boolean; data?: any; error?: { message: string } }>;
+          }
+        ).gmailFetch;
+        if (!gmailFetch) {
+          return JSON.stringify({ success: false, error: 'Gmail API helper not available' });
+        }
+        if (!oauth.getCredential()) {
+          return JSON.stringify({
+            success: false,
+            error: 'Gmail not connected. Complete OAuth setup first.',
+          });
+        }
       }
 
-      // Get profile from Gmail API
-      const response = await gmailFetch('/users/me/profile');
+      const response = useToken
+        ? await fetchWithToken(accessToken!, '/users/me/profile')
+        : await (
+            globalThis as {
+              gmailFetch?: (
+                e: string
+              ) => Promise<{ success: boolean; data?: any; error?: { message: string } }>;
+            }
+          ).gmailFetch!('/users/me/profile');
 
       if (!response.success) {
         return JSON.stringify({
@@ -29,19 +82,18 @@ export const getProfileTool: ToolDefinition = {
 
       const profile = response.data;
 
-      // Update skill state with profile info
-      const s = getGmailSkillState();
-      s.profile = {
-        emailAddress: profile.emailAddress,
-        messagesTotal: profile.messagesTotal || 0,
-        threadsTotal: profile.threadsTotal || 0,
-        historyId: profile.historyId,
-      };
-
-      // Update config with user email if not already set
-      if (!s.config.userEmail) {
-        s.config.userEmail = profile.emailAddress;
-        state.set('config', s.config);
+      if (!useToken) {
+        const s = getGmailSkillState();
+        s.profile = {
+          emailAddress: profile.emailAddress,
+          messagesTotal: profile.messagesTotal || 0,
+          threadsTotal: profile.threadsTotal || 0,
+          historyId: profile.historyId,
+        };
+        if (!s.config.userEmail) {
+          s.config.userEmail = profile.emailAddress;
+          state.set('config', s.config);
+        }
       }
 
       return JSON.stringify({

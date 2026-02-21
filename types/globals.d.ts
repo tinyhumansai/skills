@@ -514,6 +514,8 @@ interface OAuthCredential {
   isValid: boolean;
   createdAt: number;
   accountLabel?: string;
+  /** When set (e.g. from frontend for Gmail), API calls use this token instead of the proxy. */
+  accessToken?: string;
 }
 
 interface OAuthFetchOptions {
