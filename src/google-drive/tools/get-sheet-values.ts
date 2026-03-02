@@ -15,7 +15,7 @@ export const getSheetValuesTool: ToolDefinition = {
     },
     required: ['spreadsheet_id', 'range'],
   },
-  execute(args: Record<string, unknown>): Promise<string> {
+  async execute(args: Record<string, unknown>): Promise<string> {
     try {
       if (!oauth.getCredential()) {
         return Promise.resolve(
@@ -33,7 +33,7 @@ export const getSheetValuesTool: ToolDefinition = {
         );
       }
       const path = `/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}`;
-      const response = driveFetch(path, { baseUrl: SHEETS_BASE });
+      const response = await driveFetch(path, { baseUrl: SHEETS_BASE });
       if (!response.success) {
         return Promise.resolve(
           JSON.stringify({

@@ -1,9 +1,8 @@
 // Gmail skill main entry point
 // Gmail integration with OAuth bridge, email management, and real-time sync
-import { getSyncState, setSyncState } from './db/helpers';
 import { initializeGmailSchema } from './db/schema';
 import { getGmailSkillState } from './state';
-import { isSyncCompleted, onSync, performInitialSync } from './sync';
+import { onSync } from './sync';
 import { tools } from './tools';
 import type { SkillConfig } from './types';
 
@@ -126,11 +125,11 @@ async function init(): Promise<void> {
     s.config.showSensitiveMessages = saved.showSensitiveMessages ?? s.config.showSensitiveMessages;
   }
 
-  // Load sync status
-  const lastSync = getSyncState('last_sync_time');
-  const lastHistoryId = getSyncState('last_history_id');
-  if (lastSync) s.syncStatus.lastSyncTime = parseInt(lastSync, 10);
-  if (lastHistoryId) s.syncStatus.lastHistoryId = lastHistoryId;
+  // Load sync status from persistent state
+  const lastSync = state.get('lastSyncTime');
+  const lastHistoryId = state.get('lastHistoryId');
+  if (typeof lastSync === 'number') s.syncStatus.lastSyncTime = lastSync;
+  if (typeof lastHistoryId === 'string') s.syncStatus.lastHistoryId = lastHistoryId;
 
   const isConnected = !!oauth.getCredential();
   console.log(`[gmail] Initialized. Connected: ${isConnected}`);
@@ -142,21 +141,8 @@ async function start(): Promise<void> {
   const credential = oauth.getCredential();
 
   if (credential && s.config.syncEnabled) {
-    // Schedule periodic sync
-    const cronExpr = `0 */${s.config.syncIntervalMinutes} * * * *`;
-    cron.register('gmail-sync', cronExpr);
-    console.log(`[gmail] Scheduled sync every ${s.config.syncIntervalMinutes} minutes`);
-
     // Load Gmail profile
     loadGmailProfile();
-
-    // Run initial sync if not yet completed
-    if (!isSyncCompleted()) {
-      console.log('[gmail] Initial sync not completed, starting...');
-      performInitialSync((msg, pct) => {
-        console.log(`[gmail] Sync progress: ${msg} (${pct}%)`);
-      });
-    }
 
     // Publish initial state
     publishSkillState();
@@ -166,18 +152,6 @@ async function start(): Promise<void> {
 }
 
 async function stop(): Promise<void> {
-  console.log('[gmail] Stopping skill...');
-  const s = getGmailSkillState();
-
-  // Unregister cron schedules
-  cron.unregister('gmail-sync');
-
-  // Save current state
-  state.set('config', s.config);
-
-  setSyncState('last_sync_time', s.syncStatus.lastSyncTime.toString());
-  setSyncState('last_history_id', s.syncStatus.lastHistoryId);
-
   console.log('[gmail] Skill stopped');
 }
 

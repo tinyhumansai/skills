@@ -6,7 +6,7 @@ export const syncStatusTool: ToolDefinition = {
   name: 'sync-status',
   description:
     'Get the current Notion sync status including last sync time, ' +
-    'total synced pages/databases/users, sync progress, and any errors.',
+    'total synced pages/databases, sync progress, and any errors.',
   input_schema: { type: 'object', properties: {} },
   async execute(): Promise<string> {
     try {
@@ -28,7 +28,6 @@ export const syncStatusTool: ToolDefinition = {
           pages: s.syncStatus.totalPages,
           databases: s.syncStatus.totalDatabases,
           database_rows: s.syncStatus.totalDatabaseRows,
-          users: s.syncStatus.totalUsers,
           pages_with_content: s.syncStatus.pagesWithContent,
           pages_with_summary: s.syncStatus.pagesWithSummary,
           summaries_total: s.syncStatus.summariesTotal,

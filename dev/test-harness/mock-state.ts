@@ -88,6 +88,21 @@ export interface MockState {
   /** Path -> error message for backend.fetch */
   backendFetchErrors: Record<string, string>;
 
+  /** Recorded backend.submitData calls */
+  dataSubmissions: Array<{
+    chunks: Array<{
+      title?: string;
+      content: string;
+      rawContent?: string;
+      labels?: string[];
+      entities?: Array<{ name: string; identifier: string; kind: string }>;
+      metadata?: Record<string, unknown>;
+    }>;
+    dataSource?: string;
+    metadata?: Record<string, unknown>;
+    requestId: string;
+  }>;
+
   /** Recorded socket.emit calls */
   socketEmits: Array<{ event: string; args: unknown[] }>;
 
@@ -226,6 +241,7 @@ function createFreshState(): MockState {
     backendFetchCalls: [],
     backendFetchResponses: {},
     backendFetchErrors: {},
+    dataSubmissions: [],
     socketEmits: [],
     socketListeners: {},
     tdlibAvailable: true,

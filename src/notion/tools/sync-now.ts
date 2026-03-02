@@ -7,7 +7,7 @@ export const syncNowTool: ToolDefinition = {
   name: 'sync-now',
   description:
     'Trigger an immediate Notion sync to refresh local data. ' +
-    'Returns sync results including counts of synced pages, databases, and users.',
+    'Returns sync results including counts of synced pages and databases.',
   input_schema: { type: 'object', properties: {} },
   async execute(): Promise<string> {
     try {
@@ -42,7 +42,6 @@ export const syncNowTool: ToolDefinition = {
         totals: {
           pages: s.syncStatus.totalPages,
           databases: s.syncStatus.totalDatabases,
-          users: s.syncStatus.totalUsers,
           pages_with_content: s.syncStatus.pagesWithContent,
         },
       });

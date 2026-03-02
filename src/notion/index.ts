@@ -39,7 +39,6 @@ async function init(): Promise<void> {
   s.syncStatus.totalPages = counts.pages;
   s.syncStatus.totalDatabases = counts.databases;
   s.syncStatus.totalDatabaseRows = counts.databaseRows;
-  s.syncStatus.totalUsers = counts.users;
   s.syncStatus.pagesWithContent = counts.pagesWithContent;
   s.syncStatus.pagesWithSummary = counts.pagesWithSummary;
 
@@ -251,7 +250,6 @@ async function publishState(): Promise<void> {
     totalPages: s.syncStatus.totalPages,
     totalDatabases: s.syncStatus.totalDatabases,
     totalDatabaseRows: s.syncStatus.totalDatabaseRows,
-    totalUsers: s.syncStatus.totalUsers,
     pagesWithContent: s.syncStatus.pagesWithContent,
     pagesWithSummary: s.syncStatus.pagesWithSummary,
     lastSyncError: s.syncStatus.lastSyncError,

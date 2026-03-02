@@ -1,16 +1,6 @@
 // Shared skill state module for Gmail skill
 // All modules import getGmailSkillState() and publishSkillState() directly.
-import type { GmailProfile, SkillConfig, SyncStatus } from './types';
-
-export interface GmailSkillState {
-  config: SkillConfig;
-  profile: GmailProfile | null;
-  syncStatus: SyncStatus;
-  activeSessions: string[];
-  rateLimitRemaining: number;
-  rateLimitReset: number;
-  lastApiError: string | null;
-}
+import type { GmailSkillState } from './types';
 
 // Module-level singleton state
 const skillState: GmailSkillState = {
@@ -31,6 +21,8 @@ const skillState: GmailSkillState = {
     newEmailsCount: 0,
     syncInProgress: false,
     nextSyncTime: 0,
+    syncProgress: 0,
+    syncProgressMessage: '',
   },
   activeSessions: [],
   rateLimitRemaining: 250,
@@ -58,8 +50,10 @@ export function publishSkillState(): void {
     userEmail: s.config.userEmail,
     syncEnabled: s.config.syncEnabled,
     syncInProgress: s.syncStatus.syncInProgress,
-    lastSyncTime: new Date(s.syncStatus.lastSyncTime).toISOString(),
-    nextSyncTime: new Date(s.syncStatus.nextSyncTime).toISOString(),
+    syncProgress: s.syncStatus.syncProgress,
+    syncProgressMessage: s.syncStatus.syncProgressMessage || null,
+    lastSyncTime: s.syncStatus.lastSyncTime || null,
+    nextSyncTime: s.syncStatus.nextSyncTime || null,
     totalEmails: s.syncStatus.totalEmails,
     newEmailsCount: s.syncStatus.newEmailsCount,
     activeSessions: s.activeSessions.length,

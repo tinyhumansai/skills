@@ -253,16 +253,16 @@ Defines all SQLite tables, indexes, and migrations. Called once during `init()` 
 
 ### Common Table Patterns
 
-| Table                  | Purpose                               | Example                                  |
-| ---------------------- | ------------------------------------- | ---------------------------------------- |
-| **Primary entities**   | Main objects from the API             | `chats`, `pages`, `files`                |
-| **Secondary entities** | Nested/related objects                | `messages`, `blocks`, `database_rows`    |
-| **Users/contacts**     | People associated with entities       | `contacts`, `users`                      |
-| **Summaries**          | AI-generated summaries for cloud sync | `summaries` (with `synced` flag)         |
-| **Sync state**         | Key-value metadata tracking           | `sync_state` (`key TEXT PK, value TEXT`) |
+| Table                  | Purpose                               | Example                               |
+| ---------------------- | ------------------------------------- | ------------------------------------- |
+| **Primary entities**   | Main objects from the API             | `chats`, `pages`, `files`             |
+| **Secondary entities** | Nested/related objects                | `messages`, `blocks`, `database_rows` |
+| **Users/contacts**     | People associated with entities       | `contacts`, `users`                   |
+| **Summaries**          | AI-generated summaries for cloud sync | `summaries` (with `synced` flag)      |
 
 ### Design Rules
 
+- **SQLite is for entity data only** — large, queryable datasets (emails, messages, pages, contacts). Do NOT store sync metadata (last sync time, sync completed flags, history cursors) in SQLite. Use the `state` bridge API (`state.get()`/`state.set()`) for all sync state — it is already persistent and published to the frontend.
 - Primary keys: `TEXT` for external IDs (API IDs may exceed JS integer range), composite keys for junction tables
 - Every table gets `created_at` and `updated_at` timestamp columns
 - Soft-delete via `is_deleted INTEGER DEFAULT 0` instead of SQL DELETE
@@ -281,7 +281,7 @@ globalThis.initializeMySkillSchema = initializeSchema;
 - [ ] `CREATE INDEX IF NOT EXISTS` for frequently queried columns
 - [ ] Primary keys defined (TEXT for external IDs, composite where needed)
 - [ ] `created_at` and `updated_at` on all tables
-- [ ] `sync_state` key-value table for sync metadata
+- [ ] **No `sync_state` table** — use `state.get()`/`state.set()` for sync metadata
 - [ ] `summaries` table with `synced` flag if skill produces AI summaries
 - [ ] Registered on `globalThis.initialize<SkillName>Schema()`
 - [ ] All SQL uses parameterized queries
@@ -316,13 +316,12 @@ function markMessageDeleted(chatId: string, messageId: string): void { ... }
 
 #### Query Functions
 
-| Function                                         | Purpose                              |
-| ------------------------------------------------ | ------------------------------------ |
-| `getById(id)`                                    | Single entity retrieval              |
-| `search(query, limit)`                           | Full-text search with LIKE           |
-| `list(options)`                                  | Paginated listing with filters       |
-| `getEntityCounts()`                              | Aggregate stats for status reporting |
-| `getSyncState(key)` / `setSyncState(key, value)` | Sync metadata                        |
+| Function               | Purpose                              |
+| ---------------------- | ------------------------------------ |
+| `getById(id)`          | Single entity retrieval              |
+| `search(query, limit)` | Full-text search with LIKE           |
+| `list(options)`        | Paginated listing with filters       |
+| `getEntityCounts()`    | Aggregate stats for status reporting |
 
 #### Summary Functions (for cloud sync)
 
@@ -351,7 +350,6 @@ function markMessageDeleted(chatId: string, messageId: string): void { ... }
 - [ ] Search/filter with LIKE queries
 - [ ] Paginated list with LIMIT/OFFSET
 - [ ] Aggregate stats (`getEntityCounts()`)
-- [ ] Sync state get/set helpers
 - [ ] Summary CRUD functions (insert, get unsynced, mark synced)
 - [ ] Type parsers and content extractors
 - [ ] All registered on `globalThis.<skillName>Db.*`
@@ -596,8 +594,8 @@ globalThis.<skillName>Sync = {
 - [ ] Upserts each entity to database via `db/helpers.ts`
 - [ ] Loads secondary entities for top N primary entities
 - [ ] Progress reported via `onProgress()` callback
-- [ ] Marks sync as complete in `sync_state` table
-- [ ] Records `last_sync_time` on completion
+- [ ] Marks sync as complete via `state.set('initial_sync_completed', true)`
+- [ ] Records `last_sync_time` via `state.set('last_sync_time', Date.now())`
 - [ ] **Incremental sync** — only fetches changed/new data since last sync
 - [ ] **Deduplication** — skips items identical to stored version
 - [ ] **Time window** — limits data volume (e.g., last 30 days)

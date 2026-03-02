@@ -49,6 +49,11 @@ const skills = readdirSync(skillsSrcDir, { withFileTypes: true })
 // Track which skills get bundled (so we skip them in the copy step)
 const bundledSkills = new Set();
 
+// Skills that need the real htmlparser2 (not the minimal polyfill).
+// Libraries like html-to-text depend on htmlparser2's full DOM API (parseDocument, etc.)
+// which the polyfill doesn't provide.
+const SKILLS_NEEDING_REAL_HTMLPARSER2 = new Set(['gmail']);
+
 for (const skillName of skills) {
   const skillDirInput = join(skillsSrcDir, skillName);
   const skillDirOutput = join(skillsOutDir, skillName);
@@ -94,6 +99,36 @@ for (const skillName of skills) {
   try {
     const polyfillsDir = join(__dirname, 'polyfills');
 
+    // Build alias map, conditionally excluding polyfills that certain skills need real versions of
+    const aliases = {
+      buffer: join(polyfillsDir, 'buffer.js'),
+      crypto: join(polyfillsDir, 'crypto.js'),
+      events: join(polyfillsDir, 'events.js'),
+      'async-mutex': join(polyfillsDir, 'async-mutex.js'),
+      websocket: join(polyfillsDir, 'websocket.js'),
+      store2: join(polyfillsDir, 'store2.js'),
+      'big-integer': join(polyfillsDir, 'big-integer.js'),
+      path: join(polyfillsDir, 'path.js'),
+      fs: join(polyfillsDir, 'fs.js'),
+      os: join(polyfillsDir, 'os.js'),
+      net: join(polyfillsDir, 'net.js'),
+      tls: join(polyfillsDir, 'tls.js'),
+      stream: join(polyfillsDir, 'stream.js'),
+      util: join(polyfillsDir, 'util.js'),
+      socks: join(polyfillsDir, 'socks.js'),
+      'ts-custom-error': join(polyfillsDir, 'ts-custom-error.js'),
+      '@cryptography/aes': join(polyfillsDir, 'cryptography-aes.js'),
+      htmlparser2: join(polyfillsDir, 'htmlparser2.js'),
+      'node-localstorage': join(polyfillsDir, 'node-localstorage.js'),
+      pako: join(polyfillsDir, 'pako.js'),
+      mime: join(polyfillsDir, 'mime.js'),
+    };
+
+    // Skills that need real htmlparser2 (e.g. for html-to-text) skip the polyfill alias
+    if (SKILLS_NEEDING_REAL_HTMLPARSER2.has(skillName)) {
+      delete aliases.htmlparser2;
+    }
+
     // Use esbuild to bundle the skill with its tools
     // Use IIFE format and configure it to output code that can be executed directly
     const result = await esbuild.build({
@@ -117,29 +152,7 @@ for (const skillName of skills) {
         'commonjs-variable-in-esm': 'silent',
       },
       inject: [join(polyfillsDir, 'buffer-inject.js')],
-      alias: {
-        buffer: join(polyfillsDir, 'buffer.js'),
-        crypto: join(polyfillsDir, 'crypto.js'),
-        events: join(polyfillsDir, 'events.js'),
-        'async-mutex': join(polyfillsDir, 'async-mutex.js'),
-        websocket: join(polyfillsDir, 'websocket.js'),
-        store2: join(polyfillsDir, 'store2.js'),
-        'big-integer': join(polyfillsDir, 'big-integer.js'),
-        path: join(polyfillsDir, 'path.js'),
-        fs: join(polyfillsDir, 'fs.js'),
-        os: join(polyfillsDir, 'os.js'),
-        net: join(polyfillsDir, 'net.js'),
-        tls: join(polyfillsDir, 'tls.js'),
-        stream: join(polyfillsDir, 'stream.js'),
-        util: join(polyfillsDir, 'util.js'),
-        socks: join(polyfillsDir, 'socks.js'),
-        'ts-custom-error': join(polyfillsDir, 'ts-custom-error.js'),
-        '@cryptography/aes': join(polyfillsDir, 'cryptography-aes.js'),
-        htmlparser2: join(polyfillsDir, 'htmlparser2.js'),
-        'node-localstorage': join(polyfillsDir, 'node-localstorage.js'),
-        pako: join(polyfillsDir, 'pako.js'),
-        mime: join(polyfillsDir, 'mime.js'),
-      },
+      alias: aliases,
     });
 
     if (!result.outputFiles || result.outputFiles.length === 0) {

@@ -15,6 +15,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 import { type Socket, io } from 'socket.io-client';
+import { webcrypto as wc } from 'crypto';
 
 import { createPersistentData } from './persistent-data';
 import { createPersistentDb, type PersistentDb } from './persistent-db';
@@ -295,6 +296,55 @@ export async function createBridgeAPIs(
       };
       globalThis.console.log(`[backend.fetch] ${fetchOpts?.method ?? 'GET'} ${fullUrl}`);
       return realFetch(fullUrl, { ...fetchOpts, headers: mergedHeaders });
+    },
+    submitData: (
+      chunks: Array<{
+        title?: string;
+        content: string;
+        rawContent?: string;
+        labels?: string[];
+        entities?: Array<{ name: string; identifier: string; kind: string }>;
+        metadata?: Record<string, unknown>;
+      }>,
+      options?: { dataSource?: string; metadata?: Record<string, unknown> },
+    ): Promise<void> => {
+      if (!Array.isArray(chunks) || chunks.length === 0) {
+        throw new Error('submitData: chunks must be a non-empty array');
+      }
+      if (chunks.length > 500) {
+        throw new Error('submitData: chunks exceeds maximum of 500');
+      }
+      for (let i = 0; i < chunks.length; i++) {
+        if (typeof chunks[i].content !== 'string' || chunks[i].content.length === 0) {
+          throw new Error(`submitData: chunk[${i}].content must be a non-empty string`);
+        }
+      }
+      if (!socket?.connected) {
+        throw new Error('submitData: socket not connected');
+      }
+      const requestId = (wc as Crypto).randomUUID();
+      const payload = {
+        requestId,
+        chunks,
+        dataSource: options?.dataSource,
+        metadata: options?.metadata,
+      };
+      const SUBMIT_DATA_TIMEOUT_MS = 30_000;
+      return new Promise<void>((resolve, reject) => {
+        socket!.timeout(SUBMIT_DATA_TIMEOUT_MS).emit('data:submit', payload, (err: Error | null) => {
+          if (err) {
+            globalThis.console.error(
+              `[backend.submitData] requestId=${requestId} failed: ${err.message}`,
+            );
+            reject(err);
+          } else {
+            globalThis.console.log(
+              `[backend.submitData] requestId=${requestId} acknowledged (${chunks.length} chunk(s), dataSource: ${options?.dataSource ?? 'none'})`,
+            );
+            resolve();
+          }
+        });
+      });
     },
   };
 

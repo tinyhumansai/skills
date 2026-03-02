@@ -32,7 +32,7 @@ export const listFilesTool: ToolDefinition = {
     },
     required: [],
   },
-  execute(args: Record<string, unknown>): Promise<string> {
+  async execute(args: Record<string, unknown>): Promise<string> {
     try {
       if (!oauth.getCredential()) {
         return Promise.resolve(
@@ -59,7 +59,7 @@ export const listFilesTool: ToolDefinition = {
       ];
       if (pageToken) paramParts.push('pageToken=' + encodeURIComponent(pageToken));
       const path = '/drive/v3/files?' + paramParts.join('&');
-      const response = driveFetch(path);
+      const response = await driveFetch(path);
       if (!response.success) {
         return Promise.resolve(
           JSON.stringify({

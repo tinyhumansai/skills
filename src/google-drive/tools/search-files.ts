@@ -24,7 +24,7 @@ export const searchFilesTool: ToolDefinition = {
     },
     required: ['query'],
   },
-  execute(args: Record<string, unknown>): Promise<string> {
+  async execute(args: Record<string, unknown>): Promise<string> {
     try {
       if (!oauth.getCredential()) {
         return Promise.resolve(
@@ -58,7 +58,7 @@ export const searchFilesTool: ToolDefinition = {
       ];
       if (pageToken) paramParts.push('pageToken=' + encodeURIComponent(pageToken));
       const path = '/drive/v3/files?' + paramParts.join('&');
-      const response = driveFetch(path);
+      const response = await driveFetch(path);
       if (!response.success) {
         return Promise.resolve(
           JSON.stringify({

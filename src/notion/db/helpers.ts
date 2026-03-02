@@ -1,9 +1,11 @@
 // Database helper functions for Notion skill
 // CRUD operations for pages, databases, users, and sync state
-import '../state';
+// All queries are scoped by credential_id from the active integration.
+import { getNotionSkillState } from '../state';
 
 export interface LocalPage {
   id: string;
+  credential_id: string;
   title: string;
   url: string | null;
   icon: string | null;
@@ -17,11 +19,13 @@ export interface LocalPage {
   content_text: string | null;
   content_synced_at: number | null;
   page_entities: string | null;
+  backend_submitted: number;
   synced_at: number;
 }
 
 export interface LocalDatabaseRow {
   id: string;
+  credential_id: string;
   database_id: string;
   title: string;
   url: string | null;
@@ -33,11 +37,13 @@ export interface LocalDatabaseRow {
   created_time: string;
   last_edited_time: string;
   archived: number;
+  backend_submitted: number;
   synced_at: number;
 }
 
 export interface LocalDatabase {
   id: string;
+  credential_id: string;
   title: string;
   description: string | null;
   url: string | null;
@@ -46,16 +52,27 @@ export interface LocalDatabase {
   created_time: string;
   last_edited_time: string;
   archived: number;
+  backend_submitted: number;
   synced_at: number;
 }
 
 export interface LocalUser {
   id: string;
+  credential_id: string;
   name: string;
   user_type: string;
   email: string | null;
   avatar_url: string | null;
   synced_at: number;
+}
+
+// ---------------------------------------------------------------------------
+// Credential scoping
+// ---------------------------------------------------------------------------
+
+/** Return the active credential ID used to scope all DB rows. */
+function credId(): string {
+  return getNotionSkillState().config.credentialId;
 }
 
 // ---------------------------------------------------------------------------
@@ -179,6 +196,7 @@ function extractPageEntities(
  * Insert or update a page from a Notion API page object
  */
 export function upsertPage(page: Record<string, unknown>): void {
+  const cid = credId();
   const now = Date.now();
 
   // Extract title from properties
@@ -209,11 +227,11 @@ export function upsertPage(page: Record<string, unknown>): void {
 
   db.exec(
     `INSERT INTO pages (
-      id, title, url, icon, parent_type, parent_id,
+      id, credential_id, title, url, icon, parent_type, parent_id,
       created_by_id, last_edited_by_id,
       created_time, last_edited_time, archived, page_entities, synced_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(credential_id, id) DO UPDATE SET
       title = excluded.title,
       url = excluded.url,
       icon = excluded.icon,
@@ -225,9 +243,11 @@ export function upsertPage(page: Record<string, unknown>): void {
       last_edited_time = excluded.last_edited_time,
       archived = excluded.archived,
       page_entities = excluded.page_entities,
+      backend_submitted = 0,
       synced_at = excluded.synced_at`,
     [
       page.id as string,
+      cid,
       title,
       (page.url as string) || null,
       iconStr,
@@ -245,21 +265,26 @@ export function upsertPage(page: Record<string, unknown>): void {
 }
 
 /**
- * Update a page's extracted content text
+ * Update a page's extracted content text and reset backend_submitted
+ * so the updated content gets re-submitted.
  */
 export function updatePageContent(pageId: string, contentText: string): void {
-  db.exec('UPDATE pages SET content_text = ?, content_synced_at = ? WHERE id = ?', [
-    contentText,
-    Date.now(),
-    pageId,
-  ]);
+  const cid = credId();
+  db.exec(
+    'UPDATE pages SET content_text = ?, content_synced_at = ?, backend_submitted = 0 WHERE credential_id = ? AND id = ?',
+    [contentText, Date.now(), cid, pageId]
+  );
 }
 
 /**
  * Get a single page by ID
  */
 export function getPageById(pageId: string): LocalPage | null {
-  return db.get('SELECT * FROM pages WHERE id = ?', [pageId]) as LocalPage | null;
+  const cid = credId();
+  return db.get('SELECT * FROM pages WHERE credential_id = ? AND id = ?', [
+    cid,
+    pageId,
+  ]) as LocalPage | null;
 }
 
 /**
@@ -268,8 +293,9 @@ export function getPageById(pageId: string): LocalPage | null {
 export function getLocalPages(
   options: { query?: string; limit?: number; includeArchived?: boolean } = {}
 ): LocalPage[] {
-  let sql = 'SELECT * FROM pages WHERE 1=1';
-  const params: unknown[] = [];
+  const cid = credId();
+  let sql = 'SELECT * FROM pages WHERE credential_id = ?';
+  const params: unknown[] = [cid];
 
   if (!options.includeArchived) {
     sql += ' AND archived = 0';
@@ -298,13 +324,15 @@ export function getLocalPages(
  * @param updatedAfterIso - Optional ISO string cutoff; only return pages with last_edited_time >= this (e.g. 30 days ago)
  */
 export function getPagesNeedingContent(limit: number, updatedAfterIso?: string): LocalPage[] {
+  const cid = credId();
   // last_edited_time is ISO string; content_synced_at is ms. Compare: need sync if
   // content_synced_at IS NULL or last_edited_time (as ms) > content_synced_at
   const lastEditedMsExpr = `(strftime('%s', substr(last_edited_time, 1, 10) || ' ' || substr(last_edited_time, 12, 8)) * 1000)`;
   let sql = `SELECT * FROM pages
-     WHERE archived = 0
+     WHERE credential_id = ?
+       AND archived = 0
        AND (content_synced_at IS NULL OR content_synced_at < ${lastEditedMsExpr})`;
-  const params: unknown[] = [];
+  const params: unknown[] = [cid];
 
   if (updatedAfterIso) {
     sql += ' AND last_edited_time >= ?';
@@ -324,9 +352,10 @@ export function getPagesNeedingContent(limit: number, updatedAfterIso?: string):
 export function getPageStructuredEntities(
   pageId: string
 ): Array<{ id: string; type: string; name?: string; role: string; property?: string }> {
+  const cid = credId();
   const page = db.get(
-    'SELECT page_entities, created_by_id, last_edited_by_id FROM pages WHERE id = ?',
-    [pageId]
+    'SELECT page_entities, created_by_id, last_edited_by_id FROM pages WHERE credential_id = ? AND id = ?',
+    [cid, pageId]
   ) as {
     page_entities: string | null;
     created_by_id: string | null;
@@ -361,9 +390,10 @@ export function getPageStructuredEntities(
   // Resolve names from users table
   for (const entity of entities) {
     if (entity.type === 'person' && !entity.name) {
-      const user = db.get('SELECT name FROM users WHERE id = ?', [entity.id]) as {
-        name: string;
-      } | null;
+      const user = db.get('SELECT name FROM users WHERE credential_id = ? AND id = ?', [
+        cid,
+        entity.id,
+      ]) as { name: string } | null;
       if (user) entity.name = user.name;
     }
   }
@@ -377,15 +407,17 @@ export function getPageStructuredEntities(
  * in the summaries table yet.
  */
 export function getPagesNeedingSummary(limit: number): LocalPage[] {
+  const cid = credId();
   return db.all(
     `SELECT p.* FROM pages p
-     LEFT JOIN summaries s ON s.page_id = p.id
-     WHERE p.archived = 0
+     LEFT JOIN summaries s ON s.credential_id = p.credential_id AND s.page_id = p.id
+     WHERE p.credential_id = ?
+       AND p.archived = 0
        AND p.content_text IS NOT NULL
        AND s.id IS NULL
      ORDER BY p.last_edited_time DESC
      LIMIT ?`,
-    [limit]
+    [cid, limit]
   ) as unknown as LocalPage[];
 }
 
@@ -407,17 +439,19 @@ export function getRowsNeedingSummary(
   created_by_id: string | null;
   last_edited_by_id: string | null;
 }> {
+  const cid = credId();
   return db.all(
     `SELECT r.id, r.database_id, r.title, r.url, r.properties_text,
             r.created_time, r.last_edited_time, r.created_by_id, r.last_edited_by_id
      FROM database_rows r
-     LEFT JOIN summaries s ON s.page_id = r.id
-     WHERE r.archived = 0
+     LEFT JOIN summaries s ON s.credential_id = r.credential_id AND s.page_id = r.id
+     WHERE r.credential_id = ?
+       AND r.archived = 0
        AND r.properties_text IS NOT NULL
        AND s.id IS NULL
      ORDER BY r.last_edited_time DESC
      LIMIT ?`,
-    [limit]
+    [cid, limit]
   ) as unknown as Array<{
     id: string;
     database_id: string;
@@ -439,9 +473,10 @@ export function getRowsNeedingSummary(
 export function getRowStructuredEntities(
   rowId: string
 ): Array<{ id: string; type: string; name?: string; role: string; property?: string }> {
+  const cid = credId();
   const row = db.get(
-    'SELECT properties_json, created_by_id, last_edited_by_id FROM database_rows WHERE id = ?',
-    [rowId]
+    'SELECT properties_json, created_by_id, last_edited_by_id FROM database_rows WHERE credential_id = ? AND id = ?',
+    [cid, rowId]
   ) as {
     properties_json: string | null;
     created_by_id: string | null;
@@ -531,9 +566,10 @@ export function getRowStructuredEntities(
   // Resolve names from users table
   for (const entity of entities) {
     if (entity.type === 'person' && !entity.name) {
-      const user = db.get('SELECT name FROM users WHERE id = ?', [entity.id]) as {
-        name: string;
-      } | null;
+      const user = db.get('SELECT name FROM users WHERE credential_id = ? AND id = ?', [
+        cid,
+        entity.id,
+      ]) as { name: string } | null;
       if (user) entity.name = user.name;
     }
   }
@@ -547,6 +583,7 @@ export function getRowStructuredEntities(
 
 export interface LocalSummary {
   id: number;
+  credential_id: string;
   page_id: string;
   url: string | null;
   summary: string;
@@ -578,12 +615,14 @@ export function insertSummary(opts: {
   sourceCreatedAt: string;
   sourceUpdatedAt: string;
 }): void {
+  const cid = credId();
   db.exec(
     `INSERT INTO summaries (
-      page_id, url, summary, category, sentiment, entities, topics, metadata,
+      credential_id, page_id, url, summary, category, sentiment, entities, topics, metadata,
       source_created_at, source_updated_at, created_at, synced
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
     [
+      cid,
       opts.pageId,
       opts.url || null,
       opts.summary,
@@ -603,9 +642,11 @@ export function insertSummary(opts: {
  * Get all summaries that have not been synced to the server yet.
  */
 export function getUnsyncedSummaries(limit: number): LocalSummary[] {
-  return db.all('SELECT * FROM summaries WHERE synced = 0 ORDER BY created_at ASC LIMIT ?', [
-    limit,
-  ]) as unknown as LocalSummary[];
+  const cid = credId();
+  return db.all(
+    'SELECT * FROM summaries WHERE credential_id = ? AND synced = 0 ORDER BY created_at ASC LIMIT ?',
+    [cid, limit]
+  ) as unknown as LocalSummary[];
 }
 
 /**
@@ -625,10 +666,14 @@ export function markSummariesSynced(ids: number[]): void {
  * Get count of synced vs unsynced summaries.
  */
 export function getSummaryCounts(): { total: number; synced: number; pending: number } {
-  const total = db.get('SELECT COUNT(*) as cnt FROM summaries', []) as { cnt: number } | null;
-  const synced = db.get('SELECT COUNT(*) as cnt FROM summaries WHERE synced = 1', []) as {
+  const cid = credId();
+  const total = db.get('SELECT COUNT(*) as cnt FROM summaries WHERE credential_id = ?', [cid]) as {
     cnt: number;
   } | null;
+  const synced = db.get(
+    'SELECT COUNT(*) as cnt FROM summaries WHERE credential_id = ? AND synced = 1',
+    [cid]
+  ) as { cnt: number } | null;
   return {
     total: total?.cnt || 0,
     synced: synced?.cnt || 0,
@@ -644,6 +689,7 @@ export function getSummaryCounts(): { total: number; synced: number; pending: nu
  * Insert or update a database from a Notion API database object
  */
 export function upsertDatabase(database: Record<string, unknown>): void {
+  const cid = credId();
   const now = Date.now();
 
   // Extract title
@@ -666,12 +712,24 @@ export function upsertDatabase(database: Record<string, unknown>): void {
   const propertyCount = Object.keys((database.properties as Record<string, unknown>) || {}).length;
 
   db.exec(
-    `INSERT OR REPLACE INTO databases (
-      id, title, description, url, icon, property_count,
+    `INSERT INTO databases (
+      id, credential_id, title, description, url, icon, property_count,
       created_time, last_edited_time, archived, synced_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(credential_id, id) DO UPDATE SET
+      title = excluded.title,
+      description = excluded.description,
+      url = excluded.url,
+      icon = excluded.icon,
+      property_count = excluded.property_count,
+      created_time = excluded.created_time,
+      last_edited_time = excluded.last_edited_time,
+      archived = excluded.archived,
+      backend_submitted = 0,
+      synced_at = excluded.synced_at`,
     [
       database.id as string,
+      cid,
       title,
       description,
       (database.url as string) || null,
@@ -689,7 +747,11 @@ export function upsertDatabase(database: Record<string, unknown>): void {
  * Get a single database by ID
  */
 export function getDatabaseById(databaseId: string): LocalDatabase | null {
-  return db.get('SELECT * FROM databases WHERE id = ?', [databaseId]) as LocalDatabase | null;
+  const cid = credId();
+  return db.get('SELECT * FROM databases WHERE credential_id = ? AND id = ?', [
+    cid,
+    databaseId,
+  ]) as LocalDatabase | null;
 }
 
 /**
@@ -698,8 +760,9 @@ export function getDatabaseById(databaseId: string): LocalDatabase | null {
 export function getLocalDatabases(
   options: { query?: string; limit?: number } = {}
 ): LocalDatabase[] {
-  let sql = 'SELECT * FROM databases WHERE archived = 0';
-  const params: unknown[] = [];
+  const cid = credId();
+  let sql = 'SELECT * FROM databases WHERE credential_id = ? AND archived = 0';
+  const params: unknown[] = [cid];
 
   if (options.query) {
     sql += ' AND (title LIKE ? OR description LIKE ?)';
@@ -829,6 +892,7 @@ function extractPropertiesText(properties: Record<string, unknown>): string {
  * Insert or update a database row from a Notion API page object returned by queryDataSource.
  */
 export function upsertDatabaseRow(row: Record<string, unknown>, databaseId: string): void {
+  const cid = credId();
   const now = Date.now();
 
   // Extract title from properties
@@ -858,11 +922,11 @@ export function upsertDatabaseRow(row: Record<string, unknown>, databaseId: stri
 
   db.exec(
     `INSERT INTO database_rows (
-      id, database_id, title, url, icon, properties_json, properties_text,
+      id, credential_id, database_id, title, url, icon, properties_json, properties_text,
       created_by_id, last_edited_by_id,
       created_time, last_edited_time, archived, synced_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(credential_id, id) DO UPDATE SET
       database_id = excluded.database_id,
       title = excluded.title,
       url = excluded.url,
@@ -874,9 +938,11 @@ export function upsertDatabaseRow(row: Record<string, unknown>, databaseId: stri
       created_time = excluded.created_time,
       last_edited_time = excluded.last_edited_time,
       archived = excluded.archived,
+      backend_submitted = 0,
       synced_at = excluded.synced_at`,
     [
       row.id as string,
+      cid,
       databaseId,
       title,
       (row.url as string) || null,
@@ -897,7 +963,11 @@ export function upsertDatabaseRow(row: Record<string, unknown>, databaseId: stri
  * Get a single database row by ID
  */
 export function getDatabaseRowById(rowId: string): LocalDatabaseRow | null {
-  return db.get('SELECT * FROM database_rows WHERE id = ?', [rowId]) as LocalDatabaseRow | null;
+  const cid = credId();
+  return db.get('SELECT * FROM database_rows WHERE credential_id = ? AND id = ?', [
+    cid,
+    rowId,
+  ]) as LocalDatabaseRow | null;
 }
 
 /**
@@ -906,8 +976,9 @@ export function getDatabaseRowById(rowId: string): LocalDatabaseRow | null {
 export function getLocalDatabaseRows(
   options: { databaseId?: string; query?: string; limit?: number; includeArchived?: boolean } = {}
 ): LocalDatabaseRow[] {
-  let sql = 'SELECT * FROM database_rows WHERE 1=1';
-  const params: unknown[] = [];
+  const cid = credId();
+  let sql = 'SELECT * FROM database_rows WHERE credential_id = ?';
+  const params: unknown[] = [cid];
 
   if (!options.includeArchived) {
     sql += ' AND archived = 0';
@@ -941,15 +1012,17 @@ export function getLocalDatabaseRows(
  * Insert or update a user from a Notion API user object
  */
 export function upsertUser(user: Record<string, unknown>): void {
+  const cid = credId();
   const now = Date.now();
   const person = user.person as Record<string, unknown> | undefined;
 
   db.exec(
     `INSERT OR REPLACE INTO users (
-      id, name, user_type, email, avatar_url, synced_at
-    ) VALUES (?, ?, ?, ?, ?, ?)`,
+      id, credential_id, name, user_type, email, avatar_url, synced_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       user.id as string,
+      cid,
       (user.name as string) || '(Unknown)',
       (user.type as string) || 'person',
       (person?.email as string) || null,
@@ -963,7 +1036,86 @@ export function upsertUser(user: Record<string, unknown>): void {
  * Get all local users
  */
 export function getLocalUsers(): LocalUser[] {
-  return db.all('SELECT * FROM users ORDER BY name', []) as unknown as LocalUser[];
+  const cid = credId();
+  return db.all('SELECT * FROM users WHERE credential_id = ? ORDER BY name', [
+    cid,
+  ]) as unknown as LocalUser[];
+}
+
+// ---------------------------------------------------------------------------
+// Backend submission helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Get pages that have not yet been submitted to the backend.
+ * Only returns non-archived pages with content. Oldest first for
+ * chronological submission order.
+ */
+export function getUnsubmittedPages(limit = 500): LocalPage[] {
+  const cid = credId();
+  return db.all(
+    `SELECT * FROM pages
+     WHERE credential_id = ? AND backend_submitted = 0 AND archived = 0
+       AND content_text IS NOT NULL
+     ORDER BY last_edited_time ASC LIMIT ?`,
+    [cid, limit]
+  ) as unknown as LocalPage[];
+}
+
+/**
+ * Get database rows that have not yet been submitted to the backend.
+ * Only returns non-archived rows with text content. Oldest first.
+ */
+export function getUnsubmittedRows(limit = 500): LocalDatabaseRow[] {
+  const cid = credId();
+  return db.all(
+    `SELECT * FROM database_rows
+     WHERE credential_id = ? AND backend_submitted = 0 AND archived = 0
+       AND properties_text IS NOT NULL AND properties_text != ''
+     ORDER BY last_edited_time ASC LIMIT ?`,
+    [cid, limit]
+  ) as unknown as LocalDatabaseRow[];
+}
+
+/**
+ * Mark a batch of page IDs as submitted to the backend.
+ */
+export function markPagesSubmitted(ids: string[]): void {
+  if (ids.length === 0) return;
+  const cid = credId();
+  for (let i = 0; i < ids.length; i += 99) {
+    const batch = ids.slice(i, i + 99);
+    const placeholders = batch.map(() => '?').join(',');
+    db.exec(
+      `UPDATE pages SET backend_submitted = 1 WHERE credential_id = ? AND id IN (${placeholders})`,
+      [cid, ...batch]
+    );
+  }
+}
+
+/**
+ * Mark a batch of database row IDs as submitted to the backend.
+ */
+export function markRowsSubmitted(ids: string[]): void {
+  if (ids.length === 0) return;
+  const cid = credId();
+  for (let i = 0; i < ids.length; i += 99) {
+    const batch = ids.slice(i, i + 99);
+    const placeholders = batch.map(() => '?').join(',');
+    db.exec(
+      `UPDATE database_rows SET backend_submitted = 1 WHERE credential_id = ? AND id IN (${placeholders})`,
+      [cid, ...batch]
+    );
+  }
+}
+
+// Register backend submission helpers on globalThis for bundled/IIFE/test harness access
+if (typeof globalThis !== 'undefined') {
+  const g = globalThis as Record<string, unknown>;
+  g.getUnsubmittedPages = getUnsubmittedPages;
+  g.getUnsubmittedRows = getUnsubmittedRows;
+  g.markPagesSubmitted = markPagesSubmitted;
+  g.markRowsSubmitted = markRowsSubmitted;
 }
 
 // ---------------------------------------------------------------------------
@@ -977,37 +1129,41 @@ export function getEntityCounts(): {
   pages: number;
   databases: number;
   databaseRows: number;
-  users: number;
   pagesWithContent: number;
   pagesWithSummary: number;
   summariesTotal: number;
   summariesPending: number;
 } {
-  const pages = db.get('SELECT COUNT(*) as cnt FROM pages', []) as { cnt: number } | null;
-  const databases = db.get('SELECT COUNT(*) as cnt FROM databases', []) as { cnt: number } | null;
-  const databaseRows = db.get('SELECT COUNT(*) as cnt FROM database_rows', []) as {
+  const cid = credId();
+  const pages = db.get('SELECT COUNT(*) as cnt FROM pages WHERE credential_id = ?', [cid]) as {
     cnt: number;
   } | null;
-  const users = db.get('SELECT COUNT(*) as cnt FROM users', []) as { cnt: number } | null;
+  const databases = db.get('SELECT COUNT(*) as cnt FROM databases WHERE credential_id = ?', [
+    cid,
+  ]) as { cnt: number } | null;
+  const databaseRows = db.get('SELECT COUNT(*) as cnt FROM database_rows WHERE credential_id = ?', [
+    cid,
+  ]) as { cnt: number } | null;
   const pagesWithContent = db.get(
-    'SELECT COUNT(*) as cnt FROM pages WHERE content_text IS NOT NULL',
-    []
+    'SELECT COUNT(*) as cnt FROM pages WHERE credential_id = ? AND content_text IS NOT NULL',
+    [cid]
   ) as { cnt: number } | null;
-  const pagesWithSummary = db.get('SELECT COUNT(DISTINCT page_id) as cnt FROM summaries', []) as {
-    cnt: number;
-  } | null;
-  const summariesTotal = db.get('SELECT COUNT(*) as cnt FROM summaries', []) as {
-    cnt: number;
-  } | null;
-  const summariesPending = db.get('SELECT COUNT(*) as cnt FROM summaries WHERE synced = 0', []) as {
-    cnt: number;
-  } | null;
+  const pagesWithSummary = db.get(
+    'SELECT COUNT(DISTINCT page_id) as cnt FROM summaries WHERE credential_id = ?',
+    [cid]
+  ) as { cnt: number } | null;
+  const summariesTotal = db.get('SELECT COUNT(*) as cnt FROM summaries WHERE credential_id = ?', [
+    cid,
+  ]) as { cnt: number } | null;
+  const summariesPending = db.get(
+    'SELECT COUNT(*) as cnt FROM summaries WHERE credential_id = ? AND synced = 0',
+    [cid]
+  ) as { cnt: number } | null;
 
   return {
     pages: pages?.cnt || 0,
     databases: databases?.cnt || 0,
     databaseRows: databaseRows?.cnt || 0,
-    users: users?.cnt || 0,
     pagesWithContent: pagesWithContent?.cnt || 0,
     pagesWithSummary: pagesWithSummary?.cnt || 0,
     summariesTotal: summariesTotal?.cnt || 0,

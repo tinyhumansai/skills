@@ -12,7 +12,7 @@ export const getDocumentTool: ToolDefinition = {
     properties: { document_id: { type: 'string', description: 'Google Doc ID (Drive file ID)' } },
     required: ['document_id'],
   },
-  execute(args: Record<string, unknown>): Promise<string> {
+  async execute(args: Record<string, unknown>): Promise<string> {
     try {
       if (!oauth.getCredential()) {
         return Promise.resolve(
@@ -29,7 +29,7 @@ export const getDocumentTool: ToolDefinition = {
         );
       }
       const path = `/v1/documents/${encodeURIComponent(documentId)}`;
-      const response = driveFetch(path, { baseUrl: DOCS_BASE });
+      const response = await driveFetch(path, { baseUrl: DOCS_BASE });
       if (!response.success) {
         return Promise.resolve(
           JSON.stringify({

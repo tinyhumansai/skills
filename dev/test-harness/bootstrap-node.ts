@@ -666,6 +666,40 @@ export async function createBridgeAPIs(options?: BridgeOptions): Promise<Record<
           body: JSON.stringify({ error: 'Not found (no backend mock configured)' }),
         };
       },
+      submitData: async (
+        chunks: Array<{
+          title?: string;
+          content: string;
+          rawContent?: string;
+          labels?: string[];
+          entities?: Array<{ name: string; identifier: string; kind: string }>;
+          metadata?: Record<string, unknown>;
+        }>,
+        options?: { dataSource?: string; metadata?: Record<string, unknown> },
+      ): Promise<void> => {
+        if (!Array.isArray(chunks) || chunks.length === 0) {
+          throw new Error('submitData: chunks must be a non-empty array');
+        }
+        if (chunks.length > 500) {
+          throw new Error('submitData: chunks exceeds maximum of 500');
+        }
+        for (let i = 0; i < chunks.length; i++) {
+          if (typeof chunks[i].content !== 'string' || chunks[i].content.length === 0) {
+            throw new Error(`submitData: chunk[${i}].content must be a non-empty string`);
+          }
+        }
+        const requestId = `mock-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        state.dataSubmissions.push({
+          chunks,
+          dataSource: options?.dataSource,
+          metadata: options?.metadata,
+          requestId,
+        });
+        state.socketEmits.push({
+          event: 'data:submit',
+          args: [{ requestId, chunks, dataSource: options?.dataSource, metadata: options?.metadata }],
+        });
+      },
     },
     // Socket API - real-time events mock
     socket: {

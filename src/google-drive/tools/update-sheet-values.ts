@@ -24,7 +24,7 @@ export const updateSheetValuesTool: ToolDefinition = {
     },
     required: ['spreadsheet_id', 'range', 'values'],
   },
-  execute(args: Record<string, unknown>): Promise<string> {
+  async execute(args: Record<string, unknown>): Promise<string> {
     try {
       if (!oauth.getCredential()) {
         return Promise.resolve(
@@ -49,7 +49,7 @@ export const updateSheetValuesTool: ToolDefinition = {
         );
       }
       const path = `/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}?valueInputOption=${valueInputOption}`;
-      const response = driveFetch(path, {
+      const response = await driveFetch(path, {
         method: 'PUT',
         body: JSON.stringify({ values }),
         baseUrl: SHEETS_BASE,

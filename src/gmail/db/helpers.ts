@@ -1,5 +1,9 @@
 // Database helper functions for Gmail skill
 // CRUD operations for emails, threads, labels, and attachments
+// All queries are scoped by credential_id from the active integration.
+import { convert } from 'html-to-text';
+
+import { getGmailSkillState } from '../state';
 import type {
   DatabaseAttachment,
   DatabaseEmail,
@@ -23,10 +27,19 @@ function getMessageHeaders(message: GmailMessage): Array<{ name: string; value: 
   return null;
 }
 
+/** Current credential ID from skill state (for DB scoping). */
+function credId(): string {
+  return getGmailSkillState().config.credentialId;
+}
+
 /**
- * Insert or update an email in the database
+ * Insert or update an email in the database.
+ * Detects sensitive content (passwords, API keys, etc.) and flags it.
+ * When `redactSensitive` is true, body text/html are replaced with a
+ * placeholder so credentials are never persisted locally.
  */
-export function upsertEmail(message: GmailMessage): void {
+export function upsertEmail(message: GmailMessage, redactSensitive = false): void {
+  const cid = credId();
   const now = Date.now();
   const headers = getMessageHeaders(message);
   if (!headers) {
@@ -57,14 +70,44 @@ export function upsertEmail(message: GmailMessage): void {
   const isStarred = labelIds.includes('STARRED');
   const hasAttachments = hasEmailAttachments(message);
 
+  // Extract body content — prefer plain text, fall back to converting HTML
+  let bodyText = extractTextBody(message);
+  let bodyHtml = extractHtmlBody(message);
+
+  if (!bodyText && bodyHtml) {
+    try {
+      bodyText = convert(bodyHtml, {
+        wordwrap: false,
+        selectors: [
+          { selector: 'img', format: 'skip' },
+          { selector: 'a', options: { hideLinkHrefIfSameAsText: true } },
+        ],
+      });
+    } catch {
+      // Fall back to snippet if HTML conversion fails
+      bodyText = message.snippet || null;
+    }
+  }
+
+  // Check for sensitive information
+  const sensitive =
+    isSensitiveText(subject) || isSensitiveText(bodyText || '') || isSensitiveText(message.snippet);
+
+  // Redact body if the email is sensitive and the user hasn't opted in
+  if (sensitive && redactSensitive) {
+    bodyText = '[Content redacted — contains sensitive information]';
+    bodyHtml = null;
+  }
+
   db.exec(
     `INSERT OR REPLACE INTO emails (
-      id, thread_id, subject, sender_email, sender_name, recipient_emails,
+      credential_id, id, thread_id, subject, sender_email, sender_name, recipient_emails,
       cc_emails, bcc_emails, date, snippet, body_text, body_html,
-      is_read, is_important, is_starred, has_attachments, labels,
+      is_read, is_important, is_starred, has_attachments, is_sensitive, labels,
       size_estimate, history_id, internal_date, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
+      cid,
       message.id ?? '',
       message.threadId ?? '',
       subject,
@@ -75,12 +118,13 @@ export function upsertEmail(message: GmailMessage): void {
       bcc,
       Number.isFinite(date) ? date : 0,
       message.snippet ?? '',
-      extractTextBody(message),
-      extractHtmlBody(message),
+      bodyText ?? null,
+      bodyHtml ?? null,
       isRead ? 1 : 0,
       isImportant ? 1 : 0,
       isStarred ? 1 : 0,
       hasAttachments ? 1 : 0,
+      sensitive ? 1 : 0,
       JSON.stringify(labelIds),
       typeof message.sizeEstimate === 'number' ? message.sizeEstimate : 0,
       message.historyId ?? '',
@@ -99,6 +143,7 @@ export function upsertEmail(message: GmailMessage): void {
  * Insert or update a thread in the database
  */
 export function upsertThread(thread: GmailThread): void {
+  const cid = credId();
   const now = Date.now();
   const firstMessage = thread.messages[0];
   const lastMessage = thread.messages[thread.messages.length - 1];
@@ -134,10 +179,11 @@ export function upsertThread(thread: GmailThread): void {
 
   db.exec(
     `INSERT OR REPLACE INTO threads (
-      id, subject, snippet, message_count, participants, last_message_date,
+      credential_id, id, subject, snippet, message_count, participants, last_message_date,
       is_read, has_attachments, labels, history_id, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
+      cid,
       thread.id,
       subject,
       thread.snippet,
@@ -157,15 +203,17 @@ export function upsertThread(thread: GmailThread): void {
  * Insert or update a label in the database
  */
 export function upsertLabel(label: GmailLabel): void {
+  const cid = credId();
   const now = Date.now();
 
   db.exec(
     `INSERT OR REPLACE INTO labels (
-      id, name, type, message_list_visibility, label_list_visibility,
+      credential_id, id, name, type, message_list_visibility, label_list_visibility,
       messages_total, messages_unread, threads_total, threads_unread,
       color_text, color_background, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
+      cid,
       label.id,
       label.name,
       label.type,
@@ -182,12 +230,17 @@ export function upsertLabel(label: GmailLabel): void {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Queries
+// ---------------------------------------------------------------------------
+
 /**
  * Get emails with optional filtering
  */
 export function getEmails(options: EmailSearchOptions = {}): DatabaseEmail[] {
-  let sql = 'SELECT * FROM emails WHERE 1=1';
-  const params: unknown[] = [];
+  const cid = credId();
+  let sql = 'SELECT * FROM emails WHERE credential_id = ?';
+  const params: unknown[] = [cid];
 
   if (options.query) {
     sql += ' AND (subject LIKE ? OR sender_email LIKE ? OR snippet LIKE ?)';
@@ -217,8 +270,9 @@ export function getEmails(options: EmailSearchOptions = {}): DatabaseEmail[] {
  * Get threads with optional filtering
  */
 export function getThreads(options: EmailSearchOptions = {}): DatabaseThread[] {
-  let sql = 'SELECT * FROM threads WHERE 1=1';
-  const params: unknown[] = [];
+  const cid = credId();
+  let sql = 'SELECT * FROM threads WHERE credential_id = ?';
+  const params: unknown[] = [cid];
 
   if (options.query) {
     sql += ' AND (subject LIKE ? OR participants LIKE ? OR snippet LIKE ?)';
@@ -248,28 +302,41 @@ export function getThreads(options: EmailSearchOptions = {}): DatabaseThread[] {
  * Get all labels
  */
 export function getLabels(): DatabaseLabel[] {
-  return db.all('SELECT * FROM labels ORDER BY type, name', []) as unknown as DatabaseLabel[];
+  const cid = credId();
+  return db.all('SELECT * FROM labels WHERE credential_id = ? ORDER BY type, name', [
+    cid,
+  ]) as unknown as DatabaseLabel[];
 }
 
 /**
  * Get email by ID
  */
 export function getEmailById(id: string): DatabaseEmail | null {
-  return db.get('SELECT * FROM emails WHERE id = ?', [id]) as DatabaseEmail | null;
+  const cid = credId();
+  return db.get('SELECT * FROM emails WHERE credential_id = ? AND id = ?', [
+    cid,
+    id,
+  ]) as DatabaseEmail | null;
 }
 
 /**
  * Get thread by ID
  */
 export function getThreadById(id: string): DatabaseThread | null {
-  return db.get('SELECT * FROM threads WHERE id = ?', [id]) as DatabaseThread | null;
+  const cid = credId();
+  return db.get('SELECT * FROM threads WHERE credential_id = ? AND id = ?', [
+    cid,
+    id,
+  ]) as DatabaseThread | null;
 }
 
 /**
  * Get attachments for an email
  */
 export function getEmailAttachments(messageId: string): DatabaseAttachment[] {
-  return db.all('SELECT * FROM attachments WHERE message_id = ?', [
+  const cid = credId();
+  return db.all('SELECT * FROM attachments WHERE credential_id = ? AND message_id = ?', [
+    cid,
     messageId,
   ]) as unknown as DatabaseAttachment[];
 }
@@ -278,33 +345,108 @@ export function getEmailAttachments(messageId: string): DatabaseAttachment[] {
  * Update email read status
  */
 export function updateEmailReadStatus(emailId: string, isRead: boolean): void {
-  db.exec('UPDATE emails SET is_read = ?, updated_at = ? WHERE id = ?', [
+  const cid = credId();
+  db.exec('UPDATE emails SET is_read = ?, updated_at = ? WHERE credential_id = ? AND id = ?', [
     isRead ? 1 : 0,
     Date.now(),
+    cid,
     emailId,
   ]);
 }
 
 /**
- * Get sync state value
+ * Get emails that have not yet been submitted to the backend.
+ * Excludes sensitive emails — those are never sent to the backend.
+ * Returns oldest-first so submissions are chronologically ordered.
  */
-export function getSyncState(key: string): string | null {
-  const row = db.get('SELECT value FROM sync_state WHERE key = ?', [key]) as {
-    value: string;
-  } | null;
-  return row?.value || null;
+export function getUnsubmittedEmails(limit = 500): DatabaseEmail[] {
+  const cid = credId();
+  return db.all(
+    'SELECT * FROM emails WHERE credential_id = ? AND backend_submitted = 0 AND is_sensitive = 0 ORDER BY date ASC LIMIT ?',
+    [cid, limit]
+  ) as unknown as DatabaseEmail[];
 }
 
 /**
- * Set sync state value
+ * Mark all sensitive emails as submitted so they don't accumulate
+ * in the un-submitted queue. They are never actually sent to the backend.
  */
-export function setSyncState(key: string, value: string): void {
+export function markSensitiveAsSubmitted(): void {
+  const cid = credId();
   db.exec(
-    `INSERT OR REPLACE INTO sync_state (key, value, updated_at)
-     VALUES (?, ?, ?)`,
-    [key, value, Date.now()]
+    'UPDATE emails SET backend_submitted = 1 WHERE credential_id = ? AND is_sensitive = 1 AND backend_submitted = 0',
+    [cid]
   );
 }
+
+/**
+ * Mark a batch of emails as submitted to the backend.
+ */
+export function markEmailsSubmitted(ids: string[]): void {
+  if (ids.length === 0) return;
+  const cid = credId();
+  // SQLite has a variable limit, batch in groups of 99 (leaving 1 slot for credential_id)
+  for (let i = 0; i < ids.length; i += 99) {
+    const batch = ids.slice(i, i + 99);
+    const placeholders = batch.map(() => '?').join(',');
+    db.exec(
+      `UPDATE emails SET backend_submitted = 1 WHERE credential_id = ? AND id IN (${placeholders})`,
+      [cid, ...batch]
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sensitive text detection
+// ---------------------------------------------------------------------------
+
+/** Patterns that indicate an email contains sensitive credentials or secrets. */
+const SENSITIVE_PATTERNS: RegExp[] = [
+  // Explicit password disclosures
+  /(?:password|passwd|pwd)\s*[:=]\s*\S+/i,
+  /your (?:new )?password (?:is|was|has been)\b/i,
+  /temporary password/i,
+  /one[- ]?time (?:password|passcode|code)\s*[:=]\s*\S+/i,
+
+  // API keys, tokens, secrets (key=value patterns with long values)
+  /(?:api[_-]?key|api[_-]?secret|access[_-]?token|secret[_-]?key|auth[_-]?token|bearer)\s*[:=]\s*\S{16,}/i,
+
+  // Private keys / certificates
+  /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/,
+  /-----BEGIN CERTIFICATE-----/,
+
+  // AWS / cloud credentials
+  /(?:AKIA|ABIA|ACCA|ASIA)[0-9A-Z]{16}/,
+  /aws[_-]?secret[_-]?access[_-]?key\s*[:=]\s*\S+/i,
+
+  // Credit card numbers (4 groups of 4 digits)
+  /\b(?:\d{4}[- ]?){3}\d{4}\b/,
+
+  // Social security numbers (US)
+  /\b\d{3}-\d{2}-\d{4}\b/,
+
+  // Seed phrases / recovery phrases (12+ common BIP-39 words in sequence)
+  /(?:abandon|ability|able|about|above|absent|absorb|abstract|absurd|abuse|access|accident)\b(?:\s+\w+){11,}/i,
+
+  // Generic "here are your credentials" patterns
+  /(?:credentials|login details)\s*(?:are|below|attached)/i,
+];
+
+/**
+ * Check if text contains sensitive information (passwords, API keys, etc.).
+ * Uses pattern matching — not a guarantee, but catches common cases.
+ */
+export function isSensitiveText(text: string): boolean {
+  if (!text) return false;
+  for (const pattern of SENSITIVE_PATTERNS) {
+    if (pattern.test(text)) return true;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
 
 /**
  * Helper: Extract email address from "Name <email>" format
@@ -315,7 +457,7 @@ function extractEmail(emailStr: string): string {
 }
 
 /**
- * Helper: Check if email has attachments
+ * Helper: Check if email has attachments (recursively searches nested parts)
  */
 function hasEmailAttachments(message: GmailMessage): boolean {
   const p = message?.payload;
@@ -326,11 +468,41 @@ function hasEmailAttachments(message: GmailMessage): boolean {
       part => part.body?.attachmentId || (part.filename && part.filename.length > 0)
     );
   }
+  return checkPart(p);
+}
+
+/** Recursively check a MIME part (or payload) for attachments. */
+function checkPart(part: GmailMessage['payload']): boolean {
+  if (!part) return false;
+  if (part.body?.attachmentId) return true;
+  if (part.filename && part.filename.length > 0) return true;
+  if (Array.isArray(part.parts)) return part.parts.some(p => checkPart(p));
   return false;
 }
 
 /**
- * Helper: Extract text body from message
+ * Recursively search MIME parts for a part matching the given mimeType.
+ * Gmail messages can have arbitrarily nested multipart/* structures, e.g.:
+ *   multipart/mixed → multipart/alternative → text/plain | text/html
+ */
+// function _findPartByMimeType(
+//   part: GmailMessage['payload'],
+//   mimeType: string
+// ): GmailMessage['payload'] | null {
+//   if (part.mimeType === mimeType && part.body.data) {
+//     return part;
+//   }
+//   if (part.parts) {
+//     for (const child of part.parts) {
+//       const found = _findPartByMimeType(child, mimeType);
+//       if (found) return found;
+//     }
+//   }
+//   return null;
+// }
+
+/**
+ * Helper: Extract text body from message (recursively searches nested parts)
  */
 function extractTextBody(message: GmailMessage): string | null {
   const p = message?.payload;
@@ -357,7 +529,7 @@ function extractTextBody(message: GmailMessage): string | null {
 }
 
 /**
- * Helper: Extract HTML body from message
+ * Helper: Extract HTML body from message (recursively searches nested parts)
  */
 function extractHtmlBody(message: GmailMessage): string | null {
   const p = message?.payload;
@@ -384,9 +556,10 @@ function extractHtmlBody(message: GmailMessage): string | null {
 }
 
 /**
- * Helper: Insert email attachments
+ * Helper: Insert email attachments (recursively collects from nested parts)
  */
 function insertEmailAttachments(message: GmailMessage): void {
+  const cid = credId();
   const p = message?.payload;
   if (!p) return;
   const attachments: Array<{
@@ -427,9 +600,9 @@ function insertEmailAttachments(message: GmailMessage): void {
   attachments.forEach(att => {
     db.exec(
       `INSERT OR REPLACE INTO attachments
-       (message_id, attachment_id, filename, mime_type, size, part_id)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [message.id, att.attachmentId, att.filename, att.mimeType, att.size, att.partId]
+       (credential_id, message_id, attachment_id, filename, mime_type, size, part_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [cid, message.id, att.attachmentId, att.filename, att.mimeType, att.size, att.partId]
     );
   });
 }

@@ -4,34 +4,63 @@
 // Notion API helpers
 // ---------------------------------------------------------------------------
 
+/** Max retries on 429 rate-limit responses. */
+const MAX_RETRIES = 3;
+
+/** Default backoff in ms when Retry-After header is absent. */
+const DEFAULT_BACKOFF_MS = 5_000;
+
+/** Async sleep for backoff waits. */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function notionFetch<T>(
   endpoint: string,
   options: { method?: string; body?: unknown } = {}
 ): Promise<T> {
   if (!oauth.getCredential()) throw new Error('Notion not connected. Please complete setup first.');
 
-  const response = await oauth.fetch(`/v1${endpoint}`, {
-    method: options.method || 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-    timeout: 30,
-  });
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const response = await oauth.fetch(`/v1${endpoint}`, {
+      method: options.method || 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      timeout: 30,
+    });
 
-  if (response.status >= 400) {
-    const errorBody = response.body;
-    let message = `Notion API error: ${response.status}`;
-    try {
-      const parsed = JSON.parse(errorBody);
-      if (parsed.message) {
-        message = parsed.message;
-      }
-    } catch {
-      // Use default message
+    // -- 429 Rate Limit: back off and retry ----------------------------------
+    if (response.status === 429 && attempt < MAX_RETRIES) {
+      const retryAfter = response.headers['retry-after'];
+      const waitMs = retryAfter
+        ? parseInt(retryAfter, 10) * 1000
+        : DEFAULT_BACKOFF_MS * (attempt + 1);
+      console.log(
+        `[notion] notionFetch: 429 rate-limited endpoint=${endpoint} — retrying in ${waitMs}ms (attempt ${attempt + 1}/${MAX_RETRIES})`
+      );
+      await sleep(waitMs);
+      continue;
     }
-    throw new Error(message);
+
+    if (response.status >= 400) {
+      const errorBody = response.body;
+      let message = `Notion API error: ${response.status}`;
+      try {
+        const parsed = JSON.parse(errorBody);
+        if (parsed.message) {
+          message = parsed.message;
+        }
+      } catch {
+        // Use default message
+      }
+      throw new Error(message);
+    }
+
+    return JSON.parse(response.body as string) as T;
   }
 
-  return JSON.parse(response.body as string) as T;
+  // Exhausted retries (only reachable after repeated 429s)
+  throw new Error('Notion API error: 429 — rate limit exceeded after retries');
 }
 
 export function formatApiError(error: unknown): string {

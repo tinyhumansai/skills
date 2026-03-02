@@ -2,6 +2,7 @@
 // Periodically downloads pages, databases, users, and page content from Notion
 // into local SQLite for fast local querying.
 import { notionApi } from './api/index';
+import type { LocalDatabaseRow, LocalPage } from './db/helpers';
 import {
   getDatabaseById,
   getDatabaseRowById,
@@ -9,7 +10,11 @@ import {
   getLocalDatabases,
   getPageById,
   getPagesNeedingContent,
+  getUnsubmittedPages,
+  getUnsubmittedRows,
   getUnsyncedSummaries,
+  markPagesSubmitted,
+  markRowsSubmitted,
   markSummariesSynced,
   updatePageContent,
   upsertDatabase,
@@ -67,6 +72,10 @@ export function performSync(): void {
       console.log('[notion] Sync phase 4: sync summaries to server');
       syncSummariesToServer();
 
+      // Phase 5: Submit new data to backend for processing
+      console.log('[notion] Sync phase 5: submit new data to backend');
+      await submitNewData();
+
       // Update sync state
       const durationMs = Date.now() - startTime;
       const nowMs = Date.now();
@@ -84,7 +93,6 @@ export function performSync(): void {
       // Update counts
       s.syncStatus.totalPages = counts.pages;
       s.syncStatus.totalDatabases = counts.databases;
-      s.syncStatus.totalUsers = counts.users;
       s.syncStatus.pagesWithContent = counts.pagesWithContent;
       s.syncStatus.pagesWithSummary = counts.pagesWithSummary;
       s.syncStatus.summariesTotal = counts.summariesTotal;
@@ -93,7 +101,7 @@ export function performSync(): void {
       s.syncStatus.totalDatabaseRows = counts.databaseRows;
 
       console.log(
-        `[notion] Sync complete in ${durationMs}ms — ${counts.pages} pages, ${counts.databases} databases, ${counts.databaseRows} db rows, ${counts.users} users`
+        `[notion] Sync complete in ${durationMs}ms — ${counts.pages} pages, ${counts.databases} databases, ${counts.databaseRows} db rows`
       );
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -539,6 +547,201 @@ async function syncSummariesToServer(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 5: Submit new data to backend for processing
+// ---------------------------------------------------------------------------
+
+/** Approximate max payload size per socket message (~100 KB). */
+const MAX_BATCH_BYTES = 100 * 1024;
+
+/** Max items to pull from DB per submission round. */
+const SUBMIT_QUERY_LIMIT = 500;
+
+/**
+ * Parse page_entities JSON into DataSubmissionEntity array.
+ * Resolves user names from the users table.
+ */
+function parsePageEntities(
+  page: LocalPage
+): Array<{ name: string; identifier: string; kind: string }> | undefined {
+  if (!page.page_entities) return undefined;
+
+  let raw: Array<{ id: string; type: string; name?: string; role: string }>;
+  try {
+    raw = JSON.parse(page.page_entities);
+  } catch {
+    return undefined;
+  }
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+
+  const cid = getNotionSkillState().config.credentialId;
+  const entities: Array<{ name: string; identifier: string; kind: string }> = [];
+  const seen = new Set<string>();
+
+  for (const e of raw) {
+    if (seen.has(e.id)) continue;
+    seen.add(e.id);
+
+    let name = e.name;
+    if (!name && e.type === 'person') {
+      const user = db.get('SELECT name FROM users WHERE credential_id = ? AND id = ?', [
+        cid,
+        e.id,
+      ]) as { name: string } | null;
+      if (user) name = user.name;
+    }
+    entities.push({ name: name || e.id, identifier: e.id, kind: e.type || 'person' });
+  }
+
+  return entities.length > 0 ? entities : undefined;
+}
+
+/**
+ * Build a DataSubmissionChunk from a page row.
+ * Uses content_text for the body content (extracted from page blocks).
+ */
+function pageToChunk(page: LocalPage): DataSubmissionChunk {
+  const content = page.content_text || '';
+  return {
+    title: page.title || undefined,
+    content,
+    entities: parsePageEntities(page),
+    metadata: {
+      pageId: page.id,
+      url: page.url,
+      parentType: page.parent_type,
+      parentId: page.parent_id,
+      createdTime: page.created_time,
+      lastEditedTime: page.last_edited_time,
+    },
+  };
+}
+
+/**
+ * Build a DataSubmissionChunk from a database row.
+ * Uses properties_text for the body content (flattened property values).
+ * Sends properties_json as rawContent for downstream raw processing.
+ */
+function rowToChunk(row: LocalDatabaseRow): DataSubmissionChunk {
+  const content = row.properties_text || '';
+  return {
+    title: row.title || undefined,
+    content,
+    rawContent: row.properties_json || undefined,
+    metadata: {
+      rowId: row.id,
+      databaseId: row.database_id,
+      url: row.url,
+      createdTime: row.created_time,
+      lastEditedTime: row.last_edited_time,
+    },
+  };
+}
+
+/** Rough byte size of a chunk (title + content + rawContent + overhead). */
+function estimateChunkSize(chunk: DataSubmissionChunk): number {
+  return (chunk.title?.length || 0) + chunk.content.length + (chunk.rawContent?.length || 0) + 256;
+}
+
+/**
+ * Submit un-submitted pages and database rows to the backend for processing.
+ * Batches chunks so each socket message stays under ~100 KB.
+ * Marks items as submitted only after backend.submitData resolves successfully.
+ */
+async function submitNewData(): Promise<void> {
+  const pages = getUnsubmittedPages(SUBMIT_QUERY_LIMIT);
+  const rows = getUnsubmittedRows(SUBMIT_QUERY_LIMIT);
+
+  if (pages.length === 0 && rows.length === 0) return;
+
+  // Build chunks from both pages and rows
+  const prepared: Array<{
+    id: string;
+    type: 'page' | 'row';
+    chunk: ReturnType<typeof pageToChunk>;
+  }> = [];
+  const emptyPageIds: string[] = [];
+  const emptyRowIds: string[] = [];
+
+  for (const page of pages) {
+    const chunk = pageToChunk(page);
+    if (chunk.content.length > 0) {
+      prepared.push({ id: page.id, type: 'page', chunk });
+    } else {
+      emptyPageIds.push(page.id);
+    }
+  }
+
+  for (const row of rows) {
+    const chunk = rowToChunk(row);
+    if (chunk.content.length > 0) {
+      prepared.push({ id: row.id, type: 'row', chunk });
+    } else {
+      emptyRowIds.push(row.id);
+    }
+  }
+
+  // Mark empty-content items as submitted so they aren't re-processed
+  if (emptyPageIds.length > 0) markPagesSubmitted(emptyPageIds);
+  if (emptyRowIds.length > 0) markRowsSubmitted(emptyRowIds);
+  if (prepared.length === 0) return;
+
+  // Split into size-limited batches
+  let batch: Array<ReturnType<typeof pageToChunk>> = [];
+  let batchPageIds: string[] = [];
+  let batchRowIds: string[] = [];
+  let batchBytes = 0;
+  let totalSubmitted = 0;
+
+  const flushBatch = async (): Promise<boolean> => {
+    if (batch.length === 0) return true;
+    const pageIds = batchPageIds.slice();
+    const rowIds = batchRowIds.slice();
+    const batchLength = batch.length;
+    try {
+      await backend.submitData(batch, { dataSource: 'notion' });
+      if (pageIds.length > 0) markPagesSubmitted(pageIds);
+      if (rowIds.length > 0) markRowsSubmitted(rowIds);
+      totalSubmitted += batchLength;
+      return true;
+    } catch (error) {
+      console.error(`[notion] Failed to submit batch to backend: ${error}`);
+      return false;
+    } finally {
+      batch = [];
+      batchPageIds = [];
+      batchRowIds = [];
+      batchBytes = 0;
+    }
+  };
+
+  for (const { id, type, chunk } of prepared) {
+    const size = estimateChunkSize(chunk);
+
+    // If adding this chunk would exceed the limit, flush the current batch first (unless batch is empty — allow single oversized chunk)
+    if (batch.length > 0 && batchBytes + size > MAX_BATCH_BYTES) {
+      if (!(await flushBatch())) return; // Stop on failure; remaining items retried next sync
+    }
+
+    batch.push(chunk);
+    if (type === 'page') batchPageIds.push(id);
+    else batchRowIds.push(id);
+    batchBytes += size;
+
+    // When batch was empty and this single chunk is oversized, send it immediately as an oversized payload
+    if (batch.length === 1 && batchBytes > MAX_BATCH_BYTES) {
+      if (!(await flushBatch())) return;
+    }
+  }
+
+  // Flush remaining batch
+  await flushBatch();
+
+  if (totalSubmitted > 0) {
+    console.log(`[notion] Submitted ${totalSubmitted} item(s) to backend`);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // State publishing helper
 // ---------------------------------------------------------------------------
 
@@ -565,7 +768,6 @@ function publishSyncState(): void {
     totalPages: s.syncStatus.totalPages,
     totalDatabases: s.syncStatus.totalDatabases,
     totalDatabaseRows: s.syncStatus.totalDatabaseRows,
-    totalUsers: s.syncStatus.totalUsers,
     pagesWithContent: s.syncStatus.pagesWithContent,
     pagesWithSummary: s.syncStatus.pagesWithSummary,
     summariesTotal: s.syncStatus.summariesTotal,

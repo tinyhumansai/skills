@@ -1,6 +1,6 @@
-// API helper for Google Drive, Sheets, and Docs (synchronous for QuickJS runtime)
+// API helper for Google Drive, Sheets, and Docs (uses oauth.fetch proxy)
 
-export function driveFetch(
+export async function driveFetch(
   endpoint: string,
   options: {
     method?: string;
@@ -10,7 +10,7 @@ export function driveFetch(
     baseUrl?: string;
     rawBody?: boolean;
   } = {}
-): { success: boolean; data?: unknown; error?: { code: number; message: string } } {
+): Promise<{ success: boolean; data?: unknown; error?: { code: number; message: string } }> {
   const cred = oauth.getCredential();
   if (!cred) {
     return {
@@ -19,32 +19,15 @@ export function driveFetch(
     };
   }
 
-  const backendUrl = platform.env('BACKEND_URL') || '';
-  if (!backendUrl) {
-    return { success: false, error: { code: 500, message: 'BACKEND_URL not configured' } };
-  }
-
   const path = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-  const url = backendUrl.replace(/\/$/, '') + '/proxy/by-id/' + cred.credentialId + path;
 
   try {
-    const opts: {
-      method?: string;
-      headers?: Record<string, string>;
-      body?: string;
-      timeout?: number;
-    } = {
+    const response = await oauth.fetch(path, {
       method: options.method || 'GET',
       headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      body: options.body,
       timeout: options.timeout || 30,
-    };
-    if (options.body) opts.body = options.body;
-
-    const response = net.fetch(url, opts) as unknown as {
-      status: number;
-      headers: Record<string, string>;
-      body: string;
-    };
+    });
 
     const s = globalThis.getGoogleDriveSkillState();
     if (response.headers['x-ratelimit-remaining']) {

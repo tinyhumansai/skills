@@ -18,7 +18,7 @@ export const getFileTool: ToolDefinition = {
     },
     required: ['file_id'],
   },
-  execute(args: Record<string, unknown>): Promise<string> {
+  async execute(args: Record<string, unknown>): Promise<string> {
     try {
       if (!oauth.getCredential()) {
         return Promise.resolve(
@@ -35,7 +35,7 @@ export const getFileTool: ToolDefinition = {
       }
       if (exportFormat) {
         const path = `/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=${encodeURIComponent(exportFormat)}`;
-        const response = driveFetch(path, { rawBody: true });
+        const response = await driveFetch(path, { rawBody: true });
         if (response.success) {
           return Promise.resolve(
             JSON.stringify({
@@ -50,7 +50,7 @@ export const getFileTool: ToolDefinition = {
         );
       }
       const path = `/drive/v3/files/${encodeURIComponent(fileId)}?fields=id,name,mimeType,size,modifiedTime,webViewLink,parents,createdTime`;
-      const response = driveFetch(path);
+      const response = await driveFetch(path);
       if (!response.success) {
         return Promise.resolve(
           JSON.stringify({ success: false, error: response.error?.message ?? 'Failed to get file' })

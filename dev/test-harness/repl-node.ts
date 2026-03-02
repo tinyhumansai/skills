@@ -147,7 +147,7 @@ function extractSkillExports(G: G): void {
   const skillExport = G.__skill as { default?: Record<string, unknown> } | undefined;
   const skill = skillExport?.default;
   const hooks = [
-    'init', 'start', 'stop', 'onCronTrigger', 'onSetupStart',
+    'init', 'start', 'stop', 'onCronTrigger', 'onSync', 'onSetupStart',
     'onSetupSubmit', 'onSetupCancel', 'onDisconnect',
     'onSessionStart', 'onSessionEnd', 'onListOptions', 'onSetOption',
     'onOAuthComplete', 'onOAuthRevoked', 'onHookTriggered',
@@ -549,6 +549,7 @@ ${c.bold}Commands:${c.reset}
   ${c.cyan}init${c.reset}                        Call init()
   ${c.cyan}start${c.reset}                       Call start()
   ${c.cyan}stop${c.reset}                        Call stop()
+  ${c.cyan}sync${c.reset}                        Trigger onSync() — run data sync
   ${c.cyan}cron <id>${c.reset}                   Trigger onCronTrigger(id)
   ${c.cyan}session start [id]${c.reset}          Trigger onSessionStart
   ${c.cyan}session end [id]${c.reset}            Trigger onSessionEnd
@@ -980,7 +981,7 @@ function cmdEmit(G: G, rest: string): void {
 // ─── Commands & Completion ──────────────────────────────────────────
 
 const ALL_COMMANDS = [
-  'help', 'tools', 'call', 'init', 'start', 'stop', 'cron', 'session',
+  'help', 'tools', 'call', 'init', 'start', 'stop', 'sync', 'cron', 'session',
   'setup', 'oauth', 'options', 'option', 'state', 'db', 'env', 'backend',
   'socket', 'emit', 'disconnect', 'tdlib', 'reload', 'exit', 'quit',
 ];
@@ -1370,6 +1371,10 @@ async function main(): Promise<void> {
 
         case 'stop':
           await cmdLifecycle(ctx.G, 'stop');
+          break;
+
+        case 'sync':
+          await cmdLifecycle(ctx.G, 'onSync');
           break;
 
         case 'cron':

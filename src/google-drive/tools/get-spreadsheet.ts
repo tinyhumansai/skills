@@ -17,7 +17,7 @@ export const getSpreadsheetTool: ToolDefinition = {
     },
     required: ['spreadsheet_id'],
   },
-  execute(args: Record<string, unknown>): Promise<string> {
+  async execute(args: Record<string, unknown>): Promise<string> {
     try {
       if (!oauth.getCredential()) {
         return Promise.resolve(
@@ -34,7 +34,7 @@ export const getSpreadsheetTool: ToolDefinition = {
         );
       }
       const path = `/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}`;
-      const response = driveFetch(path, { baseUrl: SHEETS_BASE });
+      const response = await driveFetch(path, { baseUrl: SHEETS_BASE });
       if (!response.success) {
         return Promise.resolve(
           JSON.stringify({

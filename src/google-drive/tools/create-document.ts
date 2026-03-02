@@ -15,7 +15,7 @@ export const createDocumentTool: ToolDefinition = {
     },
     required: ['name'],
   },
-  execute(args: Record<string, unknown>): Promise<string> {
+  async execute(args: Record<string, unknown>): Promise<string> {
     try {
       if (!oauth.getCredential()) {
         return Promise.resolve(
@@ -37,7 +37,7 @@ export const createDocumentTool: ToolDefinition = {
       if (folderId) {
         body.parents = [folderId];
       }
-      const response = driveFetch('/drive/v3/files', {
+      const response = await driveFetch('/drive/v3/files', {
         method: 'POST',
         body: JSON.stringify(body),
       });

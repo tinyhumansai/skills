@@ -21,25 +21,22 @@ export interface GmailProfile {
   historyId: string;
 }
 
+/** A single MIME part. Parts can nest recursively for multipart/* messages. */
+export interface GmailMessagePart {
+  partId: string;
+  mimeType: string;
+  filename: string;
+  headers: Array<{ name: string; value: string }>;
+  body: { attachmentId?: string; size: number; data?: string };
+  parts?: GmailMessagePart[];
+}
+
 export interface GmailMessage {
   id: string;
   threadId: string;
   labelIds: string[];
   snippet: string;
-  payload: {
-    partId: string;
-    mimeType: string;
-    filename: string;
-    headers: Array<{ name: string; value: string }>;
-    body: { attachmentId?: string; size: number; data?: string };
-    parts?: Array<{
-      partId: string;
-      mimeType: string;
-      filename: string;
-      headers: Array<{ name: string; value: string }>;
-      body: { attachmentId?: string; size: number; data?: string };
-    }>;
-  };
+  payload: GmailMessagePart;
   sizeEstimate: number;
   historyId: string;
   internalDate: string;
@@ -123,6 +120,7 @@ export interface DatabaseEmail {
   has_attachments: number;
   labels: string;
   size_estimate: number;
+  is_sensitive: number;
   history_id: string;
   internal_date: string;
   created_at: number;
@@ -178,10 +176,22 @@ export interface SyncStatus {
   newEmailsCount: number;
   syncInProgress: boolean;
   nextSyncTime: number;
+  syncProgress: number;
+  syncProgressMessage: string;
 }
 
 export interface ApiError {
   code: number;
   message: string;
   errors?: Array<{ domain: string; reason: string; message: string }>;
+}
+
+export interface GmailSkillState {
+  config: SkillConfig;
+  profile: GmailProfile | null;
+  syncStatus: SyncStatus;
+  activeSessions: string[];
+  rateLimitRemaining: number;
+  rateLimitReset: number;
+  lastApiError: string | null;
 }

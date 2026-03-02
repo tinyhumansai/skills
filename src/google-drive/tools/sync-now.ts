@@ -9,7 +9,7 @@ export const syncNowTool: ToolDefinition = {
     'Trigger an immediate Google Drive sync to refresh local file cache. ' +
     'Returns sync results including count of synced files.',
   input_schema: { type: 'object', properties: {} },
-  execute(): Promise<string> {
+  async execute(): Promise<string> {
     try {
       const s = getGoogleDriveSkillState();
 
@@ -35,13 +35,12 @@ export const syncNowTool: ToolDefinition = {
         );
       }
 
-      performSync();
+      await performSync();
 
       return Promise.resolve(
         JSON.stringify({
           success: !s.syncStatus.lastSyncError,
-          message: 'Sync started',
-          sync_in_progress: true,
+          message: 'Sync completed',
           last_sync_time: s.syncStatus.lastSyncTime
             ? new Date(s.syncStatus.lastSyncTime).toISOString()
             : null,

@@ -59,7 +59,7 @@ async function start(): Promise<void> {
   if (oauth.getCredential()) {
     const cronExpr = `0 */${s.config.syncIntervalMinutes} * * * *`;
     cron.register('google-drive-sync', cronExpr);
-    performSync();
+    await performSync();
   }
   publishSkillState();
 }
@@ -74,12 +74,12 @@ async function stop(): Promise<void> {
 
 async function onCronTrigger(scheduleId: string): Promise<void> {
   if (scheduleId === 'google-drive-sync') {
-    performSync();
+    await performSync();
   }
 }
 
 async function onSync(): Promise<void> {
-  performSync();
+  await performSync();
 }
 
 async function onSessionStart(args: { sessionId: string }): Promise<void> {

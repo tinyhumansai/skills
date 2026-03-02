@@ -1,6 +1,5 @@
 // Google Drive sync engine
 // Fetches file list, spreadsheet metadata/values, and doc content; stores all in SQLite (idempotent).
-// Synchronous execution for QuickJS runtime.
 import { driveFetch } from './api/index';
 import {
   getEntityCounts,
@@ -51,9 +50,9 @@ function publishSyncState(): void {
 
 /**
  * Perform full sync: fetch files from Drive API (paginated), normalize, upsert into DB.
- * Idempotent and safe to re-run. Synchronous; updates sync status on globalThis and state.
+ * Idempotent and safe to re-run. Updates sync status on globalThis and state.
  */
-export function performSync(): void {
+export async function performSync(): Promise<void> {
   const s = getGoogleDriveSkillState();
 
   if (s.syncStatus.syncInProgress) {
@@ -95,7 +94,7 @@ export function performSync(): void {
         params.push('pageToken=' + encodeURIComponent(pageToken));
       }
       const path = '/drive/v3/files?' + params.join('&');
-      const result = driveFetch(path);
+      const result = await driveFetch(path);
 
       if (!result.success) {
         throw new Error(result.error?.message ?? 'Drive API request failed');
@@ -155,7 +154,7 @@ export function performSync(): void {
         break;
       }
       try {
-        const metaRes = driveFetch(`/v4/spreadsheets/${encodeURIComponent(file.id)}`, {
+        const metaRes = await driveFetch(`/v4/spreadsheets/${encodeURIComponent(file.id)}`, {
           baseUrl: SHEETS_BASE,
         });
         if (!metaRes.success) continue;
@@ -179,7 +178,7 @@ export function performSync(): void {
         const firstSheet = meta.sheets?.[0]?.properties;
         const sheetTitle = firstSheet?.title ?? 'Sheet1';
         const rangeA1 = `${sheetTitle}!${DEFAULT_SHEET_RANGE}`;
-        const valRes = driveFetch(
+        const valRes = await driveFetch(
           `/v4/spreadsheets/${encodeURIComponent(file.id)}/values/${encodeURIComponent(rangeA1)}`,
           { baseUrl: SHEETS_BASE }
         );
@@ -202,7 +201,7 @@ export function performSync(): void {
         break;
       }
       try {
-        const docRes = driveFetch(`/v1/documents/${encodeURIComponent(file.id)}`, {
+        const docRes = await driveFetch(`/v1/documents/${encodeURIComponent(file.id)}`, {
           baseUrl: DOCS_BASE,
         });
         if (!docRes.success) continue;

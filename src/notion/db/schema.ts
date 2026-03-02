@@ -1,5 +1,6 @@
 // Database schema initialization for Notion skill
 // Creates SQLite tables for pages, databases, users, and sync state
+// All tables are scoped by credential_id to isolate data per integration.
 import '../state';
 
 /**
@@ -11,7 +12,8 @@ export function initializeNotionSchema(): void {
   // Pages table: metadata + extracted content
   db.exec(
     `CREATE TABLE IF NOT EXISTS pages (
-      id TEXT PRIMARY KEY,
+      id TEXT NOT NULL,
+      credential_id TEXT NOT NULL DEFAULT '',
       title TEXT NOT NULL,
       url TEXT,
       icon TEXT,
@@ -25,7 +27,9 @@ export function initializeNotionSchema(): void {
       content_text TEXT,
       content_synced_at INTEGER,
       page_entities TEXT,
-      synced_at INTEGER NOT NULL
+      backend_submitted INTEGER NOT NULL DEFAULT 0,
+      synced_at INTEGER NOT NULL,
+      PRIMARY KEY (credential_id, id)
     )`,
     []
   );
@@ -33,7 +37,8 @@ export function initializeNotionSchema(): void {
   // Databases table: metadata
   db.exec(
     `CREATE TABLE IF NOT EXISTS databases (
-      id TEXT PRIMARY KEY,
+      id TEXT NOT NULL,
+      credential_id TEXT NOT NULL DEFAULT '',
       title TEXT NOT NULL,
       description TEXT,
       url TEXT,
@@ -42,7 +47,9 @@ export function initializeNotionSchema(): void {
       created_time TEXT NOT NULL,
       last_edited_time TEXT NOT NULL,
       archived INTEGER NOT NULL DEFAULT 0,
-      synced_at INTEGER NOT NULL
+      backend_submitted INTEGER NOT NULL DEFAULT 0,
+      synced_at INTEGER NOT NULL,
+      PRIMARY KEY (credential_id, id)
     )`,
     []
   );
@@ -50,12 +57,14 @@ export function initializeNotionSchema(): void {
   // Users table
   db.exec(
     `CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
+      id TEXT NOT NULL,
+      credential_id TEXT NOT NULL DEFAULT '',
       name TEXT NOT NULL,
       user_type TEXT NOT NULL,
       email TEXT,
       avatar_url TEXT,
-      synced_at INTEGER NOT NULL
+      synced_at INTEGER NOT NULL,
+      PRIMARY KEY (credential_id, id)
     )`,
     []
   );
@@ -63,7 +72,8 @@ export function initializeNotionSchema(): void {
   // Database rows table: stores rows/entries within databases with their properties
   db.exec(
     `CREATE TABLE IF NOT EXISTS database_rows (
-      id TEXT PRIMARY KEY,
+      id TEXT NOT NULL,
+      credential_id TEXT NOT NULL DEFAULT '',
       database_id TEXT NOT NULL,
       title TEXT NOT NULL,
       url TEXT,
@@ -75,8 +85,10 @@ export function initializeNotionSchema(): void {
       created_time TEXT NOT NULL,
       last_edited_time TEXT NOT NULL,
       archived INTEGER NOT NULL DEFAULT 0,
+      backend_submitted INTEGER NOT NULL DEFAULT 0,
       synced_at INTEGER NOT NULL,
-      FOREIGN KEY (database_id) REFERENCES databases(id)
+      PRIMARY KEY (credential_id, id),
+      FOREIGN KEY (credential_id, database_id) REFERENCES databases(credential_id, id)
     )`,
     []
   );
@@ -86,6 +98,7 @@ export function initializeNotionSchema(): void {
   db.exec(
     `CREATE TABLE IF NOT EXISTS summaries (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      credential_id TEXT NOT NULL DEFAULT '',
       page_id TEXT NOT NULL,
       url TEXT,
       summary TEXT NOT NULL,
@@ -103,38 +116,209 @@ export function initializeNotionSchema(): void {
     []
   );
 
+  // ---------------------------------------------------------------------------
+  // Migrations for existing installs
+  // ---------------------------------------------------------------------------
+
+  // Migrate: add credential_id to all tables
+  migrateAddColumn('pages', 'credential_id', "TEXT NOT NULL DEFAULT ''");
+  migrateAddColumn('databases', 'credential_id', "TEXT NOT NULL DEFAULT ''");
+  migrateAddColumn('users', 'credential_id', "TEXT NOT NULL DEFAULT ''");
+  migrateAddColumn('database_rows', 'credential_id', "TEXT NOT NULL DEFAULT ''");
+  migrateAddColumn('summaries', 'credential_id', "TEXT NOT NULL DEFAULT ''");
+
+  // Migrate: add backend_submitted to content tables
+  migrateAddColumn('pages', 'backend_submitted', 'INTEGER NOT NULL DEFAULT 0');
+  migrateAddColumn('databases', 'backend_submitted', 'INTEGER NOT NULL DEFAULT 0');
+  migrateAddColumn('database_rows', 'backend_submitted', 'INTEGER NOT NULL DEFAULT 0');
+
   // Migrate: add page_entities column if it doesn't exist (for existing installs)
-  try {
-    db.exec('ALTER TABLE pages ADD COLUMN page_entities TEXT', []);
-  } catch {
-    // Column already exists
-  }
+  migrateAddColumn('pages', 'page_entities', 'TEXT');
 
   // Migrate: add url column to summaries if it doesn't exist (for existing installs)
-  try {
-    db.exec('ALTER TABLE summaries ADD COLUMN url TEXT', []);
-  } catch {
-    // Column already exists
-  }
+  migrateAddColumn('summaries', 'url', 'TEXT');
 
-  // Migrate: drop old FK constraint on summaries (page_id now holds page OR row IDs)
-  // SQLite doesn't enforce FKs by default, so this is just documentation cleanup.
+  // Migrate: composite primary key (credential_id, id) for credential isolation
+  migrateCompositePrimaryKey(
+    'pages',
+    `CREATE TABLE pages_new (
+      id TEXT NOT NULL,
+      credential_id TEXT NOT NULL DEFAULT '',
+      title TEXT NOT NULL,
+      url TEXT,
+      icon TEXT,
+      parent_type TEXT NOT NULL,
+      parent_id TEXT,
+      created_by_id TEXT,
+      last_edited_by_id TEXT,
+      created_time TEXT NOT NULL,
+      last_edited_time TEXT NOT NULL,
+      archived INTEGER NOT NULL DEFAULT 0,
+      content_text TEXT,
+      content_synced_at INTEGER,
+      page_entities TEXT,
+      backend_submitted INTEGER NOT NULL DEFAULT 0,
+      synced_at INTEGER NOT NULL,
+      PRIMARY KEY (credential_id, id)
+    )`
+  );
+  migrateCompositePrimaryKey(
+    'databases',
+    `CREATE TABLE databases_new (
+      id TEXT NOT NULL,
+      credential_id TEXT NOT NULL DEFAULT '',
+      title TEXT NOT NULL,
+      description TEXT,
+      url TEXT,
+      icon TEXT,
+      property_count INTEGER NOT NULL DEFAULT 0,
+      created_time TEXT NOT NULL,
+      last_edited_time TEXT NOT NULL,
+      archived INTEGER NOT NULL DEFAULT 0,
+      backend_submitted INTEGER NOT NULL DEFAULT 0,
+      synced_at INTEGER NOT NULL,
+      PRIMARY KEY (credential_id, id)
+    )`
+  );
+  migrateCompositePrimaryKey(
+    'users',
+    `CREATE TABLE users_new (
+      id TEXT NOT NULL,
+      credential_id TEXT NOT NULL DEFAULT '',
+      name TEXT NOT NULL,
+      user_type TEXT NOT NULL,
+      email TEXT,
+      avatar_url TEXT,
+      synced_at INTEGER NOT NULL,
+      PRIMARY KEY (credential_id, id)
+    )`
+  );
+  migrateCompositePrimaryKey(
+    'database_rows',
+    `CREATE TABLE database_rows_new (
+      id TEXT NOT NULL,
+      credential_id TEXT NOT NULL DEFAULT '',
+      database_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      url TEXT,
+      icon TEXT,
+      properties_json TEXT,
+      properties_text TEXT,
+      created_by_id TEXT,
+      last_edited_by_id TEXT,
+      created_time TEXT NOT NULL,
+      last_edited_time TEXT NOT NULL,
+      archived INTEGER NOT NULL DEFAULT 0,
+      backend_submitted INTEGER NOT NULL DEFAULT 0,
+      synced_at INTEGER NOT NULL,
+      PRIMARY KEY (credential_id, id),
+      FOREIGN KEY (credential_id, database_id) REFERENCES databases(credential_id, id)
+    )`
+  );
 
-  // Create indexes for performance
-  db.exec('CREATE INDEX IF NOT EXISTS idx_pages_last_edited ON pages(last_edited_time DESC)', []);
-  db.exec('CREATE INDEX IF NOT EXISTS idx_pages_parent ON pages(parent_type, parent_id)', []);
-  db.exec('CREATE INDEX IF NOT EXISTS idx_pages_archived ON pages(archived)', []);
+  // ---------------------------------------------------------------------------
+  // Indexes
+  // ---------------------------------------------------------------------------
+
+  // credential_id indexes for scoped queries
+  db.exec('CREATE INDEX IF NOT EXISTS idx_pages_cred ON pages(credential_id)', []);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_databases_cred ON databases(credential_id)', []);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_cred ON users(credential_id)', []);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_db_rows_cred ON database_rows(credential_id)', []);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_summaries_cred ON summaries(credential_id)', []);
+
+  // backend_submitted indexes for submission queries
   db.exec(
-    'CREATE INDEX IF NOT EXISTS idx_databases_last_edited ON databases(last_edited_time DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_pages_backend_submitted ON pages(credential_id, backend_submitted)',
     []
   );
-  db.exec('CREATE INDEX IF NOT EXISTS idx_db_rows_database_id ON database_rows(database_id)', []);
   db.exec(
-    'CREATE INDEX IF NOT EXISTS idx_db_rows_last_edited ON database_rows(last_edited_time DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_databases_backend_submitted ON databases(credential_id, backend_submitted)',
     []
   );
-  db.exec('CREATE INDEX IF NOT EXISTS idx_summaries_synced ON summaries(synced)', []);
-  db.exec('CREATE INDEX IF NOT EXISTS idx_summaries_page_id ON summaries(page_id)', []);
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_db_rows_backend_submitted ON database_rows(credential_id, backend_submitted)',
+    []
+  );
+
+  // Query performance indexes
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_pages_last_edited ON pages(credential_id, last_edited_time DESC)',
+    []
+  );
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_pages_parent ON pages(credential_id, parent_type, parent_id)',
+    []
+  );
+  db.exec('CREATE INDEX IF NOT EXISTS idx_pages_archived ON pages(credential_id, archived)', []);
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_databases_last_edited ON databases(credential_id, last_edited_time DESC)',
+    []
+  );
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_db_rows_database_id ON database_rows(credential_id, database_id)',
+    []
+  );
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_db_rows_last_edited ON database_rows(credential_id, last_edited_time DESC)',
+    []
+  );
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_summaries_synced ON summaries(credential_id, synced)',
+    []
+  );
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_summaries_page_id ON summaries(credential_id, page_id)',
+    []
+  );
 
   console.log('[notion] Database schema initialized successfully');
+}
+
+// ---------------------------------------------------------------------------
+// Migration helper
+// ---------------------------------------------------------------------------
+
+/** Safely add a column to an existing table. No-op if the column already exists. */
+function migrateAddColumn(table: string, column: string, type: string): void {
+  try {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`, []);
+    console.log(`[notion] Added ${column} column to ${table} table`);
+  } catch {
+    // Column already exists — expected for new installs
+  }
+}
+
+/**
+ * Recreate a table with composite PRIMARY KEY (credential_id, id) for credential isolation.
+ * No-op if the table already has the composite key. Drops and recreates indexes via later CREATE INDEX.
+ * Uses an explicit column list for the INSERT/SELECT so column ordering is stable and future schema changes don't break the migration.
+ */
+function migrateCompositePrimaryKey(tableName: string, createNewTableSql: string): void {
+  try {
+    const row = db.get('SELECT sql FROM sqlite_master WHERE type = ? AND name = ?', [
+      'table',
+      tableName,
+    ]) as { sql: string } | undefined;
+    if (!row?.sql || row.sql.includes('PRIMARY KEY (credential_id, id)')) return;
+    const newTableName = `${tableName}_new`;
+    db.exec(createNewTableSql, []);
+    const columns = db.all(`PRAGMA table_info(${tableName})`, []) as Array<{
+      cid: number;
+      name: string;
+    }>;
+    const columnList = columns
+      .sort((a, b) => a.cid - b.cid)
+      .map(c => c.name)
+      .join(', ');
+    db.exec(
+      `INSERT INTO ${newTableName} (${columnList}) SELECT ${columnList} FROM ${tableName}`,
+      []
+    );
+    db.exec(`DROP TABLE ${tableName}`, []);
+    db.exec(`ALTER TABLE ${newTableName} RENAME TO ${tableName}`, []);
+    console.log(`[notion] Migrated ${tableName} to composite primary key (credential_id, id)`);
+  } catch (e) {
+    console.warn(`[notion] migrateCompositePrimaryKey(${tableName}):`, e);
+  }
 }
