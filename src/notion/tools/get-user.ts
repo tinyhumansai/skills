@@ -13,14 +13,16 @@ export const getUserTool: ToolDefinition = {
   async execute(args: Record<string, unknown>): Promise<string> {
     try {
       const userId = (args.user_id as string) || '';
+
       if (!userId) {
         return JSON.stringify({ error: 'user_id is required' });
       }
 
       const user = await notionApi.getUser(userId);
-
-      return JSON.stringify(formatUserSummary(user as Record<string, unknown>));
+      const summary = formatUserSummary(user as Record<string, unknown>);
+      return JSON.stringify(summary);
     } catch (e) {
+      console.error('[notion][tool:get-user] Error while fetching user:', e);
       return JSON.stringify({ error: formatApiError(e) });
     }
   },

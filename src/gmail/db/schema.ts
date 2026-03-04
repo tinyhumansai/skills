@@ -99,63 +99,18 @@ export function initializeGmailSchema(): void {
     []
   );
 
-  // Create indexes for performance
-  db.exec('CREATE INDEX IF NOT EXISTS idx_emails_cred ON emails (credential_id)', []);
-  db.exec(
-    'CREATE INDEX IF NOT EXISTS idx_emails_thread_id ON emails (credential_id, thread_id)',
-    []
-  );
-  db.exec('CREATE INDEX IF NOT EXISTS idx_emails_date ON emails (credential_id, date DESC)', []);
-  db.exec(
-    'CREATE INDEX IF NOT EXISTS idx_emails_sender ON emails (credential_id, sender_email)',
-    []
-  );
-  db.exec('CREATE INDEX IF NOT EXISTS idx_emails_labels ON emails (credential_id, labels)', []);
-  db.exec('CREATE INDEX IF NOT EXISTS idx_emails_is_read ON emails (credential_id, is_read)', []);
-  db.exec('CREATE INDEX IF NOT EXISTS idx_threads_cred ON threads (credential_id)', []);
-  db.exec(
-    'CREATE INDEX IF NOT EXISTS idx_threads_date ON threads (credential_id, last_message_date DESC)',
-    []
-  );
-  db.exec('CREATE INDEX IF NOT EXISTS idx_threads_labels ON threads (credential_id, labels)', []);
-  db.exec('CREATE INDEX IF NOT EXISTS idx_attachments_cred ON attachments (credential_id)', []);
-  db.exec(
-    'CREATE INDEX IF NOT EXISTS idx_attachments_message ON attachments (credential_id, message_id)',
-    []
-  );
-
-  // Migrations — safely add columns that may not exist on older schemas.
+  // Migrations — run before creating indexes so credential_id exists when idx_emails_cred is created
   const columns = db.all('PRAGMA table_info(emails)', []);
   const columnNames = new Set(columns.map(col => (col as { name: string }).name));
 
-  if (!columnNames.has('backend_submitted')) {
-    db.exec('ALTER TABLE emails ADD COLUMN backend_submitted INTEGER NOT NULL DEFAULT 0', []);
-    db.exec(
-      'CREATE INDEX IF NOT EXISTS idx_emails_backend_submitted ON emails (credential_id, backend_submitted)',
-      []
-    );
-    console.log('[gmail] Added backend_submitted column to emails table');
-  }
-
-  if (!columnNames.has('is_sensitive')) {
-    db.exec('ALTER TABLE emails ADD COLUMN is_sensitive INTEGER NOT NULL DEFAULT 0', []);
-    db.exec(
-      'CREATE INDEX IF NOT EXISTS idx_emails_is_sensitive ON emails (credential_id, is_sensitive)',
-      []
-    );
-    console.log('[gmail] Added is_sensitive column to emails table');
-  }
-
-  // Migration: add credential_id to existing tables that lack it
+  // Migration: add credential_id to existing tables that lack it (e.g. DBs created before this column)
   if (!columnNames.has('credential_id')) {
     db.exec("ALTER TABLE emails ADD COLUMN credential_id TEXT NOT NULL DEFAULT ''", []);
-    db.exec('CREATE INDEX IF NOT EXISTS idx_emails_cred ON emails (credential_id)', []);
 
     const threadCols = db.all('PRAGMA table_info(threads)', []);
     const threadColNames = new Set(threadCols.map(col => (col as { name: string }).name));
     if (!threadColNames.has('credential_id')) {
       db.exec("ALTER TABLE threads ADD COLUMN credential_id TEXT NOT NULL DEFAULT ''", []);
-      db.exec('CREATE INDEX IF NOT EXISTS idx_threads_cred ON threads (credential_id)', []);
     }
 
     const labelCols = db.all('PRAGMA table_info(labels)', []);
@@ -168,11 +123,53 @@ export function initializeGmailSchema(): void {
     const attColNames = new Set(attCols.map(col => (col as { name: string }).name));
     if (!attColNames.has('credential_id')) {
       db.exec("ALTER TABLE attachments ADD COLUMN credential_id TEXT NOT NULL DEFAULT ''", []);
-      db.exec('CREATE INDEX IF NOT EXISTS idx_attachments_cred ON attachments (credential_id)', []);
     }
 
     console.log('[gmail] Added credential_id column to all tables');
   }
+
+  if (!columnNames.has('backend_submitted')) {
+    db.exec('ALTER TABLE emails ADD COLUMN backend_submitted INTEGER NOT NULL DEFAULT 0', []);
+    console.log('[gmail] Added backend_submitted column to emails table');
+  }
+
+  if (!columnNames.has('is_sensitive')) {
+    db.exec('ALTER TABLE emails ADD COLUMN is_sensitive INTEGER NOT NULL DEFAULT 0', []);
+    console.log('[gmail] Added is_sensitive column to emails table');
+  }
+
+  // Create indexes for performance (credential_id guaranteed to exist after migrations)
+  db.exec('CREATE INDEX IF NOT EXISTS idx_emails_cred ON emails (credential_id)', []);
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_emails_thread_id ON emails (credential_id, thread_id)',
+    []
+  );
+  db.exec('CREATE INDEX IF NOT EXISTS idx_emails_date ON emails (credential_id, date DESC)', []);
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_emails_sender ON emails (credential_id, sender_email)',
+    []
+  );
+  db.exec('CREATE INDEX IF NOT EXISTS idx_emails_labels ON emails (credential_id, labels)', []);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_emails_is_read ON emails (credential_id, is_read)', []);
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_emails_backend_submitted ON emails (credential_id, backend_submitted)',
+    []
+  );
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_emails_is_sensitive ON emails (credential_id, is_sensitive)',
+    []
+  );
+  db.exec('CREATE INDEX IF NOT EXISTS idx_threads_cred ON threads (credential_id)', []);
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_threads_date ON threads (credential_id, last_message_date DESC)',
+    []
+  );
+  db.exec('CREATE INDEX IF NOT EXISTS idx_threads_labels ON threads (credential_id, labels)', []);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_attachments_cred ON attachments (credential_id)', []);
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_attachments_message ON attachments (credential_id, message_id)',
+    []
+  );
 
   console.log('[gmail] Database schema initialized successfully');
 }

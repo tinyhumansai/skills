@@ -19,15 +19,39 @@ export async function notionFetch<T>(
   endpoint: string,
   options: { method?: string; body?: unknown } = {}
 ): Promise<T> {
-  if (!oauth.getCredential()) throw new Error('Notion not connected. Please complete setup first.');
+  const credential = oauth.getCredential();
+  if (!credential) throw new Error('Notion not connected. Please complete setup first.');
+
+  const method = options.method || 'GET';
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const useAccessToken = !!credential.accessToken;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const response = await oauth.fetch(`/v1${endpoint}`, {
-      method: options.method || 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      body: options.body ? JSON.stringify(options.body) : undefined,
-      timeout: 30,
-    });
+    let response: { status: number; headers: Record<string, string>; body: string };
+
+    if (useAccessToken) {
+      // Prefer direct Notion API call with access token provided by the frontend,
+      // mirroring the Gmail skill pattern.
+      const url = `https://api.notion.com/v1${path}`;
+      response = await net.fetch(url, {
+        method,
+        headers: {
+          Authorization: `Bearer ${credential.accessToken as string}`,
+          'Content-Type': 'application/json',
+          'Notion-Version': '2022-06-28',
+        },
+        body: options.body ? JSON.stringify(options.body) : undefined,
+        timeout: 30,
+      });
+    } else {
+      // Fallback: use server-side OAuth proxy (original behavior)
+      response = await oauth.fetch(`/v1${path}`, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: options.body ? JSON.stringify(options.body) : undefined,
+        timeout: 30,
+      });
+    }
 
     // -- 429 Rate Limit: back off and retry ----------------------------------
     if (response.status === 429 && attempt < MAX_RETRIES) {
@@ -35,9 +59,6 @@ export async function notionFetch<T>(
       const waitMs = retryAfter
         ? parseInt(retryAfter, 10) * 1000
         : DEFAULT_BACKOFF_MS * (attempt + 1);
-      console.log(
-        `[notion] notionFetch: 429 rate-limited endpoint=${endpoint} — retrying in ${waitMs}ms (attempt ${attempt + 1}/${MAX_RETRIES})`
-      );
       await sleep(waitMs);
       continue;
     }
@@ -53,10 +74,12 @@ export async function notionFetch<T>(
       } catch {
         // Use default message
       }
+      console.error('[notion][helpers] notionFetch error body:', errorBody);
       throw new Error(message);
     }
 
-    return JSON.parse(response.body as string) as T;
+    const parsed = JSON.parse(response.body as string) as T;
+    return parsed;
   }
 
   // Exhausted retries (only reachable after repeated 429s)
@@ -163,9 +186,41 @@ export function formatBlockSummary(block: Record<string, unknown>): Record<strin
 }
 
 export function formatUserSummary(user: Record<string, unknown>): Record<string, unknown> {
-  const person = user.person as Record<string, unknown> | undefined;
-  const email = person?.email || (user as Record<string, unknown>).email || '';
-  return { id: user.id, name: user.name, email, type: user.type, avatar_url: user.avatar_url };
+  // Default to top-level user fields
+  let id = user.id as string;
+  let name = user.name as string | undefined;
+  let email: string | undefined;
+  let avatarUrl = user.avatar_url as string | undefined;
+  let userType = user.type as string | undefined;
+
+  // For bot-type users, drill into bot.owner.user.person to get the human owner info
+  if (userType === 'bot') {
+    const bot = user.bot as Record<string, unknown> | undefined;
+    const owner = bot?.owner as Record<string, unknown> | undefined;
+    const ownerUser = owner?.user as Record<string, unknown> | undefined;
+    const ownerPerson = ownerUser?.person as Record<string, unknown> | undefined;
+
+    if (ownerUser) {
+      id = (ownerUser.id as string) || id;
+      name = (ownerUser.name as string) || name;
+      avatarUrl = (ownerUser.avatar_url as string) || avatarUrl;
+      userType = (ownerUser.type as string) || userType;
+    }
+    if (ownerPerson) {
+      email = (ownerPerson.email as string) || email;
+    }
+  } else {
+    const person = user.person as Record<string, unknown> | undefined;
+    email = (person?.email as string) || (user.email as string | undefined);
+  }
+
+  return {
+    id,
+    name: name ?? null,
+    email: email ?? null,
+    type: userType ?? null,
+    avatar_url: avatarUrl ?? null,
+  };
 }
 
 // ---------------------------------------------------------------------------
