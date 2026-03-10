@@ -5,25 +5,47 @@ import { buildParagraphBlock, formatApiError, formatBlockSummary } from '../help
 export const appendTextTool: ToolDefinition = {
   name: 'append-text',
   description:
-    'Append text content to a page or block. Creates paragraph blocks with the given text.',
+    'Append text content to a page or block. Use the page id (or block_id) from list-all-pages or get-page. Creates paragraph blocks with the given text.',
   input_schema: {
     type: 'object',
     properties: {
-      block_id: { type: 'string', description: 'The page or block ID to append to' },
-      text: { type: 'string', description: 'Text content to append' },
+      block_id: {
+        type: 'string',
+        description: 'The page or block ID to append to (use page id from list-all-pages)',
+      },
+      page_id: {
+        type: 'string',
+        description: 'Alias for block_id when appending to a page (same as block_id)',
+      },
+      text: {
+        type: 'string',
+        description: 'The text to append (required). Pass the exact content to add to the page.',
+      },
+      content: {
+        type: 'string',
+        description: 'Alias for text — the content to append to the page',
+      },
     },
-    required: ['block_id', 'text'],
+    required: ['text'],
   },
   async execute(args: Record<string, unknown>): Promise<string> {
     try {
-      const blockId = (args.block_id as string) || '';
-      const text = (args.text as string) || '';
+      const blockId = (args.block_id as string) || (args.page_id as string) || '';
+      const text = String(args.text ?? args.content ?? '').trim();
 
       if (!blockId) {
-        return JSON.stringify({ error: 'block_id is required' });
+        return JSON.stringify({
+          success: false,
+          error:
+            'block_id or page_id is required. Use the page id from list-all-pages or get-page.',
+        });
       }
       if (!text) {
-        return JSON.stringify({ error: 'text is required' });
+        return JSON.stringify({
+          success: false,
+          error:
+            'text (or content) is required and cannot be empty. Pass the string to append, e.g. { "block_id": "<page-id>", "text": "Your content here" }.',
+        });
       }
 
       const paragraphs = text.split('\n').filter(p => p.trim());

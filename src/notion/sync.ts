@@ -58,19 +58,19 @@ export function performSync(): void {
       console.log('[notion] Sync phase 2: pages & databases');
       await syncSearchItems();
 
-      // Phase 2.5: Sync database rows
+      // Phase 2.5: Sync database rows (time-budgeted to avoid Rust async timeout)
       console.log('[notion] Sync phase 2.5: database rows');
-      await syncDatabaseRows();
+      await syncDatabaseRows(startTime, CONTENT_SYNC_TIME_BUDGET_MS);
 
-      // Phase 3: Sync page content (block text)
+      // Phase 3: Sync page content (block text, time-budgeted to avoid Rust async timeout)
       if (s.config.contentSyncEnabled) {
         console.log('[notion] Sync phase 3: page content');
-        await syncContent();
+        await syncContent(startTime, CONTENT_SYNC_TIME_BUDGET_MS);
       }
 
       // Phase 4: Sync unsynced summaries to the server
       console.log('[notion] Sync phase 4: sync summaries to server');
-      syncSummariesToServer();
+      // syncSummariesToServer();
 
       // Phase 5: Submit new data to backend for processing
       console.log('[notion] Sync phase 5: submit new data to backend');
@@ -322,7 +322,14 @@ async function syncDataSources(
 /** Max rows to sync per database per sync cycle */
 const MAX_ROWS_PER_DATABASE = 200;
 
-async function syncDatabaseRows(): Promise<void> {
+/**
+ * Maximum ms for phases 3+ (content sync, submit) to prevent the Rust async
+ * operation timeout (~120s). Mirrors the google-drive sync time budget pattern.
+ * Budget is measured from the overall sync startTime.
+ */
+const CONTENT_SYNC_TIME_BUDGET_MS = 18_000;
+
+async function syncDatabaseRows(startTime: number, budgetMs: number): Promise<void> {
   // Get all locally synced databases
   const databases = getLocalDatabases({ limit: 100 }) as Array<{ id: string; title: string }>;
 
@@ -341,6 +348,10 @@ async function syncDatabaseRows(): Promise<void> {
   let dbsSynced = 0;
 
   for (const database of databases) {
+    if (Date.now() - startTime > budgetMs) {
+      console.log('[notion] DB row sync time budget reached, deferring remaining databases');
+      break;
+    }
     try {
       let startCursor: string | undefined;
       let hasMore = true;
@@ -441,7 +452,7 @@ async function syncDatabaseRows(): Promise<void> {
 // Phase 3: Sync page content (block text extraction)
 // ---------------------------------------------------------------------------
 
-async function syncContent(): Promise<void> {
+async function syncContent(startTime: number, budgetMs: number): Promise<void> {
   const s = getNotionSkillState();
   const batchSize = s.config.maxPagesPerContentSync;
   const cutoffIso = new Date(Date.now() - THIRTY_DAYS_MS).toISOString();
@@ -450,6 +461,10 @@ async function syncContent(): Promise<void> {
   let failed = 0;
 
   for (const page of pages) {
+    if (Date.now() - startTime > budgetMs) {
+      console.log('[notion] Content sync time budget reached, deferring remaining pages');
+      break;
+    }
     try {
       const text = await fetchBlockTreeText(page.id, 2);
       updatePageContent(page.id, text);
@@ -474,8 +489,9 @@ async function syncContent(): Promise<void> {
  * Sync unsynced summaries to the server via net.fetch().
  * Reads summaries with synced=0, submits each to the backend API,
  * and marks them as synced on success.
+ * Reserved for Phase 4 — currently not called to avoid extra network dependency.
  */
-async function syncSummariesToServer(): Promise<void> {
+async function _syncSummariesToServer(): Promise<void> {
   const batch = getUnsyncedSummaries(100);
   if (batch.length === 0) {
     console.log('[notion] No unsynced summaries to send');
@@ -545,6 +561,7 @@ async function syncSummariesToServer(): Promise<void> {
     `[notion] Server sync: ${sent} summaries sent${failed > 0 ? `, ${failed} failed` : ''}`
   );
 }
+void _syncSummariesToServer; // Reserved for Phase 4; reference to avoid TS6133
 
 // ---------------------------------------------------------------------------
 // Phase 5: Submit new data to backend for processing

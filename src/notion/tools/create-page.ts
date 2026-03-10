@@ -64,11 +64,19 @@ export const createPageTool: ToolDefinition = {
         body.properties = { title: { title: buildRichText(title) } };
       }
 
-      if (content) {
+      // The Notion API rejects `children` when the parent is a database —
+      // content must be appended after page creation.
+      const appendContentAfterCreate = parentType === 'database_id' && !!content;
+      if (content && !appendContentAfterCreate) {
         body.children = [buildParagraphBlock(content)];
       }
 
       const page = await notionApi.createPage(body);
+      const pageId = (page as Record<string, unknown>).id as string;
+
+      if (appendContentAfterCreate && content) {
+        await notionApi.appendBlockChildren(pageId, [buildParagraphBlock(content)]);
+      }
 
       return JSON.stringify({
         success: true,

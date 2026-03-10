@@ -1,10 +1,14 @@
 // Tool: notion-create-database
+// Request: { parent: { type: "page_id", page_id }, title: [{ text: { content } }], properties? }
+// Response: { object, id }
 import { notionApi } from '../api/index';
-import { buildRichText, formatApiError, formatDatabaseSummary } from '../helpers';
+import { buildRichText, formatApiError } from '../helpers';
 
 export const createDatabaseTool: ToolDefinition = {
   name: 'create-database',
-  description: 'Create a new database in Notion. Must specify parent page and property schema.',
+  description:
+    'Create a new database in Notion. Specify parent page_id and title. ' +
+    'Optionally provide properties schema as JSON.',
   input_schema: {
     type: 'object',
     properties: {
@@ -35,7 +39,6 @@ export const createDatabaseTool: ToolDefinition = {
       }
 
       let properties: Record<string, unknown> = { Name: { title: {} } };
-
       if (propsJson) {
         try {
           properties = JSON.parse(propsJson);
@@ -44,14 +47,16 @@ export const createDatabaseTool: ToolDefinition = {
         }
       }
 
-      const body = { parent: { page_id: parentId }, title: buildRichText(title), properties };
+      const body = {
+        parent: { type: 'page_id' as const, page_id: parentId },
+        title: buildRichText(title),
+        properties,
+      };
 
-      const dbResult = await notionApi.createDatabase(body);
+      const dbResult = await notionApi.createDatabase(body as Record<string, unknown>);
+      const rec = dbResult as Record<string, unknown>;
 
-      return JSON.stringify({
-        success: true,
-        database: formatDatabaseSummary(dbResult as Record<string, unknown>),
-      });
+      return JSON.stringify({ object: rec.object ?? 'database', id: rec.id });
     } catch (e) {
       return JSON.stringify({ error: formatApiError(e) });
     }

@@ -3,7 +3,7 @@
 // Supports pages, databases, blocks, users, comments, and local search.
 // Authentication is handled via the platform OAuth bridge.
 import './api/index';
-import { getEntityCounts } from './db/helpers';
+import { getEntityCounts, getLocalPages } from './db/helpers';
 import { initializeNotionSchema } from './db/schema';
 import { getNotionSkillState } from './state';
 import type { NotionSkillConfig } from './state';
@@ -122,11 +122,14 @@ async function onOAuthComplete(args: OAuthCompleteArgs): Promise<OAuthCompleteRe
 
   state.set('config', s.config);
 
-  // Start sync schedule and trigger initial sync
+  // Start sync schedule
   const cronExpr = `0 */${s.config.syncIntervalMinutes} * * * *`;
   cron.register('notion-sync', cronExpr);
 
   publishState();
+
+  // Trigger initial sync in background — must not block onOAuthComplete (30s hard deadline)
+  performSync();
 }
 
 async function onOAuthRevoked(args: OAuthRevokedArgs): Promise<void> {
@@ -234,6 +237,29 @@ async function publishState(): Promise<void> {
   const s = getNotionSkillState();
   const isConnected = !!oauth.getCredential();
 
+  // Fetch recent pages from local DB (populated after sync)
+  let pages: Array<{
+    id: string;
+    title: string;
+    url: string | null;
+    last_edited_time: string;
+    content_text: string | null;
+  }> = [];
+  if (isConnected) {
+    try {
+      const localPages = getLocalPages({ limit: 100 });
+      pages = localPages.map(p => ({
+        id: p.id,
+        title: p.title,
+        url: p.url,
+        last_edited_time: p.last_edited_time,
+        content_text: p.content_text,
+      }));
+    } catch (e) {
+      console.error('[notion] publishState: failed to load local pages:', e);
+    }
+  }
+
   state.setPartial({
     // Standard SkillHostConnectionState fields
     connection_status: isConnected ? 'connected' : 'disconnected',
@@ -253,6 +279,7 @@ async function publishState(): Promise<void> {
     pagesWithContent: s.syncStatus.pagesWithContent,
     pagesWithSummary: s.syncStatus.pagesWithSummary,
     lastSyncError: s.syncStatus.lastSyncError,
+    pages,
   });
 }
 
@@ -315,5 +342,11 @@ const skill: Skill = {
   publishState,
   onPing,
 };
+
+// Expose skill for QuickJS runtime (extract_tools and start_async_tool_call read globalThis.__skill.default.tools)
+const g = globalThis as Record<string, unknown>;
+if (typeof g.__skill === 'undefined') {
+  g.__skill = { default: skill };
+}
 
 export default skill;

@@ -101,6 +101,15 @@ export function formatApiError(error: unknown): string {
   if (message.includes('403')) {
     return 'Forbidden. The integration may not have access to this resource.';
   }
+  if (
+    message.toLowerCase().includes('insufficient permissions') ||
+    message.toLowerCase().includes('insert comment')
+  ) {
+    return (
+      'Insufficient permissions: the Notion integration must have "Insert comment" (and optionally "Read comment") capability. ' +
+      'Enable it in Notion: Settings & members → Connections → your integration → Capabilities.'
+    );
+  }
 
   return message;
 }
@@ -227,12 +236,18 @@ export function formatUserSummary(user: Record<string, unknown>): Record<string,
 // Rich text builders for creating content
 // ---------------------------------------------------------------------------
 
+/** Rich text item for block creation; matches Notion API request format. */
 export function buildRichText(text: string): unknown[] {
   return [{ type: 'text', text: { content: text } }];
 }
 
+/**
+ * Build a paragraph block for append-block-children requests.
+ * Uses minimal request shape (type + paragraph.rich_text) per Notion API.
+ * Do not add "object" or "children" to avoid validation errors.
+ */
 export function buildParagraphBlock(text: string): Record<string, unknown> {
-  return { object: 'block', type: 'paragraph', paragraph: { rich_text: buildRichText(text) } };
+  return { type: 'paragraph', paragraph: { rich_text: buildRichText(text) } };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,10 +1,31 @@
 // Tool: notion-list-all-pages
-import { notionApi } from '../api/index';
-import { formatApiError, formatPageSummary } from '../helpers';
+// Uses local synced pages to avoid slow Notion API calls that can trigger "Tool async execution timed out".
+import { getLocalPages } from '../db/helpers';
+
+function formatLocalPageSummary(p: {
+  id: string;
+  title: string;
+  url: string | null;
+  created_time: string;
+  last_edited_time: string;
+  archived: number;
+  parent_type: string;
+}): Record<string, unknown> {
+  return {
+    id: p.id,
+    title: p.title,
+    url: p.url,
+    created_time: p.created_time,
+    last_edited_time: p.last_edited_time,
+    archived: !!p.archived,
+    parent_type: p.parent_type,
+  };
+}
 
 export const listAllPagesTool: ToolDefinition = {
   name: 'list-all-pages',
-  description: 'List all pages in the workspace that the integration has access to.',
+  description:
+    'List pages in the workspace (from last sync). Returns synced pages; run a sync in Settings to refresh.',
   input_schema: {
     type: 'object',
     properties: {
@@ -17,17 +38,16 @@ export const listAllPagesTool: ToolDefinition = {
   async execute(args: Record<string, unknown>): Promise<string> {
     try {
       const pageSize = Math.min((args.page_size as number) || 20, 100);
-
-      const result = await notionApi.search({
-        filter: { property: 'object', value: 'page' },
-        page_size: pageSize,
+      const localPages = getLocalPages({ limit: pageSize, includeArchived: false });
+      const pages = localPages.map(p => formatLocalPageSummary(p));
+      return JSON.stringify({
+        count: pages.length,
+        has_more: localPages.length >= pageSize,
+        pages,
+        source: 'local',
       });
-
-      const pages = result.results.map((item: Record<string, unknown>) => formatPageSummary(item));
-
-      return JSON.stringify({ count: pages.length, has_more: result.has_more, pages });
     } catch (e) {
-      return JSON.stringify({ error: formatApiError(e) });
+      return JSON.stringify({ error: e instanceof Error ? e.message : String(e) });
     }
   },
 };

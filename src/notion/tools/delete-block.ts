@@ -1,10 +1,12 @@
 // Tool: notion-delete-block
+// Request: notion.blocks.delete({ block_id })
+// Response: { object, id }
 import { notionApi } from '../api/index';
 import { formatApiError } from '../helpers';
 
 export const deleteBlockTool: ToolDefinition = {
   name: 'delete-block',
-  description: 'Delete a block. This permanently removes the block from Notion.',
+  description: 'Delete a block. Permanently removes the block from Notion.',
   input_schema: {
     type: 'object',
     properties: { block_id: { type: 'string', description: 'The block ID to delete' } },
@@ -17,9 +19,10 @@ export const deleteBlockTool: ToolDefinition = {
         return JSON.stringify({ error: 'block_id is required' });
       }
 
-      await notionApi.deleteBlock(blockId);
+      const result = await notionApi.deleteBlock(blockId);
+      const rec = result as Record<string, unknown>;
 
-      return JSON.stringify({ success: true, message: 'Block deleted', block_id: blockId });
+      return JSON.stringify({ object: rec.object ?? 'block', id: rec.id });
     } catch (e) {
       return JSON.stringify({ error: formatApiError(e) });
     }

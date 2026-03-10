@@ -639,6 +639,17 @@ export function insertSummary(opts: {
 }
 
 /**
+ * Get the most recent summaries (all, synced or not) for publishing to the frontend.
+ */
+export function getLocalSummaries(limit: number): LocalSummary[] {
+  const cid = credId();
+  return db.all(
+    'SELECT * FROM summaries WHERE credential_id = ? ORDER BY created_at DESC LIMIT ?',
+    [cid, limit]
+  ) as unknown as LocalSummary[];
+}
+
+/**
  * Get all summaries that have not been synced to the server yet.
  */
 export function getUnsyncedSummaries(limit: number): LocalSummary[] {
