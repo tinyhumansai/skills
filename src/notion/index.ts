@@ -2,9 +2,10 @@
 // Notion integration skill exposing 25 tools for the Notion API + local sync.
 // Supports pages, databases, blocks, users, comments, and local search.
 // Authentication is handled via the platform OAuth bridge.
-import './api/index';
+import { notionApi } from './api/index';
 import { getEntityCounts, getLocalPages } from './db/helpers';
 import { initializeNotionSchema } from './db/schema';
+import { formatUserSummary } from './helpers';
 import { getNotionSkillState } from './state';
 import type { NotionSkillConfig } from './state';
 import { performSync } from './sync';
@@ -125,6 +126,16 @@ async function onOAuthComplete(args: OAuthCompleteArgs): Promise<OAuthCompleteRe
   // Start sync schedule
   const cronExpr = `0 */${s.config.syncIntervalMinutes} * * * *`;
   cron.register('notion-sync', cronExpr);
+
+  // Fetch the Notion profile immediately and publish it into state so the
+  // workspace/user context is available to the host.
+  try {
+    const user = await notionApi.getUser('me');
+    const profile = formatUserSummary(user as Record<string, unknown>);
+    state.setPartial({ profile });
+  } catch (e) {
+    console.error('[notion] Failed to fetch profile on OAuth complete:', e);
+  }
 
   publishState();
 

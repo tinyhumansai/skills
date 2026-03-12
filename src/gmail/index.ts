@@ -1,12 +1,11 @@
 // Gmail skill main entry point
-// Gmail integration with OAuth bridge, email management, and real-time sync
+// Gmail integration with OAuth bridge; sync sends list API response (id + threadId) to frontend.
 import { loadGmailProfile } from './api/helpers';
-import { upsertEmail } from './db/helpers';
 import { initializeGmailSchema } from './db/schema';
 import { getGmailSkillState } from './state';
 import { onSync } from './sync';
 import { tools } from './tools';
-import type { SkillConfig } from './types';
+import type { GmailMessageListItem, SkillConfig } from './types';
 
 // ---------------------------------------------------------------------------
 // Gmail API helper: uses access token from frontend when present, else oauth.fetch proxy.
@@ -143,13 +142,9 @@ async function start(): Promise<void> {
   const credential = oauth.getCredential();
 
   if (credential && s.config.syncEnabled) {
-    // Load Gmail profile
-    await loadGmailProfile();
-
-    // Load emails to get email summaries
-    await performSync();
-
-    // Publish initial state
+    // Register periodic sync via cron without blocking startup on full sync.
+    const cronExpr = `0 */${s.config.syncIntervalMinutes} * * * *`;
+    cron.register('gmail-sync', cronExpr);
     publishSkillState();
   } else {
     console.log('[gmail] Not connected or sync disabled');
@@ -197,10 +192,8 @@ async function onOAuthComplete(args: OAuthCompleteArgs): Promise<OAuthCompleteRe
 
   state.set('config', s.config);
 
-  // Load profile to get user email
   await loadGmailProfile();
 
-  // Load emails to get email summaries
   await performSync();
 
   publishSkillState();
@@ -231,17 +224,17 @@ async function onDisconnect(): Promise<void> {
   // Revoke via OAuth bridge
   oauth.revoke();
 
-  // Reset configuration
   s.config = {
     credentialId: '',
     userEmail: '',
     syncEnabled: true,
     syncIntervalMinutes: 15,
-    maxEmailsPerSync: 10,
+    maxEmailsPerSync: 100,
     notifyOnNewEmails: true,
   };
 
   s.profile = null;
+  s.lastMessageList = [];
   state.delete('config');
   cron.unregister('gmail-sync');
   publishSkillState();
@@ -329,7 +322,7 @@ async function onSetOption(args: { name: string; value: unknown }): Promise<void
       break;
 
     case 'maxEmailsPerSync':
-      s.config.maxEmailsPerSync = parseInt(args.value as string, 10);
+      s.config.maxEmailsPerSync = parseInt(args.value as string, 100);
       break;
 
     case 'notifyOnNewEmails':
@@ -362,35 +355,24 @@ async function performSync(): Promise<void> {
   s.syncStatus.newEmailsCount = 0;
 
   try {
-    // Get recent messages
     const params: string[] = [];
-    params.push(`maxResults=${s.config.maxEmailsPerSync}`);
+    params.push(`maxResults=${Math.min(s.config.maxEmailsPerSync, 500)}`);
     params.push('q=in%3Ainbox');
 
     const response = await gmailFetch(`/users/me/messages?${params.join('&')}`);
 
-    if (response.success && response.data.messages) {
-      let newEmails = 0;
-
-      for (const msgRef of response.data.messages) {
-        const msgResponse = await gmailFetch(`/users/me/messages/${msgRef.id}`);
-        if (msgResponse.success) {
-          upsertEmail(msgResponse.data);
-          newEmails++;
-        }
-      }
-
-      s.syncStatus.newEmailsCount = newEmails;
-
-      if (newEmails > 0 && s.config.notifyOnNewEmails) {
-        platform.notify('Gmail Sync Complete', `Synchronized ${newEmails} emails`);
-      }
-    }
+    const list =
+      response.success && Array.isArray(response.data?.messages)
+        ? (response.data.messages as GmailMessageListItem[])
+        : [];
+    s.lastMessageList = list;
+    s.syncStatus.newEmailsCount = list.length;
+    s.syncStatus.totalEmails = s.profile?.messagesTotal ?? list.length;
 
     s.syncStatus.lastSyncTime = Date.now();
     s.syncStatus.nextSyncTime = Date.now() + s.config.syncIntervalMinutes * 60 * 1000;
 
-    console.log(`[gmail] Sync completed. New emails: ${s.syncStatus.newEmailsCount}`);
+    console.log(`[gmail] Sync completed. List: ${list.length} messages sent to frontend`);
   } catch (error) {
     console.error(`[gmail] Sync failed: ${error}`);
     s.lastApiError = error instanceof Error ? error.message : String(error);
@@ -416,42 +398,7 @@ function publishSkillState(): void {
         }
       : null;
 
-  let emails: Array<{
-    id: string;
-    threadId: string;
-    snippet?: string;
-    subject?: string;
-    from?: string;
-    date?: string;
-  }> = [];
-  if (isConnected) {
-    const getEmailsFromDb = (
-      globalThis as {
-        getEmails?: (opts: {
-          maxResults?: number;
-        }) => Array<{
-          id: string;
-          thread_id: string;
-          subject: string;
-          sender_email: string;
-          date: number;
-          snippet: string;
-        }>;
-      }
-    ).getEmails;
-    if (getEmailsFromDb) {
-      const rows = getEmailsFromDb({ maxResults: s.config.maxEmailsPerSync });
-      emails = rows.map(row => ({
-        id: row.id,
-        threadId: row.thread_id,
-        snippet: row.snippet || undefined,
-        subject: row.subject || undefined,
-        from: row.sender_email || undefined,
-        date: row.date ? new Date(row.date).toISOString() : undefined,
-      }));
-      s.syncStatus.totalEmails = s.profile?.messagesTotal ?? rows.length;
-    }
-  }
+  const emails = isConnected ? s.lastMessageList : [];
 
   state.setPartial({
     // Standard SkillHostConnectionState fields
