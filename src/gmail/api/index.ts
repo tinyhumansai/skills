@@ -2,9 +2,6 @@
 // Gmail API helper (uses oauth.fetch proxy)
 import { getGmailSkillState } from '../state';
 
-// ---------------------------------------------------------------------------
-const GMAIL_API_PREFIX = '/gmail/v1';
-
 /** Max retries on 429 rate-limit responses. */
 const MAX_RETRIES = 3;
 
@@ -35,18 +32,27 @@ export async function gmailFetch(
     };
   }
 
-  const path = endpoint.startsWith('/')
-    ? GMAIL_API_PREFIX + endpoint
-    : GMAIL_API_PREFIX + '/' + endpoint;
+  const path = endpoint;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const response = await oauth.fetch(endpoint, {
+      console.log(
+        '🚀 ~ gmailFetch ~ path:',
+        path,
+        JSON.stringify({
+          method: options.method || 'GET',
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+          body: options.body,
+          timeout: options.timeout || 30,
+        })
+      );
+      const response = await oauth.fetch(path, {
         method: options.method || 'GET',
         headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-        body: options.body,
+        body: options.body ? JSON.stringify(options.body) : undefined,
         timeout: options.timeout || 30,
       });
+      console.log('🚀 ~ gmailFetch ~ response:', JSON.stringify(response));
 
       const s = getGmailSkillState();
 

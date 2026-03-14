@@ -5,103 +5,7 @@ import { initializeGmailSchema } from './db/schema';
 import { getGmailSkillState } from './state';
 import { onSync } from './sync';
 import { tools } from './tools';
-import type { GmailMessageListItem, SkillConfig } from './types';
-
-// ---------------------------------------------------------------------------
-// Gmail API helper: uses access token from frontend when present, else oauth.fetch proxy.
-// ---------------------------------------------------------------------------
-const GMAIL_API_BASE = 'https://gmail.googleapis.com/gmail/v1';
-
-async function gmailFetch(
-  endpoint: string,
-  options: {
-    method?: string;
-    body?: string;
-    headers?: Record<string, string>;
-    timeout?: number;
-  } = {}
-): Promise<{ success: boolean; data?: any; error?: { code: number; message: string } }> {
-  const credential = oauth.getCredential();
-
-  if (!credential) {
-    console.log('[gmail] gmailFetch: no credential (OAuth not connected)');
-    return {
-      success: false,
-      error: { code: 401, message: 'Gmail not connected. Complete OAuth setup first.' },
-    };
-  }
-
-  const method = options.method || 'GET';
-  const path = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-  const url = GMAIL_API_BASE + path;
-
-  const useAccessToken = !!credential.accessToken;
-
-  console.log(
-    `[gmail] gmailFetch: path=${path} method=${method} useAccessToken=${useAccessToken} credentialId=${credential.credentialId || '(none)'}`
-  );
-
-  try {
-    let response: { status: number; headers: Record<string, string>; body: string };
-
-    if (useAccessToken) {
-      const res = await net.fetch(url, {
-        method,
-        headers: {
-          Authorization: `Bearer ${credential.accessToken}`,
-          'Content-Type': 'application/json',
-          ...(options.headers || {}),
-        },
-        body: options.body,
-        timeout: options.timeout || 30,
-      });
-      response = res;
-    } else {
-      response = await oauth.fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-        body: options.body,
-        timeout: options.timeout || 30,
-      });
-    }
-
-    const s = getGmailSkillState();
-
-    if (response.status === 401) {
-      const bodyPreview = response.body ? response.body.slice(0, 200) : '(empty)';
-      console.log(`[gmail] gmailFetch: 401 Unauthorized path=${path} body=${bodyPreview}`);
-    } else if (response.status >= 400) {
-      const bodyPreview = response.body ? response.body.slice(0, 200) : '(empty)';
-      console.log(
-        `[gmail] gmailFetch: error path=${path} status=${response.status} body=${bodyPreview}`
-      );
-    }
-
-    // Update rate limit info from headers
-    if (response.headers['x-ratelimit-remaining']) {
-      s.rateLimitRemaining = parseInt(response.headers['x-ratelimit-remaining'], 10);
-    }
-    if (response.headers['x-ratelimit-reset']) {
-      s.rateLimitReset = parseInt(response.headers['x-ratelimit-reset'], 10) * 1000;
-    }
-
-    if (response.status >= 200 && response.status < 300) {
-      const data = response.body ? JSON.parse(response.body) : null;
-      s.lastApiError = null;
-      return { success: true, data };
-    }
-    const error = response.body
-      ? JSON.parse(response.body)
-      : { code: response.status, message: 'API request failed' };
-    s.lastApiError = error.message || `HTTP ${response.status}`;
-    return { success: false, error };
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    const s = getGmailSkillState();
-    s.lastApiError = errorMsg;
-    return { success: false, error: { code: 500, message: errorMsg } };
-  }
-}
+import type { SkillConfig } from './types';
 
 // ---------------------------------------------------------------------------
 // Lifecycle hooks
@@ -192,12 +96,7 @@ async function onOAuthComplete(args: OAuthCompleteArgs): Promise<OAuthCompleteRe
 
   state.set('config', s.config);
 
-  await loadGmailProfile();
-
-  await performSync();
-
   publishSkillState();
-  console.log(`[gmail] Connected as ${s.config.userEmail || args.accountLabel || 'unknown'}`);
 }
 
 async function onOAuthRevoked(args: OAuthRevokedArgs): Promise<void> {
@@ -234,7 +133,6 @@ async function onDisconnect(): Promise<void> {
   };
 
   s.profile = null;
-  s.lastMessageList = [];
   state.delete('config');
   cron.unregister('gmail-sync');
   publishSkillState();
@@ -339,49 +237,6 @@ async function onSetOption(args: { name: string; value: unknown }): Promise<void
   publishSkillState();
 }
 
-/**
- * Perform email sync using the OAuth credential (access token) via gmailFetch/oauth.fetch.
- * Called on start(), onOAuthComplete(), and by cron; frontend does not run its own sync.
- */
-async function performSync(): Promise<void> {
-  const s = getGmailSkillState();
-
-  if (!oauth.getCredential() || s.syncStatus.syncInProgress) {
-    return;
-  }
-
-  console.log('[gmail] Starting email sync...');
-  s.syncStatus.syncInProgress = true;
-  s.syncStatus.newEmailsCount = 0;
-
-  try {
-    const params: string[] = [];
-    params.push(`maxResults=${Math.min(s.config.maxEmailsPerSync, 500)}`);
-    params.push('q=in%3Ainbox');
-
-    const response = await gmailFetch(`/users/me/messages?${params.join('&')}`);
-
-    const list =
-      response.success && Array.isArray(response.data?.messages)
-        ? (response.data.messages as GmailMessageListItem[])
-        : [];
-    s.lastMessageList = list;
-    s.syncStatus.newEmailsCount = list.length;
-    s.syncStatus.totalEmails = s.profile?.messagesTotal ?? list.length;
-
-    s.syncStatus.lastSyncTime = Date.now();
-    s.syncStatus.nextSyncTime = Date.now() + s.config.syncIntervalMinutes * 60 * 1000;
-
-    console.log(`[gmail] Sync completed. List: ${list.length} messages sent to frontend`);
-  } catch (error) {
-    console.error(`[gmail] Sync failed: ${error}`);
-    s.lastApiError = error instanceof Error ? error.message : String(error);
-  } finally {
-    s.syncStatus.syncInProgress = false;
-    publishSkillState();
-  }
-}
-
 function publishSkillState(): void {
   const s = getGmailSkillState();
   const credential = oauth.getCredential();
@@ -397,8 +252,6 @@ function publishSkillState(): void {
           history_id: s.profile.historyId,
         }
       : null;
-
-  const emails = isConnected ? s.lastMessageList : [];
 
   state.setPartial({
     // Standard SkillHostConnectionState fields
@@ -420,15 +273,12 @@ function publishSkillState(): void {
     lastError: s.lastApiError,
     // For frontend gmail store (gmailSlice)
     profile,
-    emails,
   });
 }
 
 // Expose helper functions on globalThis for tools to use
 const _g = globalThis as Record<string, unknown>;
 _g.getGmailSkillState = getGmailSkillState;
-_g.gmailFetch = gmailFetch;
-_g.performSync = performSync;
 _g.publishSkillState = publishSkillState;
 _g.loadGmailProfile = loadGmailProfile;
 

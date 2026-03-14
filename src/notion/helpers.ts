@@ -356,10 +356,7 @@ export async function detectApiVersion(): Promise<string> {
     } else {
       response = await oauth.fetch('/v1/users?page_size=1', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Notion-Version': CURRENT_API_VERSION,
-        },
+        headers: { 'Content-Type': 'application/json', 'Notion-Version': CURRENT_API_VERSION },
         timeout: 10,
       });
     }
@@ -376,7 +373,10 @@ export async function detectApiVersion(): Promise<string> {
   } catch (error) {
     // On any error, fall back to legacy version
     cachedApiVersion = LEGACY_API_VERSION;
-    console.log(`[notion][helpers] Error detecting API version, using legacy: ${LEGACY_API_VERSION}`, error);
+    console.log(
+      `[notion][helpers] Error detecting API version, using legacy: ${LEGACY_API_VERSION}`,
+      error
+    );
   }
 
   return cachedApiVersion;
@@ -404,25 +404,32 @@ export async function resolveDataSourceId(databaseId: string): Promise<string> {
 
   try {
     // Try to get the database and extract data source ID
-    const response = await notionFetch<{
-      data_sources?: Array<{ id: string }>;
-      id: string;
-    }>(`/databases/${databaseId}`, { apiVersion });
+    const response = await notionFetch<{ data_sources?: Array<{ id: string }>; id: string }>(
+      `/databases/${databaseId}`,
+      { apiVersion }
+    );
 
     if (response.data_sources && response.data_sources.length > 0) {
       // Use the first data source ID
       const dataSourceId = response.data_sources[0].id;
-      console.log(`[notion][helpers] Resolved database ${databaseId} to data source ${dataSourceId}`);
+      console.log(
+        `[notion][helpers] Resolved database ${databaseId} to data source ${dataSourceId}`
+      );
       return dataSourceId;
     }
 
     // No data sources found, use original ID
-    console.log(`[notion][helpers] No data sources found for database ${databaseId}, using original ID`);
+    console.log(
+      `[notion][helpers] No data sources found for database ${databaseId}, using original ID`
+    );
     return databaseId;
   } catch (error) {
     // If the database call fails, the ID might already be a data source ID
     // or the database doesn't exist. Return the original ID.
-    console.log(`[notion][helpers] Error resolving data source for ${databaseId}, using original ID:`, error);
+    console.log(
+      `[notion][helpers] Error resolving data source for ${databaseId}, using original ID:`,
+      error
+    );
     return databaseId;
   }
 }

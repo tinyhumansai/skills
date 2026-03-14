@@ -127,20 +127,7 @@ async function onOAuthComplete(args: OAuthCompleteArgs): Promise<OAuthCompleteRe
   const cronExpr = `0 */${s.config.syncIntervalMinutes} * * * *`;
   cron.register('notion-sync', cronExpr);
 
-  // Fetch the Notion profile immediately and publish it into state so the
-  // workspace/user context is available to the host.
-  try {
-    const user = await notionApi.getUser('me');
-    const profile = formatUserSummary(user as Record<string, unknown>);
-    state.setPartial({ profile });
-  } catch (e) {
-    console.error('[notion] Failed to fetch profile on OAuth complete:', e);
-  }
-
   publishState();
-
-  // Trigger initial sync in background — must not block onOAuthComplete (30s hard deadline)
-  performSync();
 }
 
 async function onOAuthRevoked(args: OAuthRevokedArgs): Promise<void> {
@@ -168,6 +155,19 @@ async function onDisconnect(): Promise<void> {
 
 async function onSync(): Promise<void> {
   console.log('[notion] Syncing');
+
+  // Fetch the Notion profile immediately and publish it into state so the
+  // workspace/user context is available to the host.
+  try {
+    const user = await notionApi.getUser('me');
+    const profile = formatUserSummary(user as Record<string, unknown>);
+    state.setPartial({ profile });
+  } catch (e) {
+    console.error('[notion] Failed to fetch profile on OAuth complete:', e);
+  }
+
+  publishState();
+
   performSync();
 }
 

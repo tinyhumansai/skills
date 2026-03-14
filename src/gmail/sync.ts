@@ -2,15 +2,10 @@
 // Fetches messages via Gmail API and upserts into local SQLite database.
 // Skips emails already in the local DB to avoid redundant API calls.
 import { gmailFetch } from './api';
-import {
-  getEmailById,
-  getUnsubmittedEmails,
-  markEmailsSubmitted,
-  markSensitiveAsSubmitted,
-  upsertEmail,
-} from './db/helpers';
+import { loadGmailProfile } from './api/helpers';
+import { getEmailById, upsertEmail } from './db/helpers';
 import { getGmailSkillState, publishSkillState } from './state';
-import type { DatabaseEmail, GmailMessage } from './types';
+import type { GmailMessage } from './types';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -45,14 +40,14 @@ function emitSyncProgress(message: string, progress: number): void {
 }
 
 /** Parse labels from DB JSON string into an array. */
-function parseLabels(labels: string): string[] {
-  try {
-    const parsed = JSON.parse(labels);
-    return Array.isArray(parsed) ? parsed.map((l: string) => l.toLowerCase()) : [];
-  } catch {
-    return [];
-  }
-}
+// function parseLabels(labels: string): string[] {
+//   try {
+//     const parsed = JSON.parse(labels);
+//     return Array.isArray(parsed) ? parsed.map((l: string) => l.toLowerCase()) : [];
+//   } catch {
+//     return [];
+//   }
+// }
 
 /** Build a Gmail `after:` date string (YYYY/MM/DD) for N days ago. */
 function getDateNDaysAgo(days: number): string {
@@ -189,7 +184,7 @@ export async function performInitialSync(onProgress?: SyncProgressCallback): Pro
     log(`Initial sync complete: ${newEmails} new emails, ${skipped} skipped`, 100);
 
     // Submit newly synced emails to backend for processing
-    submitNewEmails();
+    // submitNewEmails();
 
     if (newEmails > 0 && s.config.notifyOnNewEmails) {
       platform.notify('Gmail Sync Complete', `Synchronized ${newEmails} new emails`);
@@ -220,6 +215,15 @@ export async function onSync(): Promise<void> {
 
   if (!oauth.getCredential() || s.syncStatus.syncInProgress) return;
 
+  try {
+    await loadGmailProfile();
+  } catch (error) {
+    console.error(`[gmail] Failed to load profile: ${error}`);
+    return;
+  }
+
+  publishSkillState();
+
   // If initial sync hasn't completed, run it instead
   if (!isSyncCompleted()) {
     return performInitialSync();
@@ -228,7 +232,6 @@ export async function onSync(): Promise<void> {
   s.syncStatus.syncInProgress = true;
   s.syncStatus.newEmailsCount = 0;
   emitSyncProgress('Starting incremental sync...', 0);
-  publishSkillState();
 
   try {
     // Use last sync time to narrow the query window, but never go beyond 30 days
@@ -282,7 +285,7 @@ export async function onSync(): Promise<void> {
     console.log(`[gmail-sync] Incremental sync done: ${newEmails} new, ${skipped} skipped`);
 
     // Submit newly synced emails to backend for processing
-    submitNewEmails();
+    // submitNewEmails();
 
     if (newEmails > 0 && s.config.notifyOnNewEmails) {
       platform.notify('New Gmail Emails', `${newEmails} new emails synced`);
@@ -304,144 +307,144 @@ export async function onSync(): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /** Approximate max payload size per socket message (~100 KB). */
-const MAX_BATCH_BYTES = 100 * 1024;
+// const MAX_BATCH_BYTES = 100 * 1024;
 
 /** Max emails to pull from DB per submission round. */
-const SUBMIT_QUERY_LIMIT = 500;
+// const SUBMIT_QUERY_LIMIT = 500;
 
 /**
  * Build a DataSubmissionChunk from a database email row.
  * Prefers body_text, falls back to snippet. Includes key metadata,
  * raw HTML content, structured labels, and person entities.
  */
-function emailToChunk(email: DatabaseEmail): DataSubmissionChunk {
-  const content = email.body_text || email.snippet || '';
+// function emailToChunk(email: DatabaseEmail): DataSubmissionChunk {
+//   const content = email.body_text || email.snippet || '';
 
-  // Build entities from sender + recipients
-  const entities: Array<{ name: string; identifier: string; kind: string }> = [];
+//   // Build entities from sender + recipients
+//   const entities: Array<{ name: string; identifier: string; kind: string }> = [];
 
-  if (email.sender_email) {
-    entities.push({
-      name: email.sender_name || email.sender_email,
-      identifier: email.sender_email,
-      kind: 'sender',
-    });
-  }
+//   if (email.sender_email) {
+//     entities.push({
+//       name: email.sender_name || email.sender_email,
+//       identifier: email.sender_email,
+//       kind: 'sender',
+//     });
+//   }
 
-  if (email.recipient_emails) {
-    for (const raw of email.recipient_emails.split(',')) {
-      const trimmed = raw.trim();
-      if (!trimmed) continue;
-      // Parse "Name <email>" or bare email
-      const match = trimmed.match(/(.+?)\s*<([^>]+)>/);
-      const addr = match ? match[2].trim() : trimmed;
-      const name = match ? match[1].trim().replace(/^["']|["']$/g, '') : trimmed;
-      // Avoid duplicating the sender
-      if (addr !== email.sender_email) {
-        entities.push({ name, identifier: addr, kind: 'recipient' });
-      }
-    }
-  }
+//   if (email.recipient_emails) {
+//     for (const raw of email.recipient_emails.split(',')) {
+//       const trimmed = raw.trim();
+//       if (!trimmed) continue;
+//       // Parse "Name <email>" or bare email
+//       const match = trimmed.match(/(.+?)\s*<([^>]+)>/);
+//       const addr = match ? match[2].trim() : trimmed;
+//       const name = match ? match[1].trim().replace(/^["']|["']$/g, '') : trimmed;
+//       // Avoid duplicating the sender
+//       if (addr !== email.sender_email) {
+//         entities.push({ name, identifier: addr, kind: 'recipient' });
+//       }
+//     }
+//   }
 
-  if (email.cc_emails) {
-    for (const raw of email.cc_emails.split(',')) {
-      const trimmed = raw.trim();
-      if (!trimmed) continue;
-      const match = trimmed.match(/(.+?)\s*<([^>]+)>/);
-      const addr = match ? match[2].trim() : trimmed;
-      const name = match ? match[1].trim().replace(/^["']|["']$/g, '') : trimmed;
-      if (!entities.some(e => e.identifier === addr)) {
-        entities.push({ name, identifier: addr, kind: 'recipient_cc' });
-      }
-    }
-  }
+//   if (email.cc_emails) {
+//     for (const raw of email.cc_emails.split(',')) {
+//       const trimmed = raw.trim();
+//       if (!trimmed) continue;
+//       const match = trimmed.match(/(.+?)\s*<([^>]+)>/);
+//       const addr = match ? match[2].trim() : trimmed;
+//       const name = match ? match[1].trim().replace(/^["']|["']$/g, '') : trimmed;
+//       if (!entities.some(e => e.identifier === addr)) {
+//         entities.push({ name, identifier: addr, kind: 'recipient_cc' });
+//       }
+//     }
+//   }
 
-  return {
-    title: email.subject || undefined,
-    content,
-    rawContent: email.body_html || undefined,
-    labels: parseLabels(email.labels),
-    entities: entities.length > 0 ? entities : undefined,
-    metadata: { emailId: email.id, threadId: email.thread_id, date: email.date },
-  };
-}
+//   return {
+//     title: email.subject || undefined,
+//     content,
+//     rawContent: email.body_html || undefined,
+//     labels: parseLabels(email.labels),
+//     entities: entities.length > 0 ? entities : undefined,
+//     metadata: { emailId: email.id, threadId: email.thread_id, date: email.date },
+//   };
+// }
 
 /** Rough byte size of a chunk (title + content + rawContent + overhead). */
-function estimateChunkSize(chunk: DataSubmissionChunk): number {
-  return (chunk.title?.length || 0) + chunk.content.length + (chunk.rawContent?.length || 0) + 256;
-}
+// function estimateChunkSize(chunk: DataSubmissionChunk): number {
+//   return (chunk.title?.length || 0) + chunk.content.length + (chunk.rawContent?.length || 0) + 256;
+// }
 
 /**
  * Submit un-submitted emails to the backend for processing.
  * Batches chunks so each socket message stays under ~100 KB.
  * Sensitive emails are marked as submitted so they don't accumulate.
  */
-function submitNewEmails(): void {
-  // Mark sensitive emails as "submitted" so they don't pile up.
-  markSensitiveAsSubmitted();
+// function submitNewEmails(): void {
+//   // Mark sensitive emails as "submitted" so they don't pile up.
+//   markSensitiveAsSubmitted();
 
-  const emails = getUnsubmittedEmails(SUBMIT_QUERY_LIMIT);
-  if (emails.length === 0) return;
+//   const emails = getUnsubmittedEmails(SUBMIT_QUERY_LIMIT);
+//   if (emails.length === 0) return;
 
-  // Build chunks, keeping track of which email ID produced each one
-  const prepared: Array<{ id: string; chunk: DataSubmissionChunk }> = [];
-  const emptyIds: string[] = [];
+//   // Build chunks, keeping track of which email ID produced each one
+//   const prepared: Array<{ id: string; chunk: DataSubmissionChunk }> = [];
+//   const emptyIds: string[] = [];
 
-  for (const email of emails) {
-    const chunk = emailToChunk(email);
-    if (chunk.content.length > 0) prepared.push({ id: email.id, chunk });
-    else emptyIds.push(email.id);
-  }
+//   for (const email of emails) {
+//     const chunk = emailToChunk(email);
+//     if (chunk.content.length > 0) prepared.push({ id: email.id, chunk });
+//     else emptyIds.push(email.id);
+//   }
 
-  // Mark empty-content emails as submitted so they aren't re-processed
-  if (emptyIds.length > 0) markEmailsSubmitted(emptyIds);
-  if (prepared.length === 0) return;
+//   // Mark empty-content emails as submitted so they aren't re-processed
+//   if (emptyIds.length > 0) markEmailsSubmitted(emptyIds);
+//   if (prepared.length === 0) return;
 
-  // Split into size-limited batches
-  let batch: DataSubmissionChunk[] = [];
-  let batchIds: string[] = [];
-  let batchBytes = 0;
-  let totalSubmitted = 0;
+//   // Split into size-limited batches
+//   let batch: DataSubmissionChunk[] = [];
+//   let batchIds: string[] = [];
+//   let batchBytes = 0;
+//   let totalSubmitted = 0;
 
-  for (const { id, chunk } of prepared) {
-    const size = estimateChunkSize(chunk);
+//   for (const { id, chunk } of prepared) {
+//     const size = estimateChunkSize(chunk);
 
-    // If adding this chunk would exceed the limit, flush the current batch first
-    if (batch.length > 0 && batchBytes + size > MAX_BATCH_BYTES) {
-      try {
-        backend.submitData(batch, { dataSource: 'gmail' });
-        markEmailsSubmitted(batchIds);
-        totalSubmitted += batch.length;
-      } catch (error) {
-        console.error(`[gmail-sync] Failed to submit batch to backend: ${error}`);
-        return; // Stop on failure; remaining emails will be retried next sync
-      }
-      batch = [];
-      batchIds = [];
-      batchBytes = 0;
-    }
+//     // If adding this chunk would exceed the limit, flush the current batch first
+//     if (batch.length > 0 && batchBytes + size > MAX_BATCH_BYTES) {
+//       try {
+//         backend.submitData(batch, { dataSource: 'gmail' });
+//         markEmailsSubmitted(batchIds);
+//         totalSubmitted += batch.length;
+//       } catch (error) {
+//         console.error(`[gmail-sync] Failed to submit batch to backend: ${error}`);
+//         return; // Stop on failure; remaining emails will be retried next sync
+//       }
+//       batch = [];
+//       batchIds = [];
+//       batchBytes = 0;
+//     }
 
-    batch.push(chunk);
-    batchIds.push(id);
-    batchBytes += size;
-  }
+//     batch.push(chunk);
+//     batchIds.push(id);
+//     batchBytes += size;
+//   }
 
-  // Flush remaining batch
-  if (batch.length > 0) {
-    try {
-      backend.submitData(batch, { dataSource: 'gmail' });
-      markEmailsSubmitted(batchIds);
-      totalSubmitted += batch.length;
-    } catch (error) {
-      console.error(`[gmail-sync] Failed to submit final batch to backend: ${error}`);
-      return;
-    }
-  }
+//   // Flush remaining batch
+//   if (batch.length > 0) {
+//     try {
+//       backend.submitData(batch, { dataSource: 'gmail' });
+//       markEmailsSubmitted(batchIds);
+//       totalSubmitted += batch.length;
+//     } catch (error) {
+//       console.error(`[gmail-sync] Failed to submit final batch to backend: ${error}`);
+//       return;
+//     }
+//   }
 
-  if (totalSubmitted > 0) {
-    console.log(`[gmail-sync] Submitted ${totalSubmitted} email(s) to backend`);
-  }
-}
+//   if (totalSubmitted > 0) {
+//     console.log(`[gmail-sync] Submitted ${totalSubmitted} email(s) to backend`);
+//   }
+// }
 
 // ---------------------------------------------------------------------------
 // Sync state helpers

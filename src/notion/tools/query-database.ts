@@ -4,13 +4,15 @@ import { formatApiError, formatPageSummary, supportsMultiSourceDatabases } from 
 
 export const queryDatabaseTool: ToolDefinition = {
   name: 'query-database',
-  description: 'Query a database with optional filters and sorts. Returns database rows/pages. Automatically handles API version compatibility.',
+  description:
+    'Query a database with optional filters and sorts. Returns database rows/pages. Automatically handles API version compatibility.',
   input_schema: {
     type: 'object',
     properties: {
       database_id: {
         type: 'string',
-        description: 'The database ID to query. Can be either a legacy database ID or a new data source ID - the tool will handle both automatically'
+        description:
+          'The database ID to query. Can be either a legacy database ID or a new data source ID - the tool will handle both automatically',
       },
       filter: {
         type: 'string',
@@ -70,7 +72,7 @@ export const queryDatabaseTool: ToolDefinition = {
         metadata._api_info = {
           version: '2025-09-03',
           supports_multi_source: true,
-          note: 'Using enhanced API with data source support'
+          note: 'Using enhanced API with data source support',
         };
       }
 
@@ -87,10 +89,10 @@ export const queryDatabaseTool: ToolDefinition = {
             'Ensure the database is shared with your Notion integration',
             'Check that the database_id is correct',
             'Verify your integration has the necessary permissions',
-            'If using a new database, it may need time to sync with the API'
+            'If using a new database, it may need time to sync with the API',
           ],
-          api_transition_note: 'This tool automatically handles both legacy and new API versions'
-        }
+          api_transition_note: 'This tool automatically handles both legacy and new API versions',
+        },
       });
     }
   },

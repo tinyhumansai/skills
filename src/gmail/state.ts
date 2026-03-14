@@ -24,7 +24,6 @@ const skillState: GmailSkillState = {
     syncProgress: 0,
     syncProgressMessage: '',
   },
-  lastMessageList: [],
   activeSessions: [],
   rateLimitRemaining: 250,
   rateLimitReset: Date.now() + 3600000,

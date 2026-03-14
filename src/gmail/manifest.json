@@ -10,7 +10,9 @@
     "label": "Connect Gmail",
     "oauth": {
       "provider": "gmail",
+      "apiBaseUrl": "https://gmail.googleapis.com/gmail/v1",
       "scopes": [
+        "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/gmail.send",
         "https://www.googleapis.com/auth/gmail.modify",
         "https://www.googleapis.com/auth/gmail.labels"

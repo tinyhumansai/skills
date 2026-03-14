@@ -186,18 +186,10 @@ export interface ApiError {
   errors?: Array<{ domain: string; reason: string; message: string }>;
 }
 
-/** List API response item (id + threadId only). Sent to frontend as-is. */
-export interface GmailMessageListItem {
-  id: string;
-  threadId: string;
-}
-
 export interface GmailSkillState {
   config: SkillConfig;
   profile: GmailProfile | null;
   syncStatus: SyncStatus;
-  /** Last list API response messages array; published to frontend as emails. */
-  lastMessageList: GmailMessageListItem[];
   activeSessions: string[];
   rateLimitRemaining: number;
   rateLimitReset: number;
